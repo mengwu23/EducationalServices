@@ -384,58 +384,193 @@ scripts/
 
 数据库使用 MySQL，ORM 使用 SQLAlchemy，迁移使用 Alembic。
 
-数据库设计目标是先支撑第一版业务闭环，避免过早设计复杂外部系统对接。CRM、教务、申请进度等数据先在本系统内维护。
+数据库设计目标是先支撑第一版业务闭环，同时保证 AI 草稿确认、AI Tools 调用和操作审计有稳定落点。CRM、教务、申请进度等数据先在本系统内维护。
 
-### 公共表
+### 表结构来源
 
-- 用户表：管理员、员工、学生、访客账号。
-- AI 草稿表：统一承载客户研判、客服回复、报名字段、自然语言操作、情绪记录、投诉摘要和报告内容。
-- 操作日志表：记录写操作、确认操作、删除、批量修改、报告发布和客服对外回复。
+业务基础表来自 `C:/Users/14470/xwechat_files/wxid_awv937a0yzpz22_5200/msg/file/2026-06/项目sql.txt`。该 SQL 文件策略是先建基础必需表，把复杂日志、AI 审计和细粒度分析表放到后续扩展。
 
-### 模块核心表
+本开发文档在这 18 张基础业务表上补充 3 张 AI 公共能力表：
 
-客户研判：
+- `ai_draft`：支撑 DraftService 草稿生命周期。
+- `audit_log`：支撑确认、驳回、二次确认、正式写入、发布和导出审计。
+- `ai_tool_call_log`：支撑 Dify 调用 AI Tools 的工具级审计。
 
-- 客户研判记录表
-- 资料附件表
-- 客户特征快照表
+### 第一阶段必建表清单
 
-客服 Agent：
+第一阶段共 21 张表：18 张基础业务表 + 3 张 AI 公共能力表。
 
-- 客服会话表
-- 客服消息表
-- 知识库资料表
-- FAQ 表
-- 课程项目表
-- 活动表
-- 活动报名表
+组织与账号：
 
-企业智能助手：
+- `sys_department`
+- `sys_user`
+- `employee_profile`
+- `student_profile`
 
-- 意向客户表
-- 员工日报表
-- 投诉反馈表
-- 学生成绩表
-- 请假申请表
-- 组织架构表
-- 新人指南知识库表
+客户与销售：
 
-学生智能助手：
+- `crm_lead`
+- `customer_analysis_record`
 
-- 请假申请表
-- 投诉反馈工单表
-- 心理/情绪记录表
-- 考务事项表
-- 申请进度表
-- 生活知识库表
-- 升学项目资料表
+员工业务：
 
-智能报告：
+- `employee_daily_report`
 
-- 报告任务表
-- 报告草稿表
-- 报告版本表
-- 报告导出记录表
+学生业务：
+
+- `student_score`
+- `student_leave_request`
+- `student_feedback_ticket`
+- `student_psych_profile`
+- `student_psych_alert`
+- `academic_event`
+- `student_application_progress`
+
+客服与内容：
+
+- `course_project`
+- `event_lecture`
+- `event_registration`
+- `faq_qa`
+
+AI 公共能力：
+
+- `ai_draft`
+- `audit_log`
+- `ai_tool_call_log`
+
+### 表结构摘要
+
+| 表名 | 所属模块 | 用途 | 关键关联 |
+| --- | --- | --- | --- |
+| `sys_department` | 组织与账号 | 部门组织架构、部门汇总、组织查询 | 自关联 `parent_id` |
+| `sys_user` | 组织与账号 | 统一账号、身份识别、权限基础 | 被员工、学生、审计表引用 |
+| `employee_profile` | 组织与账号 | 员工档案、岗位角色、部门归属 | `sys_user`、`sys_department` |
+| `student_profile` | 组织与账号 | 学生基础档案和学生业务主对象 | `sys_user`、员工顾问 |
+| `crm_lead` | 客户与销售 | 意向客户、销售漏斗、客户状态 | 负责员工、活动报名、客户研判 |
+| `customer_analysis_record` | 客户研判 | 客户资料、AI 研判结果、匹配依据 | `crm_lead`、员工、学生 |
+| `employee_daily_report` | 企业智能助手 | 员工日报、AI 摘要、日报汇总 | 员工、部门 |
+| `student_score` | 学生业务 | 学生成绩录入与查询 | 学生、录入员工 |
+| `student_leave_request` | 学生业务 | 请假申请、员工审批、结果查询 | 学生、审批员工 |
+| `student_feedback_ticket` | 学生业务 | 投诉建议、售后反馈、跟进处理 | 学生、处理员工 |
+| `student_psych_profile` | 学生业务 | 学生心理画像、最新情绪状态 | 学生、更新员工 |
+| `student_psych_alert` | 学生业务 | 心理风险预警、老师跟进 | 学生、跟进老师 |
+| `course_project` | 客服与内容 | 课程项目、推荐匹配、增值服务 | 客服 Agent、学生助手 |
+| `event_lecture` | 客服与内容 | 活动讲座、时间地点、名额状态 | 活动报名 |
+| `event_registration` | 客服与内容 | 活动报名闭环、报名状态统计 | 活动、意向客户 |
+| `faq_qa` | 客服与内容 | FAQ、制度问答、海外生活问答 | 客服 Agent、学生助手 |
+| `academic_event` | 学生业务 | 论文 DDL、考试、课程截止提醒 | 学生 |
+| `student_application_progress` | 学生业务 | 文书、院校申请、签证等进度查询 | 学生、负责员工 |
+| `ai_draft` | AI 公共能力 | AI 输出草稿、待确认操作、二次确认 | 用户、业务对象 |
+| `audit_log` | AI 公共能力 | 操作审计、确认审计、发布审计 | 用户、草稿、业务对象 |
+| `ai_tool_call_log` | AI 公共能力 | Dify 调用 AI Tools 的工具审计 | 草稿、会话、链路 |
+
+### 三张 AI 公共表 SQL
+
+以下 3 张表是对 `项目sql.txt` 的第一阶段补充，用来让数据库设计与 `DraftService`、`DifyClient`、`AI Tools` 架构保持一致。
+
+```sql
+CREATE TABLE IF NOT EXISTS ai_draft (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT 'AI草稿ID',
+    draft_no VARCHAR(50) NOT NULL COMMENT '草稿编号',
+    draft_type VARCHAR(50) NOT NULL COMMENT '草稿类型：customer_analysis/customer_reply/activity_signup/business_operation/complaint_summary/emotion_record/report',
+    biz_module VARCHAR(50) NOT NULL COMMENT '业务模块：customer_judgement/service_agent/enterprise_assistant/student_assistant/report',
+    biz_object_type VARCHAR(80) DEFAULT NULL COMMENT '关联业务对象类型',
+    biz_object_id BIGINT DEFAULT NULL COMMENT '关联业务对象ID',
+    status VARCHAR(30) NOT NULL DEFAULT 'generating' COMMENT '草稿状态：generating生成中/pending_confirm待确认/confirmed已确认/rejected已驳回/generation_failed生成失败/pending_second_confirm待二次确认',
+    content_json JSON NOT NULL COMMENT '草稿内容JSON',
+    source_trace_id VARCHAR(100) DEFAULT NULL COMMENT '来源链路ID',
+    created_by BIGINT DEFAULT NULL COMMENT '创建人用户ID',
+    confirmed_by BIGINT DEFAULT NULL COMMENT '确认人用户ID',
+    confirmed_time DATETIME DEFAULT NULL COMMENT '确认时间',
+    reject_reason VARCHAR(500) DEFAULT NULL COMMENT '驳回原因',
+    create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    UNIQUE KEY uk_ai_draft_no (draft_no),
+    KEY idx_ai_draft_type (draft_type),
+    KEY idx_ai_draft_module (biz_module),
+    KEY idx_ai_draft_object (biz_object_type, biz_object_id),
+    KEY idx_ai_draft_status (status),
+    KEY idx_ai_draft_created_by (created_by),
+    KEY idx_ai_draft_confirmed_by (confirmed_by),
+    CONSTRAINT fk_ai_draft_created_by FOREIGN KEY (created_by) REFERENCES sys_user(id),
+    CONSTRAINT fk_ai_draft_confirmed_by FOREIGN KEY (confirmed_by) REFERENCES sys_user(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='AI草稿公共表';
+
+CREATE TABLE IF NOT EXISTS audit_log (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '审计日志ID',
+    operator_user_id BIGINT DEFAULT NULL COMMENT '操作人用户ID',
+    operator_role VARCHAR(50) DEFAULT NULL COMMENT '操作人角色',
+    action_type VARCHAR(80) NOT NULL COMMENT '操作类型：create/update/delete/confirm/reject/second_confirm/publish/export/tool_call',
+    biz_module VARCHAR(50) NOT NULL COMMENT '业务模块',
+    biz_object_type VARCHAR(80) DEFAULT NULL COMMENT '业务对象类型',
+    biz_object_id BIGINT DEFAULT NULL COMMENT '业务对象ID',
+    before_json JSON DEFAULT NULL COMMENT '操作前数据摘要',
+    after_json JSON DEFAULT NULL COMMENT '操作后数据摘要',
+    draft_id BIGINT DEFAULT NULL COMMENT '关联AI草稿ID',
+    trace_id VARCHAR(100) DEFAULT NULL COMMENT '链路追踪ID',
+    result VARCHAR(30) NOT NULL DEFAULT 'success' COMMENT '执行结果：success成功/fail失败',
+    error_message VARCHAR(1000) DEFAULT NULL COMMENT '失败原因',
+    create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    KEY idx_audit_operator (operator_user_id),
+    KEY idx_audit_action_type (action_type),
+    KEY idx_audit_module_object (biz_module, biz_object_type, biz_object_id),
+    KEY idx_audit_draft_id (draft_id),
+    KEY idx_audit_trace_id (trace_id),
+    KEY idx_audit_create_time (create_time),
+    CONSTRAINT fk_audit_operator FOREIGN KEY (operator_user_id) REFERENCES sys_user(id),
+    CONSTRAINT fk_audit_draft FOREIGN KEY (draft_id) REFERENCES ai_draft(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='系统操作审计日志表';
+
+CREATE TABLE IF NOT EXISTS ai_tool_call_log (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT 'AI工具调用日志ID',
+    tool_name VARCHAR(100) NOT NULL COMMENT '工具名称',
+    caller VARCHAR(50) NOT NULL DEFAULT 'dify' COMMENT '调用方：dify/other',
+    conversation_id VARCHAR(100) DEFAULT NULL COMMENT 'Dify会话ID',
+    trace_id VARCHAR(100) DEFAULT NULL COMMENT '链路追踪ID',
+    arguments_summary JSON DEFAULT NULL COMMENT '调用参数摘要',
+    result_summary JSON DEFAULT NULL COMMENT '调用结果摘要',
+    draft_id BIGINT DEFAULT NULL COMMENT '关联AI草稿ID',
+    status VARCHAR(30) NOT NULL DEFAULT 'success' COMMENT '调用状态：success成功/fail失败',
+    error_message VARCHAR(1000) DEFAULT NULL COMMENT '失败原因',
+    create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    KEY idx_tool_call_tool_name (tool_name),
+    KEY idx_tool_call_caller (caller),
+    KEY idx_tool_call_conversation (conversation_id),
+    KEY idx_tool_call_trace_id (trace_id),
+    KEY idx_tool_call_draft_id (draft_id),
+    KEY idx_tool_call_create_time (create_time),
+    CONSTRAINT fk_tool_call_draft FOREIGN KEY (draft_id) REFERENCES ai_draft(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='AI工具调用日志表';
+```
+
+### 数据库与 AI 架构对应关系
+
+- `DraftService` 只操作 `ai_draft` 和必要业务确认动作。
+- `DifyClient` 不直接操作任何表。
+- `AI Tools` 查询类工具可读取业务表摘要。
+- `AI Tools` 写入类工具只能创建 `ai_draft` 或待二次确认操作，不能直接写正式业务状态。
+- 所有 AI Tools 调用必须写入 `ai_tool_call_log`。
+- 所有确认、驳回、二次确认、正式写入、报告发布必须写入 `audit_log`。
+
+### 第二阶段扩展表
+
+以下表来自 `项目sql.txt` 的后续扩展规划，第一阶段不要求建表：
+
+- `crm_lead_followup`：客户跟进明细表。
+- `student_feedback_log`：投诉/反馈处理日志表。
+- `ai_conversation_session`：AI 会话记录表。
+- `ai_conversation_message`：AI 会话消息表。
+- `knowledge_document`：知识库文档表。
+- `knowledge_chunk`：知识库切片表。
+- `todo_task`：主动待办表。
+- `notification_message`：通知消息表。
+- `ai_report`：智能报告历史表。
+- `crm_contract`：签约合同表。
+- `service_product`：服务产品表。
+- `customer_profile_rule`：客户画像规则表。
+- `student_emotion_record`：学生情绪明细记录表。
+- `student_upgrade_intent`：学生增值转化意向表。
 
 ### 状态枚举
 
