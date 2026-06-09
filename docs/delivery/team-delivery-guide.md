@@ -390,15 +390,17 @@ scripts/
 
 业务基础表来自 `C:/Users/14470/xwechat_files/wxid_awv937a0yzpz22_5200/msg/file/2026-06/项目sql.txt`。该 SQL 文件策略是先建基础必需表，把复杂日志、AI 审计和细粒度分析表放到后续扩展。
 
-本开发文档在这 18 张基础业务表上补充 3 张 AI 公共能力表：
+本开发文档在这 18 张基础业务表上补充 3 张 AI 公共能力表，并在智能报告一期开发中提前补充 2 张报告发布与导出表：
 
 - `ai_draft`：支撑 DraftService 草稿生命周期。
 - `audit_log`：支撑确认、驳回、二次确认、正式写入、发布和导出审计。
 - `ai_tool_call_log`：支撑 Dify 调用 AI Tools 的工具级审计。
+- `ai_report`：支撑智能报告正式发布版本。
+- `report_export_record`：支撑 Word/PDF 导出记录。
 
 ### 第一阶段必建表清单
 
-第一阶段共 21 张表：18 张基础业务表 + 3 张 AI 公共能力表。
+第一阶段共 23 张表：18 张基础业务表 + 3 张 AI 公共能力表 + 2 张智能报告表。
 
 组织与账号：
 
@@ -438,6 +440,8 @@ AI 公共能力：
 - `ai_draft`
 - `audit_log`
 - `ai_tool_call_log`
+- `ai_report`
+- `report_export_record`
 
 ### 表结构摘要
 
@@ -464,10 +468,13 @@ AI 公共能力：
 | `ai_draft` | AI 公共能力 | AI 输出草稿、待确认操作、二次确认 | 用户、业务对象 |
 | `audit_log` | AI 公共能力 | 操作审计、确认审计、发布审计 | 用户、草稿、业务对象 |
 | `ai_tool_call_log` | AI 公共能力 | Dify 调用 AI Tools 的工具审计 | 草稿、会话、链路 |
+| `ai_report` | 智能报告 | 已确认和已发布的正式报告版本 | `ai_draft`、用户、部门 |
+| `report_export_record` | 智能报告 | Word/PDF 导出记录、失败原因和文件路径 | `ai_report`、用户 |
 
 ### 三张 AI 公共表 SQL
 
 以下 3 张表是对 `项目sql.txt` 的第一阶段补充，用来让数据库设计与 `DraftService`、`DifyClient`、`AI Tools` 架构保持一致。
+智能报告一期额外补充的 `ai_report` 和 `report_export_record` 由 Alembic 迁移文件维护。
 
 ```sql
 CREATE TABLE IF NOT EXISTS ai_draft (
@@ -565,7 +572,6 @@ CREATE TABLE IF NOT EXISTS ai_tool_call_log (
 - `knowledge_chunk`：知识库切片表。
 - `todo_task`：主动待办表。
 - `notification_message`：通知消息表。
-- `ai_report`：智能报告历史表。
 - `crm_contract`：签约合同表。
 - `service_product`：服务产品表。
 - `customer_profile_rule`：客户画像规则表。

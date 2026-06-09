@@ -6,6 +6,7 @@
 
 - 产品需求设计：[docs/superpowers/specs/2026-06-09-education-service-system-prd-design.md](docs/superpowers/specs/2026-06-09-education-service-system-prd-design.md)
 - 团队交付文档：[docs/delivery/README.md](docs/delivery/README.md)
+- 智能报告后端第一版：报告草稿生成、确认、发布、Word/PDF 导出接口、审计日志和 AI Tools 日志。
 
 ## 项目技术方向
 
@@ -20,4 +21,11 @@
 
 交付文档面向开发团队成员，主要用于统一项目目标、分层目录、接口约定、Dify 协作方式、测试验收和本地启动流程。
 
-当前阶段只写文档，不创建 `backend/`、`frontend/`、`dify/` 等代码骨架目录。后续进入开发阶段时，再按交付文档中的分层结构创建代码。
+当前已进入后端开发阶段，已创建 `backend/` 并优先实现智能报告模块。`frontend/`、`dify/` 等目录后续按交付文档继续创建。
+
+## 后端测试
+
+```powershell
+cd backend
+python -m pytest -q
+```
