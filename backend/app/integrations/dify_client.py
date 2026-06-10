@@ -1,4 +1,5 @@
 import json
+import json
 from typing import Any
 
 import httpx
@@ -134,8 +135,8 @@ class DifyClient:
         payload = {
             "inputs": {
                 "report_type": report_type,
-                "source_data": source_data,
-                "filters": filters,
+                "source_data": json.dumps(source_data, ensure_ascii=False),
+                "filters": json.dumps(filters, ensure_ascii=False),
                 "trace_id": trace_id,
             },
             "response_mode": "blocking",

@@ -71,6 +71,9 @@ def test_real_dify_parses_report_object(monkeypatch):
     assert draft["recommendations"] == []
     assert draft["source_refs"] == []
     assert fake_http.requests[0]["headers"]["Authorization"] == "Bearer test-key"
+    inputs = fake_http.requests[0]["json"]["inputs"]
+    assert inputs["source_data"] == json.dumps({"total_tickets": 1}, ensure_ascii=False)
+    assert inputs["filters"] == json.dumps({"date_start": "2026-06-01"}, ensure_ascii=False)
 
 
 def test_real_dify_parses_report_json_string(monkeypatch):
