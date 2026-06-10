@@ -18,6 +18,9 @@ from backend.app.controllers.ai_tool_controller import router as ai_tool_router
 from backend.app.controllers.enterprise_assistant_controller import (
     router as enterprise_assistant_router,
 )
+from backend.app.controllers.enterprise_nl2sql_controller import (
+    router as enterprise_nl2sql_router,
+)
 from backend.app.controllers.report_controller import router as report_router
 from backend.app.controllers.student_feedback_ticket_controller import (
     router as student_feedback_ticket_router,
@@ -88,10 +91,16 @@ async def health_check():
 app.include_router(student_leave_router)
 app.include_router(student_psych_router)
 app.include_router(enterprise_assistant_router)
+app.include_router(enterprise_nl2sql_router)
 app.include_router(report_router)
 app.include_router(academic_event_router, prefix="/api")
 app.include_router(student_feedback_ticket_router, prefix="/api")
 app.include_router(ai_tool_router, prefix="/api")
+app.include_router(ai_tool_router, prefix="/api/v1")
+
+
+def create_app() -> FastAPI:
+    return app
 
 
 if __name__ == "__main__":

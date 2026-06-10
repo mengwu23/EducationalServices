@@ -46,6 +46,7 @@ pnpm-debug.log*
 
 # App storage
 backend/storage/
+storage/
 
 # OS files
 .DS_Store

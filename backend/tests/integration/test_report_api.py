@@ -1,4 +1,4 @@
-from app.models.audit_log import AiToolCallLog
+from backend.app.models.audit_log import AiToolCallLog
 
 
 def test_generate_confirm_publish_export_word_flow(client):

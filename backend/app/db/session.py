@@ -1,25 +1,8 @@
-from collections.abc import Generator
+"""数据库会话兼容入口。"""
 
-from sqlalchemy import create_engine
-from sqlalchemy.orm import Session, sessionmaker
+from backend.app.database import get_db, get_engine, get_session_factory
 
-from backend.app.core.config import get_settings
+engine = get_engine
+SessionLocal = get_session_factory
 
-
-settings = get_settings()
-
-engine = create_engine(
-    settings.database_url,
-    pool_pre_ping=True,
-    connect_args={"check_same_thread": False} if settings.database_url.startswith("sqlite") else {},
-)
-
-SessionLocal = sessionmaker(bind=engine, autocommit=False, autoflush=False)
-
-
-def get_db() -> Generator[Session, None, None]:
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+__all__ = ["SessionLocal", "engine", "get_db", "get_engine", "get_session_factory"]
