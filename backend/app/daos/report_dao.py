@@ -6,13 +6,11 @@ from sqlalchemy.orm import Session
 
 from app.common.enums import ReportType
 from app.models.audit_log import AiToolCallLog, AuditLog
-from app.models.business import (
-    CrmLead,
-    CustomerAnalysisRecord,
-    EmployeeProfile,
-    EventRegistration,
-    StudentFeedbackTicket,
-)
+from app.models.crm_lead import CrmLead
+from app.models.customer_analysis_record import CustomerAnalysisRecord
+from app.models.employee_profile import EmployeeProfile
+from app.models.event_registration import EventRegistration
+from app.models.student_feedback_ticket import StudentFeedbackTicket
 from app.models.draft import AiDraft
 from app.models.report import AiReport, ReportExportRecord
 
@@ -68,25 +66,29 @@ class ReportDAO:
         department_id: int | None,
         owner_user_id: int | None,
     ) -> dict[str, Any]:
-        lead_stmt = select(func.count(CrmLead.id)).where(func.date(CrmLead.create_time).between(date_start, date_end))
+        employee_filters = []
+        if department_id is not None:
+            employee_filters.append(EmployeeProfile.department_id == department_id)
+        if owner_user_id is not None:
+            employee_filters.append(EmployeeProfile.user_id == owner_user_id)
+
+        lead_stmt = (
+            select(func.count(CrmLead.id))
+            .join(EmployeeProfile, CrmLead.owner_employee_id == EmployeeProfile.id)
+            .where(func.date(CrmLead.create_time).between(date_start, date_end), *employee_filters)
+        )
         analysis_stmt = (
             select(func.count(CustomerAnalysisRecord.id))
             .join(CrmLead, CustomerAnalysisRecord.lead_id == CrmLead.id)
-            .where(func.date(CustomerAnalysisRecord.create_time).between(date_start, date_end))
+            .join(EmployeeProfile, CrmLead.owner_employee_id == EmployeeProfile.id)
+            .where(func.date(CustomerAnalysisRecord.create_time).between(date_start, date_end), *employee_filters)
         )
         registration_stmt = (
             select(func.count(EventRegistration.id))
             .join(CrmLead, EventRegistration.lead_id == CrmLead.id)
-            .where(EventRegistration.register_date.between(date_start, date_end))
+            .join(EmployeeProfile, CrmLead.owner_employee_id == EmployeeProfile.id)
+            .where(func.date(EventRegistration.create_time).between(date_start, date_end), *employee_filters)
         )
-        if department_id is not None:
-            lead_stmt = lead_stmt.where(CrmLead.department_id == department_id)
-            analysis_stmt = analysis_stmt.where(CrmLead.department_id == department_id)
-            registration_stmt = registration_stmt.where(CrmLead.department_id == department_id)
-        if owner_user_id is not None:
-            lead_stmt = lead_stmt.where(CrmLead.owner_user_id == owner_user_id)
-            analysis_stmt = analysis_stmt.where(CrmLead.owner_user_id == owner_user_id)
-            registration_stmt = registration_stmt.where(CrmLead.owner_user_id == owner_user_id)
 
         return {
             "report_type": ReportType.CUSTOMER_OPERATION,
