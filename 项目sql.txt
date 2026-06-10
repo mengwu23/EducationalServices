@@ -1,0 +1,608 @@
+-- 项目数据库表设计预览（MySQL 8）
+-- 文件目的：用于确认项目整体表设计思路。
+-- 当前策略：先建“基础必需表”，把日志表、AI调用审计表、细粒度分析表放到后续扩展。
+-- 这样可以先把基础业务功能做出来，避免一开始建太多表导致开发范围失控。
+
+CREATE DATABASE IF NOT EXISTS education_service_ai
+  DEFAULT CHARACTER SET utf8mb4
+  DEFAULT COLLATE utf8mb4_0900_ai_ci;
+
+USE education_service_ai;
+
+-- =========================================================
+-- 第一部分：前期基础必建表
+-- =========================================================
+-- 判断标准：
+-- 1. 需求文档中明确要求有数据落库。
+-- 2. 前期功能不建这张表就无法完成基本闭环。
+-- 3. 尽量一张表覆盖一个核心业务对象，日志和复杂历史先不拆太细。
+
+-- ---------------------------------------------------------
+-- 1. 部门表 sys_department
+-- 为什么要建：
+-- 企业智能助手里有“组织架构查询”和“管理日报查阅”。
+-- 员工需要知道部门归属，管理层也需要按部门汇总日报、客户、投诉等数据。
+-- 前期用途：组织架构查询、员工所属部门、日报部门汇总。
+-- ---------------------------------------------------------
+CREATE TABLE IF NOT EXISTS sys_department (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '部门ID',
+    department_name VARCHAR(100) NOT NULL COMMENT '部门名称',
+    parent_id BIGINT DEFAULT NULL COMMENT '上级部门ID，顶级部门为空',
+    leader_employee_id BIGINT DEFAULT NULL COMMENT '部门负责人ID，前期只存ID不强制外键，避免循环依赖',
+    department_desc VARCHAR(500) DEFAULT NULL COMMENT '部门职责说明',
+    sort_order INT NOT NULL DEFAULT 0 COMMENT '排序号',
+    status VARCHAR(20) NOT NULL DEFAULT 'enabled' COMMENT '状态：enabled启用/disabled停用',
+    create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    KEY idx_department_parent_id (parent_id),
+    KEY idx_department_status (status),
+    CONSTRAINT fk_department_parent FOREIGN KEY (parent_id) REFERENCES sys_department(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='部门组织架构表';
+
+-- ---------------------------------------------------------
+-- 2. 用户表 sys_user
+-- 为什么要建：
+-- 项目里有员工端、学生端、客服访客等不同身份，需要一个统一账号入口。
+-- 企业智能助手需要知道当前是谁在操作，学生智能助手也需要识别学生身份。
+-- 前期用途：登录账号、身份区分、权限判断基础。
+-- ---------------------------------------------------------
+CREATE TABLE IF NOT EXISTS sys_user (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '用户ID',
+    username VARCHAR(80) NOT NULL COMMENT '登录账号',
+    password_hash VARCHAR(255) DEFAULT NULL COMMENT '密码哈希，若接入第三方登录可为空',
+    real_name VARCHAR(100) NOT NULL COMMENT '真实姓名',
+    user_type VARCHAR(20) NOT NULL COMMENT '用户类型：employee员工/student学生/customer访客/admin管理员',
+    phone VARCHAR(30) DEFAULT NULL COMMENT '手机号',
+    email VARCHAR(120) DEFAULT NULL COMMENT '邮箱',
+    status VARCHAR(20) NOT NULL DEFAULT 'enabled' COMMENT '账号状态：enabled启用/disabled禁用',
+    create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    UNIQUE KEY uk_user_username (username),
+    KEY idx_user_phone (phone),
+    KEY idx_user_type (user_type),
+    KEY idx_user_status (status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='统一用户表';
+
+-- ---------------------------------------------------------
+-- 3. 员工档案表 employee_profile
+-- 为什么要建：
+-- 企业智能助手的核心使用者是员工，需求里涉及客户负责人、日报提交人、投诉处理人、请假审批人。
+-- 这些业务都需要关联到具体员工。
+-- 前期用途：员工身份、部门归属、角色区分、组织架构查询。
+-- ---------------------------------------------------------
+CREATE TABLE IF NOT EXISTS employee_profile (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '员工ID',
+    user_id BIGINT NOT NULL COMMENT '关联用户ID',
+    employee_no VARCHAR(50) NOT NULL COMMENT '员工编号',
+    employee_name VARCHAR(100) NOT NULL COMMENT '员工姓名',
+    department_id BIGINT DEFAULT NULL COMMENT '所属部门ID',
+    role_code VARCHAR(50) NOT NULL COMMENT '角色编码：sales顾问/teacher老师/service客服/manager主管/admin管理员',
+    job_title VARCHAR(100) DEFAULT NULL COMMENT '岗位名称',
+    status VARCHAR(20) NOT NULL DEFAULT 'active' COMMENT '员工状态：active在职/resigned离职/disabled停用',
+    create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    UNIQUE KEY uk_employee_user_id (user_id),
+    UNIQUE KEY uk_employee_no (employee_no),
+    KEY idx_employee_department_id (department_id),
+    KEY idx_employee_role_code (role_code),
+    KEY idx_employee_status (status),
+    CONSTRAINT fk_employee_user FOREIGN KEY (user_id) REFERENCES sys_user(id),
+    CONSTRAINT fk_employee_department FOREIGN KEY (department_id) REFERENCES sys_department(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='员工档案表';
+
+-- ---------------------------------------------------------
+-- 4. 学生档案表 student_profile
+-- 为什么要建：
+-- 学生智能助手和企业智能助手都会用到学生数据，例如成绩查询、请假审批、投诉反馈、心理预警。
+-- 如果没有统一学生档案，后续各模块会重复存学生姓名和联系方式。
+-- 前期用途：学生基础信息、学生业务关联主表。
+-- ---------------------------------------------------------
+CREATE TABLE IF NOT EXISTS student_profile (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '学生ID',
+    user_id BIGINT DEFAULT NULL COMMENT '关联用户ID，未开通账号时可为空',
+    student_no VARCHAR(50) DEFAULT NULL COMMENT '学生编号',
+    student_name VARCHAR(100) NOT NULL COMMENT '学生姓名',
+    phone VARCHAR(30) DEFAULT NULL COMMENT '手机号',
+    email VARCHAR(120) DEFAULT NULL COMMENT '邮箱',
+    current_school VARCHAR(200) DEFAULT NULL COMMENT '当前学校',
+    current_grade VARCHAR(100) DEFAULT NULL COMMENT '当前年级/阶段',
+    target_country VARCHAR(100) DEFAULT NULL COMMENT '目标留学国家',
+    target_program VARCHAR(200) DEFAULT NULL COMMENT '目标申请项目',
+    counselor_employee_id BIGINT DEFAULT NULL COMMENT '负责顾问员工ID',
+    teacher_employee_id BIGINT DEFAULT NULL COMMENT '负责老师员工ID',
+    status VARCHAR(30) NOT NULL DEFAULT 'active' COMMENT '学生状态：active服务中/graduated已结课/inactive停用',
+    create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    UNIQUE KEY uk_student_user_id (user_id),
+    UNIQUE KEY uk_student_no (student_no),
+    KEY idx_student_name (student_name),
+    KEY idx_student_phone (phone),
+    KEY idx_student_counselor (counselor_employee_id),
+    KEY idx_student_teacher (teacher_employee_id),
+    KEY idx_student_status (status),
+    CONSTRAINT fk_student_user FOREIGN KEY (user_id) REFERENCES sys_user(id),
+    CONSTRAINT fk_student_counselor FOREIGN KEY (counselor_employee_id) REFERENCES employee_profile(id),
+    CONSTRAINT fk_student_teacher FOREIGN KEY (teacher_employee_id) REFERENCES employee_profile(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='学生档案表';
+
+-- ---------------------------------------------------------
+-- 5. 意向客户表 crm_lead
+-- 为什么要建：
+-- 企业智能助手需求里明确有“意向客户录入、意向客户查询、客户状态更新”。
+-- 客服Agent的活动报名、客户研判、智能报告里的客户经营分析也都依赖客户线索数据。
+-- 前期用途：客户录入、查询、状态变更、销售漏斗统计。
+-- 说明：前期为了少建表，简单跟进历史可先存 follow_up_history；
+-- 后续如果要精确统计每次跟进，再拆 crm_lead_followup 表。
+-- ---------------------------------------------------------
+CREATE TABLE IF NOT EXISTS crm_lead (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '意向客户ID',
+    lead_no VARCHAR(50) NOT NULL COMMENT '线索编号',
+    customer_name VARCHAR(100) NOT NULL COMMENT '客户姓名',
+    phone VARCHAR(30) DEFAULT NULL COMMENT '手机号',
+    wechat_no VARCHAR(100) DEFAULT NULL COMMENT '微信号',
+    email VARCHAR(120) DEFAULT NULL COMMENT '邮箱',
+    source_channel VARCHAR(100) DEFAULT NULL COMMENT '来源渠道',
+    education_level VARCHAR(100) DEFAULT NULL COMMENT '学历阶段',
+    school_name VARCHAR(200) DEFAULT NULL COMMENT '学校名称',
+    major VARCHAR(200) DEFAULT NULL COMMENT '专业',
+    current_grade VARCHAR(100) DEFAULT NULL COMMENT '当前年级',
+    target_country VARCHAR(100) DEFAULT NULL COMMENT '意向国家',
+    target_program VARCHAR(200) DEFAULT NULL COMMENT '意向项目',
+    budget_range VARCHAR(100) DEFAULT NULL COMMENT '预算区间',
+    background_info TEXT COMMENT '客户背景补充信息',
+    follow_up_history TEXT COMMENT '前期简化保存历史跟进内容，后续可拆成crm_lead_followup表',
+    latest_follow_up_summary VARCHAR(1000) DEFAULT NULL COMMENT '最近跟进摘要',
+    status VARCHAR(30) NOT NULL DEFAULT 'new' COMMENT '线索状态：new新增/following跟进中/signed已签约/lost已流失/invalid无效',
+    owner_employee_id BIGINT DEFAULT NULL COMMENT '负责员工ID',
+    last_follow_up_time DATETIME DEFAULT NULL COMMENT '最近跟进时间',
+    lost_reason VARCHAR(500) DEFAULT NULL COMMENT '流失原因',
+    signed_time DATETIME DEFAULT NULL COMMENT '签约时间',
+    create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    UNIQUE KEY uk_lead_no (lead_no),
+    KEY idx_lead_phone (phone),
+    KEY idx_lead_owner (owner_employee_id),
+    KEY idx_lead_status (status),
+    KEY idx_lead_target_country (target_country),
+    KEY idx_lead_create_time (create_time),
+    CONSTRAINT fk_lead_owner FOREIGN KEY (owner_employee_id) REFERENCES employee_profile(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='意向客户线索表';
+
+-- ---------------------------------------------------------
+-- 6. 员工日报表 employee_daily_report
+-- 为什么要建：
+-- 企业智能助手需求里有“口述日报”和“管理日报查阅”。
+-- AI可以把员工口述内容提取成摘要、进展、风险和明日计划。
+-- 前期用途：日报提交、日报查询、团队日报汇总。
+-- ---------------------------------------------------------
+CREATE TABLE IF NOT EXISTS employee_daily_report (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '员工日报ID',
+    employee_id BIGINT NOT NULL COMMENT '员工ID',
+    department_id BIGINT DEFAULT NULL COMMENT '所属部门ID',
+    report_date DATE NOT NULL COMMENT '日报日期',
+    raw_content TEXT NOT NULL COMMENT '原始口述或输入内容',
+    summary TEXT COMMENT 'AI摘要',
+    key_progress TEXT COMMENT '关键进展',
+    risks TEXT COMMENT '风险与问题',
+    tomorrow_plan TEXT COMMENT '明日计划',
+    report_status VARCHAR(20) NOT NULL DEFAULT 'submitted' COMMENT '状态：draft草稿/submitted已提交/archived已归档',
+    create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    UNIQUE KEY uk_daily_report_employee_date (employee_id, report_date),
+    KEY idx_daily_report_department (department_id),
+    KEY idx_daily_report_date (report_date),
+    CONSTRAINT fk_daily_report_employee FOREIGN KEY (employee_id) REFERENCES employee_profile(id),
+    CONSTRAINT fk_daily_report_department FOREIGN KEY (department_id) REFERENCES sys_department(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='员工日报表';
+
+-- ---------------------------------------------------------
+-- 7. 学生成绩表 student_score
+-- 为什么要建：
+-- 企业智能助手需求里有“学生成绩录入与查询”。
+-- 老师或员工需要通过自然语言查询学生成绩，也需要录入成绩。
+-- 前期用途：成绩录入、成绩查询、异常成绩筛查。
+-- ---------------------------------------------------------
+CREATE TABLE IF NOT EXISTS student_score (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '学生成绩ID',
+    student_id BIGINT NOT NULL COMMENT '学生ID',
+    course_name VARCHAR(200) NOT NULL COMMENT '课程名称',
+    score DECIMAL(5,2) NOT NULL COMMENT '成绩分数',
+    exam_type VARCHAR(50) DEFAULT NULL COMMENT '考试类型：daily平时/midterm期中/final期末/makeup补考/other其他',
+    semester VARCHAR(100) DEFAULT NULL COMMENT '学期',
+    exam_date DATE DEFAULT NULL COMMENT '考试日期',
+    operator_employee_id BIGINT DEFAULT NULL COMMENT '录入员工ID',
+    remark VARCHAR(500) DEFAULT NULL COMMENT '备注',
+    create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    KEY idx_score_student_id (student_id),
+    KEY idx_score_course_name (course_name),
+    KEY idx_score_semester (semester),
+    KEY idx_score_exam_date (exam_date),
+    CONSTRAINT fk_score_student FOREIGN KEY (student_id) REFERENCES student_profile(id),
+    CONSTRAINT fk_score_operator FOREIGN KEY (operator_employee_id) REFERENCES employee_profile(id),
+    CONSTRAINT chk_student_score_range CHECK (score >= 0 AND score <= 100)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='学生成绩表';
+
+-- ---------------------------------------------------------
+-- 8. 学生请假申请表 student_leave_request
+-- 为什么要建：
+-- 学生智能助手需求里有“学生提交请假申请”，企业智能助手需求里有“老师在线审批请假”。
+-- 这张表负责把学生端提交和员工端审批串成闭环。
+-- 前期用途：请假提交、审批、状态查询、学生端通知依据。
+-- ---------------------------------------------------------
+CREATE TABLE IF NOT EXISTS student_leave_request (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '请假申请ID',
+    request_no VARCHAR(50) NOT NULL COMMENT '请假单号',
+    student_id BIGINT NOT NULL COMMENT '学生ID',
+    leave_type VARCHAR(50) NOT NULL COMMENT '请假类型：sick病假/personal事假/other其他',
+    reason TEXT NOT NULL COMMENT '请假原因',
+    start_time DATETIME NOT NULL COMMENT '开始时间',
+    end_time DATETIME NOT NULL COMMENT '结束时间',
+    status VARCHAR(30) NOT NULL DEFAULT 'pending' COMMENT '审批状态：pending待审批/approved已通过/rejected已驳回/cancelled已撤销',
+    approver_employee_id BIGINT DEFAULT NULL COMMENT '审批员工ID',
+    approval_comment VARCHAR(1000) DEFAULT NULL COMMENT '审批意见',
+    approve_time DATETIME DEFAULT NULL COMMENT '审批时间',
+    create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    UNIQUE KEY uk_leave_request_no (request_no),
+    KEY idx_leave_student_id (student_id),
+    KEY idx_leave_status (status),
+    KEY idx_leave_approver (approver_employee_id),
+    CONSTRAINT fk_leave_student FOREIGN KEY (student_id) REFERENCES student_profile(id),
+    CONSTRAINT fk_leave_approver FOREIGN KEY (approver_employee_id) REFERENCES employee_profile(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='学生请假申请表';
+
+-- ---------------------------------------------------------
+-- 9. 学生投诉与反馈工单表 student_feedback_ticket
+-- 为什么要建：
+-- 学生智能助手需求里有“投诉与建议提交”，企业智能助手需求里有“投诉跟进处理”。
+-- 前期只用一张主表记录当前处理状态，不先建日志表。
+-- 前期用途：投诉提交、投诉查询、状态更新、处理结果同步给学生。
+-- ---------------------------------------------------------
+CREATE TABLE IF NOT EXISTS student_feedback_ticket (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '反馈工单ID',
+    ticket_no VARCHAR(50) NOT NULL COMMENT '工单编号',
+    student_id BIGINT NOT NULL COMMENT '学生ID',
+    ticket_type VARCHAR(30) NOT NULL DEFAULT 'complaint' COMMENT '工单类型：complaint投诉/suggestion建议/consult咨询',
+    category VARCHAR(100) DEFAULT NULL COMMENT '反馈分类：教学/服务/顾问/财务/签证/院校申请/生活服务/其他',
+    title VARCHAR(300) NOT NULL COMMENT '反馈标题',
+    content_summary TEXT COMMENT 'AI摘要',
+    detail TEXT NOT NULL COMMENT '详细反馈内容',
+    priority_level VARCHAR(30) NOT NULL DEFAULT 'normal' COMMENT '优先级：normal普通/urgent紧急/severe严重',
+    status VARCHAR(30) NOT NULL DEFAULT 'pending' COMMENT '状态：pending待处理/processing处理中/resolved已解决/closed已关闭',
+    handler_employee_id BIGINT DEFAULT NULL COMMENT '当前处理人员工ID',
+    solution TEXT COMMENT '处理方案或最终结果',
+    satisfaction_score TINYINT DEFAULT NULL COMMENT '满意度评分1-5',
+    is_notified TINYINT NOT NULL DEFAULT 0 COMMENT '是否已通知学生：1是/0否',
+    close_time DATETIME DEFAULT NULL COMMENT '关闭时间',
+    create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    UNIQUE KEY uk_feedback_ticket_no (ticket_no),
+    KEY idx_feedback_student_id (student_id),
+    KEY idx_feedback_status (status),
+    KEY idx_feedback_handler (handler_employee_id),
+    KEY idx_feedback_category (category),
+    CONSTRAINT fk_feedback_student FOREIGN KEY (student_id) REFERENCES student_profile(id),
+    CONSTRAINT fk_feedback_handler FOREIGN KEY (handler_employee_id) REFERENCES employee_profile(id),
+    CONSTRAINT chk_feedback_satisfaction CHECK (satisfaction_score IS NULL OR (satisfaction_score BETWEEN 1 AND 5))
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='学生投诉与售后反馈工单表';
+
+-- ---------------------------------------------------------
+-- 10. 学生心理画像表 student_psych_profile
+-- 为什么要建：
+-- 学生智能助手需求里有“心理关怀”和“心理健康周报”。
+-- 画像表只保存学生当前总体心理状态，便于老师快速查看风险。
+-- 前期用途：保存最新情绪标签、风险等级、心理状态摘要。
+-- ---------------------------------------------------------
+CREATE TABLE IF NOT EXISTS student_psych_profile (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '心理健康画像ID',
+    student_id BIGINT NOT NULL COMMENT '学生ID',
+    latest_emotion_tag VARCHAR(100) DEFAULT NULL COMMENT '最新情绪标签',
+    emotion_score TINYINT DEFAULT NULL COMMENT '情绪分值0-100，越高越积极',
+    risk_level VARCHAR(30) NOT NULL DEFAULT 'low' COMMENT '风险等级：low低/medium中/high高/critical危急',
+    last_interaction_time DATETIME DEFAULT NULL COMMENT '最近心理相关交互时间',
+    emotion_summary TEXT COMMENT '长期情绪摘要',
+    create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    UNIQUE KEY uk_psych_student_id (student_id),
+    KEY idx_psych_risk_level (risk_level),
+    CONSTRAINT fk_psych_profile_student FOREIGN KEY (student_id) REFERENCES student_profile(id),
+    CONSTRAINT chk_psych_emotion_score CHECK (emotion_score IS NULL OR (emotion_score >= 0 AND emotion_score <= 100))
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='学生心理健康画像表';
+
+-- ---------------------------------------------------------
+-- 11. 学生心理预警表 student_psych_alert
+-- 为什么要建：
+-- 需求里明确说识别高危心理风险后要“触发预警并记录原因”。
+-- 画像表只记录当前状态，预警表记录每一次需要老师介入的风险事件。
+-- 前期用途：风险预警、老师跟进、心理周报风险名单。
+-- ---------------------------------------------------------
+CREATE TABLE IF NOT EXISTS student_psych_alert (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '心理预警ID',
+    alert_no VARCHAR(50) NOT NULL COMMENT '预警编号',
+    student_id BIGINT NOT NULL COMMENT '学生ID',
+    trigger_reason TEXT NOT NULL COMMENT '触发原因',
+    risk_level VARCHAR(30) NOT NULL COMMENT '风险等级：medium中/high高/critical危急',
+    status VARCHAR(30) NOT NULL DEFAULT 'pending' COMMENT '处理状态：pending未处理/processing跟进中/resolved已解除/closed已关闭',
+    teacher_employee_id BIGINT DEFAULT NULL COMMENT '负责跟进老师ID',
+    handle_result TEXT COMMENT '处理结果',
+    close_time DATETIME DEFAULT NULL COMMENT '关闭时间',
+    create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    UNIQUE KEY uk_psych_alert_no (alert_no),
+    KEY idx_psych_alert_student_id (student_id),
+    KEY idx_psych_alert_status (status),
+    KEY idx_psych_alert_risk_level (risk_level),
+    CONSTRAINT fk_psych_alert_student FOREIGN KEY (student_id) REFERENCES student_profile(id),
+    CONSTRAINT fk_psych_alert_teacher FOREIGN KEY (teacher_employee_id) REFERENCES employee_profile(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='学生心理预警表';
+
+-- ---------------------------------------------------------
+-- 12. 课程与项目表 course_project
+-- 为什么要建：
+-- 客服Agent需求里有“课程与项目推荐”。
+-- AI推荐不能只靠文本回答，需要有结构化课程/项目数据用于匹配客户背景和意向。
+-- 前期用途：课程查询、项目推荐、增值服务推荐。
+-- ---------------------------------------------------------
+CREATE TABLE IF NOT EXISTS course_project (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '课程项目ID',
+    project_name VARCHAR(200) NOT NULL COMMENT '课程或项目名称',
+    project_type VARCHAR(50) NOT NULL COMMENT '项目类型：language语言培训/background背景提升/application留学申请/upgrade学历提升',
+    target_country VARCHAR(100) DEFAULT NULL COMMENT '适用国家',
+    target_education_level VARCHAR(100) DEFAULT NULL COMMENT '适用学历阶段',
+    target_audience VARCHAR(500) DEFAULT NULL COMMENT '适合人群',
+    project_desc TEXT COMMENT '项目详情',
+    price_range VARCHAR(100) DEFAULT NULL COMMENT '价格区间',
+    status VARCHAR(20) NOT NULL DEFAULT 'enabled' COMMENT '状态：enabled上架/disabled下架',
+    create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    KEY idx_project_type (project_type),
+    KEY idx_project_country (target_country),
+    KEY idx_project_status (status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='课程与项目表';
+
+-- ---------------------------------------------------------
+-- 13. 活动与讲座表 event_lecture
+-- 为什么要建：
+-- 客服Agent需求里有“活动与讲座报名”。
+-- 需要结构化保存活动时间、地点、名额和状态，才能查询和报名。
+-- 前期用途：活动查询、讲座报名、报名人数统计。
+-- ---------------------------------------------------------
+CREATE TABLE IF NOT EXISTS event_lecture (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '活动讲座ID',
+    event_no VARCHAR(50) NOT NULL COMMENT '活动编号',
+    event_name VARCHAR(200) NOT NULL COMMENT '活动名称',
+    event_type VARCHAR(30) NOT NULL COMMENT '活动类型：online线上/offline线下',
+    topic VARCHAR(300) DEFAULT NULL COMMENT '活动主题',
+    speaker VARCHAR(200) DEFAULT NULL COMMENT '主讲人',
+    start_time DATETIME NOT NULL COMMENT '开始时间',
+    end_time DATETIME DEFAULT NULL COMMENT '结束时间',
+    location VARCHAR(300) DEFAULT NULL COMMENT '线下地点',
+    online_url VARCHAR(500) DEFAULT NULL COMMENT '线上链接',
+    max_participants INT DEFAULT NULL COMMENT '最大报名人数',
+    current_participants INT NOT NULL DEFAULT 0 COMMENT '当前报名人数',
+    status VARCHAR(30) NOT NULL DEFAULT 'open' COMMENT '活动状态：open报名中/full已满/closed已结束/cancelled已取消',
+    create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    UNIQUE KEY uk_event_no (event_no),
+    KEY idx_event_start_time (start_time),
+    KEY idx_event_type (event_type),
+    KEY idx_event_status (status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='活动与讲座表';
+
+-- ---------------------------------------------------------
+-- 14. 活动报名表 event_registration
+-- 为什么要建：
+-- 只有活动表不能形成报名闭环，需要记录谁报了哪个活动、报名状态是什么。
+-- 客服Agent对话里完成报名后，应写入这张表。
+-- 前期用途：活动报名、取消报名、参加情况统计。
+-- ---------------------------------------------------------
+CREATE TABLE IF NOT EXISTS event_registration (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '活动报名ID',
+    event_id BIGINT NOT NULL COMMENT '活动ID',
+    lead_id BIGINT DEFAULT NULL COMMENT '关联意向客户ID，可为空',
+    visitor_name VARCHAR(100) NOT NULL COMMENT '报名人姓名',
+    visitor_phone VARCHAR(30) DEFAULT NULL COMMENT '报名人手机号',
+    registration_status VARCHAR(30) NOT NULL DEFAULT 'registered' COMMENT '报名状态：registered已报名/cancelled已取消/attended已参加/no_show未到场',
+    remark VARCHAR(500) DEFAULT NULL COMMENT '备注',
+    create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '报名时间',
+    update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    KEY idx_registration_event_id (event_id),
+    KEY idx_registration_lead_id (lead_id),
+    KEY idx_registration_phone (visitor_phone),
+    CONSTRAINT fk_registration_event FOREIGN KEY (event_id) REFERENCES event_lecture(id),
+    CONSTRAINT fk_registration_lead FOREIGN KEY (lead_id) REFERENCES crm_lead(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='活动报名表';
+
+-- ---------------------------------------------------------
+-- 15. FAQ标准问答表 faq_qa
+-- 为什么要建：
+-- 客服Agent、新人入职指引、海外生活支持都需要高频标准问答。
+-- 前期不一定要自建完整知识库和向量切片，先用FAQ表就能覆盖常见问题。
+-- 前期用途：常见问题、制度问答、公司业务问答、海外生活问答。
+-- ---------------------------------------------------------
+CREATE TABLE IF NOT EXISTS faq_qa (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT 'FAQ ID',
+    module_scope VARCHAR(50) NOT NULL COMMENT '适用模块：customer_service/enterprise_assistant/student_assistant/common',
+    category VARCHAR(100) DEFAULT NULL COMMENT '问题分类',
+    question VARCHAR(800) NOT NULL COMMENT '标准问题',
+    answer TEXT NOT NULL COMMENT '标准答案',
+    keywords VARCHAR(500) DEFAULT NULL COMMENT '关键词',
+    status VARCHAR(20) NOT NULL DEFAULT 'enabled' COMMENT '状态：enabled启用/disabled停用',
+    sort_order INT NOT NULL DEFAULT 0 COMMENT '排序号',
+    create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    KEY idx_faq_scope (module_scope),
+    KEY idx_faq_category (category),
+    KEY idx_faq_status (status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='FAQ标准问答表';
+
+-- ---------------------------------------------------------
+-- 16. 客户研判记录表 customer_analysis_record
+-- 为什么要建：
+-- 客户研判需求明确要求根据文本、PDF简历、Excel等客户来源判断是否符合目标客户画像。
+-- 前期把“研判任务”和“研判结果”合并在一张表，减少表数量。
+-- 前期用途：保存原始客户资料、AI研判结果、匹配分数和跟进建议。
+-- ---------------------------------------------------------
+CREATE TABLE IF NOT EXISTS customer_analysis_record (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '客户研判记录ID',
+    analysis_no VARCHAR(50) NOT NULL COMMENT '研判编号',
+    source_type VARCHAR(30) NOT NULL COMMENT '来源类型：text文本/pdf简历/excel表格/manual手工录入',
+    source_file_name VARCHAR(300) DEFAULT NULL COMMENT '来源文件名',
+    raw_content LONGTEXT COMMENT '待研判原始内容',
+    target_product VARCHAR(100) DEFAULT NULL COMMENT '研判目标产品或服务',
+    lead_id BIGINT DEFAULT NULL COMMENT '关联意向客户ID',
+    is_target_customer TINYINT DEFAULT NULL COMMENT '是否符合目标客户画像：1是/0否，未研判为空',
+    match_score DECIMAL(5,2) DEFAULT NULL COMMENT '匹配分数0-100',
+    match_level VARCHAR(30) DEFAULT NULL COMMENT '匹配等级：high高/medium中/low低',
+    reason_summary TEXT COMMENT '研判理由摘要',
+    suggestion TEXT COMMENT '后续跟进建议',
+    status VARCHAR(30) NOT NULL DEFAULT 'pending' COMMENT '状态：pending待研判/completed已完成/failed失败',
+    submitter_user_id BIGINT DEFAULT NULL COMMENT '提交人用户ID',
+    create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    UNIQUE KEY uk_analysis_no (analysis_no),
+    KEY idx_analysis_lead_id (lead_id),
+    KEY idx_analysis_status (status),
+    KEY idx_analysis_score (match_score),
+    CONSTRAINT fk_analysis_lead FOREIGN KEY (lead_id) REFERENCES crm_lead(id),
+    CONSTRAINT fk_analysis_submitter FOREIGN KEY (submitter_user_id) REFERENCES sys_user(id),
+    CONSTRAINT chk_analysis_match_score CHECK (match_score IS NULL OR (match_score >= 0 AND match_score <= 100))
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='客户研判记录表';
+
+-- ---------------------------------------------------------
+-- 17. 学业考务事件表 academic_event
+-- 为什么要建：
+-- 学生智能助手需求里有“论文DDL、考试时间、关键节点提醒”。
+-- 这些信息需要结构化保存，才能被学生查询和提醒。
+-- 前期用途：DDL查询、考试时间查询、学业提醒。
+-- ---------------------------------------------------------
+CREATE TABLE IF NOT EXISTS academic_event (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '学业考务事件ID',
+    student_id BIGINT DEFAULT NULL COMMENT '学生ID，为空表示公共事件',
+    event_type VARCHAR(50) NOT NULL COMMENT '事件类型：paper_deadline论文DDL/exam考试/course_deadline课程截止/other其他',
+    title VARCHAR(300) NOT NULL COMMENT '事件标题',
+    event_desc TEXT COMMENT '事件说明',
+    course_name VARCHAR(200) DEFAULT NULL COMMENT '关联课程',
+    deadline_time DATETIME NOT NULL COMMENT '截止或考试时间',
+    reminder_time DATETIME DEFAULT NULL COMMENT '提醒时间',
+    status VARCHAR(30) NOT NULL DEFAULT 'active' COMMENT '状态：active有效/completed已完成/cancelled已取消',
+    create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    KEY idx_academic_student_id (student_id),
+    KEY idx_academic_type (event_type),
+    KEY idx_academic_deadline_time (deadline_time),
+    KEY idx_academic_status (status),
+    CONSTRAINT fk_academic_student FOREIGN KEY (student_id) REFERENCES student_profile(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='学业考务事件表';
+
+-- ---------------------------------------------------------
+-- 18. 学生申请进度表 student_application_progress
+-- 为什么要建：
+-- 学生智能助手需求里有“查询文书审核、院校申请、签证办理等进度”。
+-- 每个学生会有多个申请阶段，所以需要独立进度表。
+-- 前期用途：申请进度查询、员工更新进度、缓解学生等待焦虑。
+-- ---------------------------------------------------------
+CREATE TABLE IF NOT EXISTS student_application_progress (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '申请进度ID',
+    student_id BIGINT NOT NULL COMMENT '学生ID',
+    progress_stage VARCHAR(80) NOT NULL COMMENT '进度阶段：essay文书/school_apply院校申请/visa签证/offer录取/other其他',
+    target_country VARCHAR(100) DEFAULT NULL COMMENT '目标国家',
+    school_name VARCHAR(200) DEFAULT NULL COMMENT '申请院校',
+    program_name VARCHAR(200) DEFAULT NULL COMMENT '申请项目',
+    progress_status VARCHAR(50) NOT NULL DEFAULT 'processing' COMMENT '进度状态：pending待开始/processing处理中/completed已完成/blocked受阻',
+    progress_desc TEXT COMMENT '进度说明',
+    handler_employee_id BIGINT DEFAULT NULL COMMENT '负责人员工ID',
+    expected_finish_time DATETIME DEFAULT NULL COMMENT '预计完成时间',
+    create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    KEY idx_progress_student_id (student_id),
+    KEY idx_progress_stage (progress_stage),
+    KEY idx_progress_status (progress_status),
+    KEY idx_progress_handler (handler_employee_id),
+    CONSTRAINT fk_progress_student FOREIGN KEY (student_id) REFERENCES student_profile(id),
+    CONSTRAINT fk_progress_handler FOREIGN KEY (handler_employee_id) REFERENCES employee_profile(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='学生申请进度表';
+
+-- =========================================================
+-- 第二部分：后续扩展表，前期先不建
+-- =========================================================
+-- 这些表不是没用，而是“不影响前期基础功能跑通”。
+-- 等基础功能稳定后，再按实际需求逐步增加。
+
+-- 1. crm_lead_followup 客户跟进明细表
+-- 为什么后续再建：
+-- 前期 crm_lead.follow_up_history 可以简单保存跟进内容。
+-- 当需要精确记录每一次跟进、统计跟进次数、查询最近一次跟进人时，再拆这张表。
+
+-- 2. student_feedback_log 投诉/反馈处理日志表
+-- 为什么后续再建：
+-- 前期 student_feedback_ticket 已能记录当前状态和处理结果。
+-- 当需要追踪“谁在什么时候改了状态、转派给谁、每一步处理内容”时，再建日志表。
+
+-- 3. ai_conversation_session / ai_conversation_message AI会话记录表
+-- 为什么后续再建：
+-- 如果使用 Dify 或其他平台，本身可能已有会话记录。
+-- 前期业务表先落库即可；当需要自建会话审计、复盘用户问题时，再建这两张表。
+
+-- 4. ai_agent_tool_log AI工具调用日志表
+-- 为什么后续再建：
+-- 前期先完成业务接口调用。
+-- 当需要排查AI调用了哪个接口、参数是什么、为什么失败时，再建工具调用日志表。
+
+-- 5. knowledge_document / knowledge_chunk 知识库文档与切片表
+-- 为什么后续再建：
+-- 前期可以用 Dify 知识库或 faq_qa 表覆盖常见问答。
+-- 当需要在自己的业务后台管理文档、切片、向量引用时，再建这两张表。
+
+-- 6. todo_task 主动待办表
+-- 为什么后续再建：
+-- 前期可以通过查询待审批请假、待处理投诉来展示待办。
+-- 当需要统一管理“客户跟进、请假审批、投诉处理、日报提交提醒”等所有待办时，再建这张表。
+
+-- 7. notification_message 通知消息表
+-- 为什么后续再建：
+-- 前期可以直接在页面展示处理结果。
+-- 当需要企业微信、钉钉、短信、站内信等多渠道通知时，再建这张表。
+
+-- 8. ai_report 智能报告表
+-- 为什么后续再建：
+-- 前期报告可以实时查询生成，不一定要保存历史报告。
+-- 当需要保存每周报告、回看历史报告、发布报告给管理层时，再建这张表。
+
+-- 9. crm_contract 签约合同表
+-- 为什么后续再建：
+-- 前期客户状态可以用 crm_lead.status='signed' 表示已签约。
+-- 当需要管理合同编号、金额、退费、签约产品时，再建合同表。
+
+-- 10. service_product / customer_profile_rule 产品与画像规则表
+-- 为什么后续再建：
+-- 前期客户研判规则可以先来自上传文件或提示词配置。
+-- 当需要后台维护多个产品、多个版本画像规则时，再拆成产品表和规则表。
+
+-- 11. student_emotion_record 学生情绪明细记录表
+-- 为什么后续再建：
+-- 前期 student_psych_profile 保存当前状态，student_psych_alert 保存高危预警即可。
+-- 当需要分析学生每次情绪波动趋势、生成更细的心理周报时，再建情绪明细表。
+
+-- 12. student_upgrade_intent 学生增值转化意向表
+-- 为什么后续再建：
+-- 前期可以通过对话或备注记录升学意向。
+-- 当需要系统化跟进硕博咨询、二次转化线索时，再建这张表。
+
+-- =========================================================
+-- 当前阶段建议
+-- =========================================================
+-- 如果你只负责企业智能助手模块，前期最需要重点开发的表是：
+-- 1. sys_user
+-- 2. sys_department
+-- 3. employee_profile
+-- 4. student_profile
+-- 5. crm_lead
+-- 6. employee_daily_report
+-- 7. student_score
+-- 8. student_leave_request
+-- 9. student_feedback_ticket
+--
+-- 其他基础表是为了整个项目的客服Agent、学生智能助手、客户研判模块预留给其他同学使用。
+-- 日志类、AI审计类、复杂报表类表建议放到第二阶段。
