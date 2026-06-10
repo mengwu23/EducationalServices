@@ -1,4 +1,4 @@
-from datetime import UTC, datetime
+from datetime import datetime
 from uuid import uuid4
 
 from sqlalchemy.orm import Session
@@ -22,7 +22,7 @@ class DraftService:
     ) -> AiDraft:
         return self.dao.add_draft(
             AiDraft(
-                draft_no=f"DR-{datetime.now(UTC):%Y%m%d%H%M%S}-{uuid4().hex[:8]}",
+                draft_no=f"DR-{datetime.now():%Y%m%d%H%M%S}-{uuid4().hex[:8]}",
                 draft_type="report",
                 biz_module="report",
                 status=status,
@@ -44,12 +44,12 @@ class DraftService:
     def mark_confirmed(self, draft: AiDraft, user: CurrentUser) -> AiDraft:
         draft.status = DraftStatus.CONFIRMED
         draft.confirmed_by = user.id
-        draft.confirmed_time = datetime.now(UTC)
+        draft.confirmed_time = datetime.now()
         return draft
 
     def reject(self, draft: AiDraft, user: CurrentUser, reason: str) -> AiDraft:
         draft.status = DraftStatus.REJECTED
         draft.confirmed_by = user.id
-        draft.confirmed_time = datetime.now(UTC)
+        draft.confirmed_time = datetime.now()
         draft.reject_reason = reason
         return draft

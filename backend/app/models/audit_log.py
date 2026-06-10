@@ -1,4 +1,4 @@
-from datetime import UTC, datetime
+from datetime import datetime
 
 from sqlalchemy import Boolean, DateTime, ForeignKey, JSON, String
 from sqlalchemy.orm import Mapped, mapped_column
@@ -22,11 +22,11 @@ class AuditLog(Base):
     trace_id: Mapped[str | None] = mapped_column(String(100), nullable=True)
     result: Mapped[str] = mapped_column(String(30), default="success", nullable=False)
     error_message: Mapped[str | None] = mapped_column(String(1000), nullable=True)
-    create_time: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(UTC), nullable=False)
+    create_time: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(), nullable=False)
     update_time: Mapped[datetime] = mapped_column(
         DateTime,
-        default=lambda: datetime.now(UTC),
-        onupdate=lambda: datetime.now(UTC),
+        default=lambda: datetime.now(),
+        onupdate=lambda: datetime.now(),
         nullable=False,
     )
     is_deleted: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
@@ -45,11 +45,11 @@ class AiToolCallLog(Base):
     draft_id: Mapped[int | None] = mapped_column(ForeignKey("ai_draft.id"), nullable=True)
     status: Mapped[str] = mapped_column(String(30), default="success", nullable=False)
     error_message: Mapped[str | None] = mapped_column(String(1000), nullable=True)
-    create_time: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(UTC), nullable=False)
+    create_time: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(), nullable=False)
     update_time: Mapped[datetime] = mapped_column(
         DateTime,
-        default=lambda: datetime.now(UTC),
-        onupdate=lambda: datetime.now(UTC),
+        default=lambda: datetime.now(),
+        onupdate=lambda: datetime.now(),
         nullable=False,
     )
     is_deleted: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)

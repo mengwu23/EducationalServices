@@ -1,4 +1,4 @@
-from datetime import UTC, datetime
+from datetime import datetime
 
 from sqlalchemy import Boolean, DateTime, ForeignKey, JSON, String
 from sqlalchemy.orm import Mapped, mapped_column
@@ -22,11 +22,11 @@ class AiDraft(Base):
     confirmed_by: Mapped[int | None] = mapped_column(ForeignKey("sys_user.id"), nullable=True)
     confirmed_time: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     reject_reason: Mapped[str | None] = mapped_column(String(500), nullable=True)
-    create_time: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(UTC), nullable=False)
+    create_time: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(), nullable=False)
     update_time: Mapped[datetime] = mapped_column(
         DateTime,
-        default=lambda: datetime.now(UTC),
-        onupdate=lambda: datetime.now(UTC),
+        default=lambda: datetime.now(),
+        onupdate=lambda: datetime.now(),
         nullable=False,
     )
     is_deleted: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)

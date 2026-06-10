@@ -1,4 +1,4 @@
-from datetime import UTC, date, datetime
+from datetime import date, datetime
 
 from sqlalchemy import Boolean, Date, DateTime, ForeignKey, JSON, String
 from sqlalchemy.orm import Mapped, mapped_column
@@ -22,11 +22,11 @@ class AiReport(Base):
     created_by: Mapped[int | None] = mapped_column(ForeignKey("sys_user.id"), nullable=True)
     published_by: Mapped[int | None] = mapped_column(ForeignKey("sys_user.id"), nullable=True)
     published_time: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
-    create_time: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(UTC), nullable=False)
+    create_time: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(), nullable=False)
     update_time: Mapped[datetime] = mapped_column(
         DateTime,
-        default=lambda: datetime.now(UTC),
-        onupdate=lambda: datetime.now(UTC),
+        default=lambda: datetime.now(),
+        onupdate=lambda: datetime.now(),
         nullable=False,
     )
     is_deleted: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
@@ -43,11 +43,11 @@ class ReportExportRecord(Base):
     status: Mapped[str] = mapped_column(String(30), nullable=False)
     error_message: Mapped[str | None] = mapped_column(String(1000), nullable=True)
     created_by: Mapped[int | None] = mapped_column(ForeignKey("sys_user.id"), nullable=True)
-    create_time: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(UTC), nullable=False)
+    create_time: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(), nullable=False)
     update_time: Mapped[datetime] = mapped_column(
         DateTime,
-        default=lambda: datetime.now(UTC),
-        onupdate=lambda: datetime.now(UTC),
+        default=lambda: datetime.now(),
+        onupdate=lambda: datetime.now(),
         nullable=False,
     )
     is_deleted: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)

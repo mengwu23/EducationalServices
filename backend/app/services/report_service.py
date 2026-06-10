@@ -1,4 +1,4 @@
-from datetime import UTC, date, datetime
+from datetime import date, datetime
 from typing import Any
 from uuid import uuid4
 
@@ -140,7 +140,7 @@ class ReportService:
         filters = content.get("filters", {})
         report = self.dao.add_report(
             AiReport(
-                report_no=f"RP-{datetime.now(UTC):%Y%m%d%H%M%S}-{uuid4().hex[:8]}",
+                report_no=f"RP-{datetime.now():%Y%m%d%H%M%S}-{uuid4().hex[:8]}",
                 report_type=content.get("report_type", "unknown"),
                 title=content.get("title", "未命名报告"),
                 status=ReportStatus.CONFIRMED,
@@ -185,7 +185,7 @@ class ReportService:
             return self._report_to_dict(report)
         report.status = ReportStatus.PUBLISHED
         report.published_by = user.id
-        report.published_time = datetime.now(UTC)
+        report.published_time = datetime.now()
         self.audit_service.record(
             user,
             action_type="publish",
