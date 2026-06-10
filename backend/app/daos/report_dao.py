@@ -343,6 +343,13 @@ class ReportDAO:
         self.db.flush()
         return record
 
+    def get_export_record(self, export_id: int) -> ReportExportRecord | None:
+        stmt = select(ReportExportRecord).where(
+            ReportExportRecord.id == export_id,
+            ReportExportRecord.is_deleted.is_(False),
+        )
+        return self.db.scalar(stmt)
+
     def list_export_records(self, report_id: int) -> list[ReportExportRecord]:
         stmt = (
             select(ReportExportRecord)

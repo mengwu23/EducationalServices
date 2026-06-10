@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends
+from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 
 from app.common.responses import success
@@ -48,6 +49,20 @@ def reject_draft(
 @router.get("")
 def list_reports(db: Session = Depends(get_db), user: CurrentUser = Depends(get_current_user)):
     return success(ReportService(db).list_reports(user))
+
+
+@router.get("/exports/{export_id}/download")
+def download_export_file(
+    export_id: int,
+    db: Session = Depends(get_db),
+    user: CurrentUser = Depends(get_current_user),
+):
+    download = ReportService(db).prepare_export_download(export_id, user)
+    return FileResponse(
+        path=download["file_path"],
+        media_type=download["media_type"],
+        filename=download["file_name"],
+    )
 
 
 @router.get("/{report_id}")
