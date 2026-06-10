@@ -1,20 +1,17 @@
+"""后端服务的 FastAPI 应用入口。"""
 from fastapi import FastAPI
+import uvicorn
+from backend.app.controllers.enterprise_assistant_controller import router as enterprise_assistant_router
 
-from app.controllers import ai_tool_controller, report_controller
-from app.core.logging import configure_logging
+app = FastAPI(
+    title="Education Service System",
+    version="0.1.0",
+    description="教育服务平台后端 API。",
+)
 
-
-def create_app() -> FastAPI:
-    configure_logging()
-    app = FastAPI(title="教育服务系统后端", version="0.1.0")
-    app.include_router(report_controller.router)
-    app.include_router(ai_tool_controller.router)
-
-    @app.get("/health")
-    def health():
-        return {"status": "ok"}
-
-    return app
+# 挂载企业管理查询助手路由，保证服务启动后即可访问该模块接口。
+app.include_router(enterprise_assistant_router, prefix="/enterprise", tags=["企业智能助手模块"])
 
 
-app = create_app()
+if __name__ == '__main__':
+    uvicorn.run('backend.app.main:app', host='0.0.0.0', port=8088, reload=True)
