@@ -46,6 +46,69 @@ class DifyClient:
                     ],
                 }
             ]
+        elif report_type == ReportType.EMPLOYEE_DAILY_SUMMARY:
+            title = "员工日报汇总报告（日）"
+            summary = f"本日共汇总日报 {source_data.get('total_reports', 0)} 份。"
+            sections = [
+                {
+                    "heading": "日报提交概览",
+                    "content": "按单日统计员工日报提交、草稿、归档和风险摘要情况。",
+                    "metrics": [
+                        {"name": "total_reports", "value": source_data.get("total_reports", 0)},
+                        {"name": "submitted_reports", "value": source_data.get("submitted_reports", 0)},
+                        {"name": "draft_reports", "value": source_data.get("draft_reports", 0)},
+                        {"name": "archived_reports", "value": source_data.get("archived_reports", 0)},
+                        {"name": "risk_reports", "value": source_data.get("risk_reports", 0)},
+                        {"name": "tomorrow_plan_reports", "value": source_data.get("tomorrow_plan_reports", 0)},
+                    ],
+                }
+            ]
+        elif report_type == ReportType.EMPLOYEE_WEEKLY_SUMMARY:
+            title = "员工日报汇总报告（周）"
+            summary = f"本周共汇总日报 {source_data.get('total_reports', 0)} 份。"
+            sections = [
+                {
+                    "heading": "周度日报趋势",
+                    "content": "按周统计日报总量、提交员工数、每日趋势和风险摘要数量。",
+                    "metrics": [
+                        {"name": "total_reports", "value": source_data.get("total_reports", 0)},
+                        {"name": "distinct_employees", "value": source_data.get("distinct_employees", 0)},
+                        {"name": "risk_reports", "value": source_data.get("risk_reports", 0)},
+                    ],
+                },
+                {
+                    "heading": "每日提交趋势",
+                    "content": "展示本周期内各日期日报提交数量。",
+                    "metrics": [
+                        {"name": day, "value": count} for day, count in source_data.get("daily_trend", {}).items()
+                    ],
+                },
+            ]
+        elif report_type == ReportType.STUDENT_PSYCH_WEEKLY:
+            title = "学生心理健康周报"
+            summary = f"本周纳入心理画像 {source_data.get('total_profiles', 0)} 份，预警 {source_data.get('total_alerts', 0)} 条。"
+            sections = [
+                {
+                    "heading": "心理风险概览",
+                    "content": "按风险等级、情绪标签和平均情绪分观察学生心理健康趋势。",
+                    "metrics": [
+                        {"name": key, "value": value}
+                        for key, value in source_data.get("risk_level_counts", {}).items()
+                    ]
+                    + [
+                        {"name": "average_emotion_score", "value": source_data.get("average_emotion_score")},
+                        {"name": "total_alerts", "value": source_data.get("total_alerts", 0)},
+                    ],
+                },
+                {
+                    "heading": "预警处理概览",
+                    "content": "按预警状态和预警风险等级统计本周期心理健康跟进情况。",
+                    "metrics": [
+                        {"name": key, "value": value}
+                        for key, value in source_data.get("alert_status_counts", {}).items()
+                    ],
+                },
+            ]
         else:
             raise ValueError("不支持的报告类型")
         return {

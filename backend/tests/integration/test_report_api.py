@@ -1,6 +1,33 @@
 from app.models.audit_log import AiToolCallLog
 
 
+def test_generate_draft_api_supports_five_report_types(client):
+    headers = {"X-User-Id": "1", "X-User-Role": "admin"}
+    report_types = [
+        "complaint_weekly",
+        "customer_operation",
+        "employee_daily_summary",
+        "employee_weekly_summary",
+        "student_psych_weekly",
+    ]
+
+    for report_type in report_types:
+        response = client.post(
+            "/api/v1/reports/generate-draft",
+            json={
+                "report_type": report_type,
+                "date_start": "2026-06-01",
+                "date_end": "2026-06-07",
+                "department_id": 1,
+                "owner_user_id": 2 if report_type == "customer_operation" else None,
+            },
+            headers=headers,
+        )
+
+        assert response.status_code == 200
+        assert response.json()["data"]["content_json"]["report_type"] == report_type
+
+
 def test_generate_confirm_publish_export_word_flow(client):
     headers = {"X-User-Id": "1", "X-User-Role": "admin"}
     generate_response = client.post(
@@ -99,3 +126,22 @@ def test_ai_tool_query_report_source_data_writes_log(client, db_session):
     assert data["result"]["new_leads"] == 1
     tool_log = db_session.query(AiToolCallLog).filter(AiToolCallLog.tool_name == "query_report_source_data").one()
     assert tool_log.trace_id == "trace-1"
+
+
+def test_ai_tool_query_report_source_data_supports_new_report_type(client):
+    response = client.post(
+        "/api/v1/ai-tools/query_report_source_data",
+        json={
+            "report_type": "student_psych_weekly",
+            "date_start": "2026-06-01",
+            "date_end": "2026-06-07",
+            "department_id": 1,
+            "conversation_id": "conv-psych",
+            "trace_id": "trace-psych",
+        },
+    )
+
+    assert response.status_code == 200
+    result = response.json()["data"]["result"]
+    assert result["total_profiles"] == 2
+    assert result["total_alerts"] == 2

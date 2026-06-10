@@ -80,6 +80,61 @@ def test_employee_generate_customer_operation_draft(db_session):
     assert draft["content_json"]["title"] == "客户经营分析报"
 
 
+@pytest.mark.parametrize(
+    "report_type",
+    [
+        ReportType.EMPLOYEE_DAILY_SUMMARY,
+        ReportType.EMPLOYEE_WEEKLY_SUMMARY,
+        ReportType.STUDENT_PSYCH_WEEKLY,
+    ],
+)
+def test_admin_generate_new_report_type_draft(db_session, report_type):
+    service = ReportService(db_session)
+
+    draft = service.generate_draft(build_request(report_type), CurrentUser(id=1, role="admin"))
+
+    assert draft["status"] == "pending_confirm"
+    assert draft["content_json"]["report_type"] == report_type
+    assert draft["content_json"]["source_data"]["report_type"] == report_type
+    assert draft["content_json"]["sections"]
+
+
+@pytest.mark.parametrize(
+    "report_type",
+    [
+        ReportType.EMPLOYEE_DAILY_SUMMARY,
+        ReportType.EMPLOYEE_WEEKLY_SUMMARY,
+        ReportType.STUDENT_PSYCH_WEEKLY,
+    ],
+)
+def test_employee_generate_new_report_type_draft(db_session, report_type):
+    service = ReportService(db_session)
+
+    draft = service.generate_draft(build_request(report_type), CurrentUser(id=2, role="employee"))
+
+    assert draft["status"] == "pending_confirm"
+    assert draft["content_json"]["report_type"] == report_type
+
+
+@pytest.mark.parametrize(
+    "report_type",
+    [
+        ReportType.EMPLOYEE_DAILY_SUMMARY,
+        ReportType.EMPLOYEE_WEEKLY_SUMMARY,
+        ReportType.STUDENT_PSYCH_WEEKLY,
+    ],
+)
+def test_admin_confirm_new_report_type_draft_creates_ai_report(db_session, report_type):
+    service = ReportService(db_session)
+    draft = service.generate_draft(build_request(report_type), CurrentUser(id=1, role="admin"))
+
+    report = service.confirm_draft(draft["id"], CurrentUser(id=1, role="admin"))
+
+    assert report["report_type"] == report_type
+    assert report["status"] == "confirmed"
+    assert report["source_draft_id"] == draft["id"]
+
+
 def test_employee_cannot_publish_report(db_session):
     service = ReportService(db_session)
     draft = service.generate_draft(build_request(), CurrentUser(id=1, role="admin"))
