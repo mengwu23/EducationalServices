@@ -86,6 +86,13 @@ POST /api/v1/ai-tools/query_report_source_data
 {{#env.AI_TOOLS_BASE_URL#}}/api/v1/ai-tools/query_report_source_data
 ```
 
+推荐 Dify HTTP Tool Headers：
+
+```text
+Content-Type:application/json
+X-AI-Tools-Secret:{{#env.AI_TOOLS_SECRET#}}
+```
+
 HTTP Tool 请求体由 `Parse Report Filters` 节点输出拼装：
 
 ```json
@@ -100,6 +107,8 @@ HTTP Tool 请求体由 `Parse Report Filters` 节点输出拼装：
   "trace_id": "report-trace-id"
 }
 ```
+
+`department_id` 和 `owner_user_id` 由 `Parse Report Filters` 输出为 JSON 片段：有值时是数字，无值时是未加引号的 `null`。不要在 HTTP Tool 请求体里给这两个字段额外加引号，否则 FastAPI 会把空值收到空字符串并返回 422。
 
 响应格式：
 
@@ -202,6 +211,7 @@ report
 
 ```text
 AI_TOOLS_BASE_URL=http://host.docker.internal:8000
+AI_TOOLS_SECRET=replace_with_same_value_as_backend
 ```
 
 如果 Dify 和 FastAPI 都运行在宿主机上，也可以改为 `http://127.0.0.1:8000`。如果 Dify 运行在 Docker 容器内，通常使用 `host.docker.internal` 访问宿主机 FastAPI。
@@ -209,10 +219,13 @@ AI_TOOLS_BASE_URL=http://host.docker.internal:8000
 4. 在后端 `.env` 中配置：
 
 ```text
-DIFY_API_BASE_URL=http://127.0.0.1:5001
+DIFY_API_BASE_URL=http://127.0.0.1
 DIFY_API_KEY=你的 Dify App API Key
 DIFY_MOCK_ENABLED=false
+AI_TOOLS_SECRET=replace_with_same_value_as_dify
 ```
+
+本地 Docker 版 Dify 通常通过 nginx 暴露 `http://127.0.0.1/v1/workflows/run`，因此 `DIFY_API_BASE_URL` 使用 `http://127.0.0.1`。如果团队单独暴露了 Dify API 的 `5001` 端口，再改为 `http://127.0.0.1:5001`。
 
 5. 启动 FastAPI 后端。
 6. 调用后端报告接口：
@@ -315,3 +328,17 @@ POST /api/v1/reports/generate-draft
 - Dify 是否实际使用了 `data.result`。
 - Prompt 是否要求以 AI Tool 返回数据为准。
 - Dify 是否编造了工具结果里不存在的指标。
+
+如果在 Windows PowerShell 中看到中文乱码，先确认读取编码：
+
+```powershell
+Get-Content -Encoding UTF8 dify/README.md
+```
+
+也可以用 Python 验证文件内容是否是 UTF-8：
+
+```powershell
+python -c "from pathlib import Path; print(Path('dify/README.md').read_text(encoding='utf-8')[:80])"
+```
+
+当前后端 Python 文件和 Dify 文档按 UTF-8 保存，乱码通常来自 PowerShell 默认代码页，而不是文件内容损坏。

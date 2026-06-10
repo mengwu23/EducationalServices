@@ -1,3 +1,4 @@
+from app.core.config import get_settings
 from app.models.audit_log import AiToolCallLog
 
 
@@ -145,3 +146,44 @@ def test_ai_tool_query_report_source_data_supports_new_report_type(client):
     result = response.json()["data"]["result"]
     assert result["total_profiles"] == 2
     assert result["total_alerts"] == 2
+
+
+def test_ai_tool_secret_is_required_when_configured(client, monkeypatch):
+    monkeypatch.setenv("AI_TOOLS_SECRET", "test-ai-tool-secret")
+    get_settings.cache_clear()
+    try:
+        missing_response = client.get("/api/v1/ai-tools")
+        assert missing_response.status_code == 401
+
+        invalid_response = client.post(
+            "/api/v1/ai-tools/query_report_source_data",
+            headers={"X-AI-Tools-Secret": "wrong-secret"},
+            json={
+                "report_type": "complaint_weekly",
+                "date_start": "2026-06-01",
+                "date_end": "2026-06-07",
+                "department_id": None,
+                "owner_user_id": None,
+                "conversation_id": "conv-secret",
+                "trace_id": "trace-secret",
+            },
+        )
+        assert invalid_response.status_code == 401
+
+        valid_response = client.post(
+            "/api/v1/ai-tools/query_report_source_data",
+            headers={"X-AI-Tools-Secret": "test-ai-tool-secret"},
+            json={
+                "report_type": "complaint_weekly",
+                "date_start": "2026-06-01",
+                "date_end": "2026-06-07",
+                "department_id": None,
+                "owner_user_id": None,
+                "conversation_id": "conv-secret",
+                "trace_id": "trace-secret",
+            },
+        )
+        assert valid_response.status_code == 200
+        assert valid_response.json()["data"]["result"]["total_tickets"] == 2
+    finally:
+        get_settings.cache_clear()

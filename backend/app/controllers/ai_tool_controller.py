@@ -3,10 +3,11 @@ from sqlalchemy.orm import Session
 
 from app.ai_tools.report_tools import query_report_source_data
 from app.common.responses import success
+from app.core.security import verify_ai_tools_secret
 from app.db.session import get_db
 from app.schemas.report_schema import AiToolReportSourceDataRequest
 
-router = APIRouter(prefix="/api/v1/ai-tools", tags=["ai-tools"])
+router = APIRouter(prefix="/api/v1/ai-tools", tags=["ai-tools"], dependencies=[Depends(verify_ai_tools_secret)])
 
 
 @router.get("")

@@ -15,6 +15,10 @@ workflow:
     value: http://host.docker.internal:8000
     value_type: string
     description: FastAPI 后端基础地址，不包含 /api/v1。Dify 容器访问宿主机时建议使用 host.docker.internal。
+  - name: AI_TOOLS_SECRET
+    value: ''
+    value_type: string
+    description: FastAPI AI Tools 调用密钥。后端配置 AI_TOOLS_SECRET 后，Dify HTTP Tool 必须通过 X-AI-Tools-Secret 传入同值。
   features:
     file_upload:
       enabled: false
@@ -138,6 +142,12 @@ workflow:
                   return None
               return int(value)
 
+          def _json_number_or_null(value):
+              parsed = _optional_int(value)
+              if parsed is None:
+                  return "null"
+              return str(parsed)
+
           def main(filters) -> dict:
               if isinstance(filters, dict):
                   data = filters
@@ -149,6 +159,8 @@ workflow:
                   "date_end": data.get("date_end", ""),
                   "department_id": _optional_int(data.get("department_id")),
                   "owner_user_id": _optional_int(data.get("owner_user_id")),
+                  "department_id_json": _json_number_or_null(data.get("department_id")),
+                  "owner_user_id_json": _json_number_or_null(data.get("owner_user_id")),
               }
         code_language: python3
         desc: 将后端传入的 filters JSON 拆成 AI Tool 需要的顶层筛选字段。
@@ -165,6 +177,12 @@ workflow:
           owner_user_id:
             children: null
             type: number
+          department_id_json:
+            children: null
+            type: string
+          owner_user_id_json:
+            children: null
+            type: string
         selected: false
         title: Parse Report Filters
         type: code
@@ -196,15 +214,17 @@ workflow:
               "report_type": "{{#start_node.report_type#}}",
               "date_start": "{{#parse_report_filters.date_start#}}",
               "date_end": "{{#parse_report_filters.date_end#}}",
-              "department_id": {{#parse_report_filters.department_id#}},
-              "owner_user_id": {{#parse_report_filters.owner_user_id#}},
+              "department_id": {{#parse_report_filters.department_id_json#}},
+              "owner_user_id": {{#parse_report_filters.owner_user_id_json#}},
               "caller": "dify",
               "conversation_id": "{{#sys.conversation_id#}}",
               "trace_id": "{{#start_node.trace_id#}}"
             }
           type: json
         desc: 每次报告生成必须先调用该工具。Dify 不能直连数据库，也不能执行任意 SQL。
-        headers: Content-Type:application/json
+        headers: |-
+          Content-Type:application/json
+          X-AI-Tools-Secret:{{#env.AI_TOOLS_SECRET#}}
         method: POST
         params: ''
         retry_config:

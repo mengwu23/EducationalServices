@@ -14,6 +14,7 @@ class Settings(BaseSettings):
     dify_api_base_url: str = Field(default="http://127.0.0.1:5001", alias="DIFY_API_BASE_URL")
     dify_api_key: str = Field(default="", alias="DIFY_API_KEY")
     dify_mock_enabled: bool = Field(default=True, alias="DIFY_MOCK_ENABLED")
+    ai_tools_secret: str = Field(default="", alias="AI_TOOLS_SECRET")
     report_export_dir: str = Field(default="storage/reports", alias="REPORT_EXPORT_DIR")
     report_pdf_converter_path: str = Field(default="", alias="REPORT_PDF_CONVERTER_PATH")
 
