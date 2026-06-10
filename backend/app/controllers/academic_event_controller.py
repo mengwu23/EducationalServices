@@ -4,6 +4,7 @@ from typing import Optional
 from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.orm import Session
 
+from backend.app.common.responses import ApiResponse, success_response
 from backend.app.database import get_db
 from backend.app.schemas.academic_event_schema import (
     AcademicEventCreate,
@@ -18,15 +19,16 @@ router = APIRouter(prefix="/academic-events", tags=["学业事件"])
 
 @router.post(
     "",
-    response_model=AcademicEventOut,
+    response_model=ApiResponse,
     status_code=status.HTTP_201_CREATED,
     summary="创建学业事件",
 )
 def create_academic_event(payload: AcademicEventCreate, db: Session = Depends(get_db)):
-    return AcademicEventService.create_event(db, payload)
+    event = AcademicEventService.create_event(db, payload)
+    return success_response(data=AcademicEventOut.model_validate(event), message="学业事件创建成功")
 
 
-@router.get("", response_model=AcademicEventPage, summary="查询学业事件列表")
+@router.get("", response_model=ApiResponse, summary="查询学业事件列表")
 def list_academic_events(
     student_id: Optional[int] = Query(default=None),
     event_type: Optional[str] = Query(default=None),
@@ -49,28 +51,38 @@ def list_academic_events(
         page=page,
         size=size,
     )
-    return {"items": items, "total": total, "page": page, "size": size}
+    data = AcademicEventPage(
+        items=[AcademicEventOut.model_validate(item) for item in items],
+        total=total,
+        page=page,
+        size=size,
+    )
+    return success_response(data=data)
 
 
-@router.get("/{event_id}", response_model=AcademicEventOut, summary="获取学业事件详情")
+@router.get("/{event_id}", response_model=ApiResponse, summary="获取学业事件详情")
 def get_academic_event(event_id: int, db: Session = Depends(get_db)):
-    return AcademicEventService.get_event(db, event_id)
+    event = AcademicEventService.get_event(db, event_id)
+    return success_response(data=AcademicEventOut.model_validate(event))
 
 
-@router.patch("/{event_id}", response_model=AcademicEventOut, summary="更新学业事件")
+@router.patch("/{event_id}", response_model=ApiResponse, summary="更新学业事件")
 def update_academic_event(
     event_id: int,
     payload: AcademicEventUpdate,
     db: Session = Depends(get_db),
 ):
-    return AcademicEventService.update_event(db, event_id, payload)
+    event = AcademicEventService.update_event(db, event_id, payload)
+    return success_response(data=AcademicEventOut.model_validate(event), message="学业事件更新成功")
 
 
-@router.post("/{event_id}/complete", response_model=AcademicEventOut, summary="完成学业事件")
+@router.post("/{event_id}/complete", response_model=ApiResponse, summary="完成学业事件")
 def complete_academic_event(event_id: int, db: Session = Depends(get_db)):
-    return AcademicEventService.complete_event(db, event_id)
+    event = AcademicEventService.complete_event(db, event_id)
+    return success_response(data=AcademicEventOut.model_validate(event), message="学业事件已完成")
 
 
-@router.post("/{event_id}/cancel", response_model=AcademicEventOut, summary="取消学业事件")
+@router.post("/{event_id}/cancel", response_model=ApiResponse, summary="取消学业事件")
 def cancel_academic_event(event_id: int, db: Session = Depends(get_db)):
-    return AcademicEventService.cancel_event(db, event_id)
+    event = AcademicEventService.cancel_event(db, event_id)
+    return success_response(data=AcademicEventOut.model_validate(event), message="学业事件已取消")
