@@ -300,12 +300,11 @@ def summarize_statistics(
     return success_response(data)
 
 
-@router.get("/onboarding/guide", summary="新人入职指引预留接口")
+@router.get("/onboarding/guide", summary="新人入职指引问答")
 def query_onboarding_guide(
     question: str = Query(description="新人入职、制度或业务流程问题"),
-    category: Optional[str] = Query(default=None, description="问题分类，预留给 Dify 知识库检索"),
     db: Session = Depends(get_db),
 ):
-    """预留新人入职指引入口，后续接入本地 Dify RAG 知识库。"""
-    data = _service(db).query_onboarding_guide(question=question, category=category)
+    """调用本地 Dify 公司规章 RAG 应用，回答新人入职相关问题。"""
+    data = _service(db).query_onboarding_guide(question=question)
     return success_response(data)

@@ -3,9 +3,12 @@
 from datetime import date, datetime
 from typing import Any, List, Optional
 
+import httpx
+from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
 from ..daos.enterprise_assistant_dao import EnterpriseAssistantDao
+from ..integrations.dify_client import DifyClient
 from ..schemas.enterprise_assistant_schema import (
     DailyReportItem,
     DailyReportSummaryResult,
@@ -28,8 +31,9 @@ from ..schemas.enterprise_assistant_schema import (
 class EnterpriseAssistantService:
     """承接接口参数，组织 DAO 查询并转换为接口返回结构。"""
 
-    def __init__(self, db: Session):
+    def __init__(self, db: Session, dify_client: Optional[DifyClient] = None):
         self.dao = EnterpriseAssistantDao(db)
+        self.dify_client = dify_client or DifyClient()
 
     def search_leads(
         self,
@@ -339,13 +343,35 @@ class EnterpriseAssistantService:
             pending_feedback_tickets=pending_feedback_tickets,
         )
 
-    def query_onboarding_guide(self, question: str, category: Optional[str]) -> OnboardingGuideResult:
-        """预留新人入职指引入口，后续接入本地 Dify RAG 知识库。"""
+    def query_onboarding_guide(self, question: str, ) -> OnboardingGuideResult:
+        """调用本地 Dify 新人问答应用，返回公司规章 RAG 问答结果。"""
+        try:
+            dify_result = self.dify_client.ask_onboarding_guide(question=question,)
+        except httpx.HTTPStatusError as exc:
+            error_text = exc.response.text[:500] if exc.response is not None else ""
+            raise HTTPException(
+                status_code=status.HTTP_502_BAD_GATEWAY,
+                detail=f"Dify 新人问答应用返回错误：{exc.response.status_code}，响应内容：{error_text}",
+            ) from exc
+        except httpx.RequestError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_502_BAD_GATEWAY,
+                detail=f"无法连接 Dify 新人问答应用：{exc}",
+            ) from exc
+        except RuntimeError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_502_BAD_GATEWAY,
+                detail=str(exc),
+            ) from exc
         return OnboardingGuideResult(
-            status="reserved",
-            message="新人入职指引模块已预留，后续将接入本地 Dify RAG 知识库。",
+            status="answered",
+            message="新人入职指引问答已由本地 Dify RAG 应用返回。",
             question=question,
             category=category,
+            answer=dify_result["answer"],
+            conversation_id=dify_result.get("conversation_id"),
+            message_id=dify_result.get("message_id"),
+            metadata=dify_result.get("metadata") or {},
         )
 
     def _lead_item(self, lead: Any, owner_name: Optional[str]) -> LeadItem:
