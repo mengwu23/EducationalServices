@@ -1,4 +1,4 @@
-from sqlalchemy import BigInteger, Column, DateTime, ForeignKey, Index, String, Text, UniqueConstraint
+from sqlalchemy import BigInteger, Column, DateTime, ForeignKey, Index, Integer, String, Text, UniqueConstraint
 from sqlalchemy.sql import func
 
 from app.database import Base
@@ -25,3 +25,4 @@ class StudentPsychAlert(Base):
     close_time = Column(DateTime, nullable=True, comment="关闭时间")
     create_time = Column(DateTime, nullable=False, server_default=func.current_timestamp(), comment="创建时间")
     update_time = Column(DateTime, nullable=False, server_default=func.current_timestamp(), onupdate=func.current_timestamp(), comment="更新时间")
+    is_delete = Column(Integer, nullable=False, default=0, server_default="0", comment="逻辑删除：0未删除/1已删除")
