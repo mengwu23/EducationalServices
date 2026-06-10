@@ -1,4 +1,4 @@
-﻿"""员工日报表实体。"""
+"""员工日报表实体。"""
 
 from sqlalchemy import BigInteger, Column, Date, DateTime, ForeignKey, Index, Integer, String, Text, UniqueConstraint
 from sqlalchemy.sql import func

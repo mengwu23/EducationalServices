@@ -1,4 +1,4 @@
-﻿"""学生反馈与投诉工单表实体。"""
+"""学生反馈与投诉工单表实体。"""
 
 from sqlalchemy import BigInteger, CheckConstraint, Column, DateTime, ForeignKey, Index, Integer, String, Text, UniqueConstraint
 from sqlalchemy.sql import func

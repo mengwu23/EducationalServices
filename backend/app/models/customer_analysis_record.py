@@ -1,4 +1,4 @@
-﻿"""客户分析记录表实体。"""
+"""客户分析记录表实体。"""
 
 from sqlalchemy import BigInteger, CheckConstraint, Column, DateTime, ForeignKey, Index, Integer, Numeric, String, Text, UniqueConstraint
 from sqlalchemy.dialects.mysql import LONGTEXT

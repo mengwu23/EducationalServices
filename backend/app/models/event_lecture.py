@@ -1,4 +1,4 @@
-﻿"""活动与讲座表实体。"""
+"""活动与讲座表实体。"""
 
 from sqlalchemy import BigInteger, Column, DateTime, Index, Integer, String, UniqueConstraint
 from sqlalchemy.sql import func

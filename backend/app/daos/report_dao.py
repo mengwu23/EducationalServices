@@ -1,1 +1,155 @@
-﻿
+from datetime import date
+from typing import Any
+
+from sqlalchemy import func, select
+from sqlalchemy.orm import Session
+
+from backend.app.common.enums import ReportType
+from backend.app.models.audit_log import AiToolCallLog, AuditLog
+from backend.app.models.crm_lead import CrmLead
+from backend.app.models.customer_analysis_record import CustomerAnalysisRecord
+from backend.app.models.employee_profile import EmployeeProfile
+from backend.app.models.event_registration import EventRegistration
+from backend.app.models.student_feedback_ticket import StudentFeedbackTicket
+from backend.app.models.draft import AiDraft
+from backend.app.models.report import AiReport, ReportExportRecord
+
+
+class ReportDAO:
+    def __init__(self, db: Session):
+        self.db = db
+
+    def query_report_source_data(
+        self,
+        report_type: str,
+        date_start: date,
+        date_end: date,
+        department_id: int | None = None,
+        owner_user_id: int | None = None,
+    ) -> dict[str, Any]:
+        if report_type == ReportType.COMPLAINT_WEEKLY:
+            return self._query_complaint_weekly(date_start, date_end, department_id)
+        if report_type == ReportType.CUSTOMER_OPERATION:
+            return self._query_customer_operation(date_start, date_end, department_id, owner_user_id)
+        raise ValueError(f"不支持的报告类型：{report_type}")
+
+    def _query_complaint_weekly(
+        self,
+        date_start: date,
+        date_end: date,
+        department_id: int | None,
+    ) -> dict[str, Any]:
+        stmt = (
+            select(StudentFeedbackTicket.status, func.count(StudentFeedbackTicket.id))
+            .outerjoin(EmployeeProfile, StudentFeedbackTicket.handler_employee_id == EmployeeProfile.id)
+            .where(func.date(StudentFeedbackTicket.create_time).between(date_start, date_end))
+            .group_by(StudentFeedbackTicket.status)
+        )
+        if department_id is not None:
+            stmt = stmt.where(EmployeeProfile.department_id == department_id)
+        rows = self.db.execute(stmt).all()
+        status_counts = {status: count for status, count in rows}
+        total = sum(status_counts.values())
+        return {
+            "report_type": ReportType.COMPLAINT_WEEKLY,
+            "date_start": str(date_start),
+            "date_end": str(date_end),
+            "department_id": department_id,
+            "total_tickets": total,
+            "status_counts": status_counts,
+        }
+
+    def _query_customer_operation(
+        self,
+        date_start: date,
+        date_end: date,
+        department_id: int | None,
+        owner_user_id: int | None,
+    ) -> dict[str, Any]:
+        employee_filters = []
+        if department_id is not None:
+            employee_filters.append(EmployeeProfile.department_id == department_id)
+        if owner_user_id is not None:
+            employee_filters.append(EmployeeProfile.user_id == owner_user_id)
+
+        lead_stmt = (
+            select(func.count(CrmLead.id))
+            .join(EmployeeProfile, CrmLead.owner_employee_id == EmployeeProfile.id)
+            .where(func.date(CrmLead.create_time).between(date_start, date_end), *employee_filters)
+        )
+        analysis_stmt = (
+            select(func.count(CustomerAnalysisRecord.id))
+            .join(CrmLead, CustomerAnalysisRecord.lead_id == CrmLead.id)
+            .join(EmployeeProfile, CrmLead.owner_employee_id == EmployeeProfile.id)
+            .where(func.date(CustomerAnalysisRecord.create_time).between(date_start, date_end), *employee_filters)
+        )
+        registration_stmt = (
+            select(func.count(EventRegistration.id))
+            .join(CrmLead, EventRegistration.lead_id == CrmLead.id)
+            .join(EmployeeProfile, CrmLead.owner_employee_id == EmployeeProfile.id)
+            .where(func.date(EventRegistration.create_time).between(date_start, date_end), *employee_filters)
+        )
+
+        return {
+            "report_type": ReportType.CUSTOMER_OPERATION,
+            "date_start": str(date_start),
+            "date_end": str(date_end),
+            "department_id": department_id,
+            "owner_user_id": owner_user_id,
+            "new_leads": self.db.scalar(lead_stmt) or 0,
+            "analysis_records": self.db.scalar(analysis_stmt) or 0,
+            "event_registrations": self.db.scalar(registration_stmt) or 0,
+        }
+
+    def add_draft(self, draft: AiDraft) -> AiDraft:
+        self.db.add(draft)
+        self.db.flush()
+        return draft
+
+    def get_draft(self, draft_id: int) -> AiDraft | None:
+        stmt = select(AiDraft).where(AiDraft.id == draft_id, AiDraft.is_deleted.is_(False))
+        return self.db.scalar(stmt)
+
+    def list_report_drafts(self) -> list[AiDraft]:
+        stmt = (
+            select(AiDraft)
+            .where(AiDraft.biz_module == "report", AiDraft.is_deleted.is_(False))
+            .order_by(AiDraft.create_time.desc())
+        )
+        return list(self.db.scalars(stmt).all())
+
+    def add_report(self, report: AiReport) -> AiReport:
+        self.db.add(report)
+        self.db.flush()
+        return report
+
+    def get_report(self, report_id: int) -> AiReport | None:
+        stmt = select(AiReport).where(AiReport.id == report_id, AiReport.is_deleted.is_(False))
+        return self.db.scalar(stmt)
+
+    def list_reports(self) -> list[AiReport]:
+        stmt = select(AiReport).where(AiReport.is_deleted.is_(False)).order_by(AiReport.create_time.desc())
+        return list(self.db.scalars(stmt).all())
+
+    def add_export_record(self, record: ReportExportRecord) -> ReportExportRecord:
+        self.db.add(record)
+        self.db.flush()
+        return record
+
+    def list_export_records(self, report_id: int) -> list[ReportExportRecord]:
+        stmt = (
+            select(ReportExportRecord)
+            .where(ReportExportRecord.report_id == report_id, ReportExportRecord.is_deleted.is_(False))
+            .order_by(ReportExportRecord.create_time.desc())
+        )
+        return list(self.db.scalars(stmt).all())
+
+    def add_audit_log(self, log: AuditLog) -> AuditLog:
+        self.db.add(log)
+        self.db.flush()
+        return log
+
+    def add_tool_call_log(self, log: AiToolCallLog) -> AiToolCallLog:
+        self.db.add(log)
+        self.db.flush()
+        return log

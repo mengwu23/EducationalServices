@@ -44,6 +44,9 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
+# App storage
+backend/storage/
+
 # OS files
 .DS_Store
 Thumbs.db
@@ -51,3 +54,4 @@ desktop.ini
 
 # Local tooling
 .codegraph/
+.superpowers/

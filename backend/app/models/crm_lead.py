@@ -1,4 +1,4 @@
-﻿"""客户线索表实体。"""
+"""客户线索表实体。"""
 
 from sqlalchemy import BigInteger, Column, DateTime, ForeignKey, Index, Integer, String, Text, UniqueConstraint
 from sqlalchemy.sql import func

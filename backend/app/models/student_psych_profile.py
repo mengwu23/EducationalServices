@@ -1,4 +1,4 @@
-﻿"""学生心理画像表实体。"""
+"""学生心理画像表实体。"""
 
 from sqlalchemy import BigInteger, CheckConstraint, Column, DateTime, ForeignKey, Index, Integer, String, Text, UniqueConstraint
 from sqlalchemy.sql import func

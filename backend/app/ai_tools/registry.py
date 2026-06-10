@@ -1,4 +1,4 @@
-﻿from backend.app.ai_tools.academic_event_tools import (
+from backend.app.ai_tools.academic_event_tools import (
     AcademicEventToolCreate,
     AcademicEventToolList,
     create_academic_event,

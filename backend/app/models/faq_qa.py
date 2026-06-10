@@ -1,4 +1,4 @@
-﻿"""FAQ 标准问答表实体。"""
+"""FAQ 标准问答表实体。"""
 
 from sqlalchemy import BigInteger, Column, DateTime, Index, Integer, String, Text
 from sqlalchemy.sql import func
