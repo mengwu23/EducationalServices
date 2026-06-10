@@ -1,10 +1,13 @@
-from sqlalchemy import BigInteger, Column, DateTime, ForeignKey, Index, String, Text, UniqueConstraint
+"""学生请假申请表实体。"""
+
+from sqlalchemy import BigInteger, Column, DateTime, ForeignKey, Index, Integer, String, Text, UniqueConstraint
 from sqlalchemy.sql import func
 
-from backend.app.database import Base
+from ..database import Base
 
 
 class StudentLeaveRequest(Base):
+    """存储学生请假申请及审批结果。"""
     __tablename__ = "student_leave_request"
     __table_args__ = (
         UniqueConstraint("request_no", name="uk_leave_request_no"),
@@ -25,5 +28,6 @@ class StudentLeaveRequest(Base):
     approver_employee_id = Column(BigInteger, ForeignKey("employee_profile.id"), nullable=True, comment="审批员工ID")
     approval_comment = Column(String(1000), nullable=True, comment="审批意见")
     approve_time = Column(DateTime, nullable=True, comment="审批时间")
+    is_delete = Column(Integer, nullable=False, default=0, server_default="0", comment="软删除标记：0-未删除，1-已删除")
     create_time = Column(DateTime, nullable=False, server_default=func.current_timestamp(), comment="创建时间")
     update_time = Column(DateTime, nullable=False, server_default=func.current_timestamp(), onupdate=func.current_timestamp(), comment="更新时间")
