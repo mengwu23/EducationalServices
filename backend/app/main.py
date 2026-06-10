@@ -2,6 +2,7 @@
 from fastapi import FastAPI
 import uvicorn
 from backend.app.controllers.enterprise_assistant_controller import router as enterprise_assistant_router
+from backend.app.controllers.enterprise_nl2sql_controller import router as enterprise_nl2sql_router
 
 app = FastAPI(
     title="Education Service System",
@@ -11,6 +12,7 @@ app = FastAPI(
 
 # 挂载企业管理查询助手路由，保证服务启动后即可访问该模块接口。
 app.include_router(enterprise_assistant_router, prefix="/enterprise", tags=["企业智能助手模块"])
+app.include_router(enterprise_nl2sql_router, prefix="/enterprise", tags=["企业智能助手NL2SQL模块"])
 
 
 if __name__ == '__main__':
