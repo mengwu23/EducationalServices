@@ -269,9 +269,11 @@ workflow:
         model:
           completion_params:
             max_tokens: 2400
+            reasoning_effort: high
             temperature: 0.2
+            thinking_mode: high
           mode: chat
-          name: deepseek-chat
+          name: deepseek-v4-flash
           provider: langgenius/deepseek/deepseek
         prompt_template:
         - role: system
@@ -289,9 +291,12 @@ workflow:
             - employee_weekly_summary：员工日报汇总报告（周）
             - student_psych_weekly：学生心理健康周报
 
-            你必须只输出一个 JSON 对象，不要输出 Markdown，不要输出代码块，不要输出解释性前后缀。
+            你必须只输出一个 JSON 对象，不要输出 Markdown，不要输出代码块，不要输出解释性前后缀，不要输出 <think> 或任何思考过程。
             JSON 对象必须符合以下结构：
             {
+              "tool_call_success": true,
+              "tool_status_code": 200,
+              "tool_error": "",
               "title": "报告标题",
               "summary": "报告摘要",
               "sections": [
@@ -316,6 +321,13 @@ workflow:
             - risks 没有风险时返回空数组。
             - recommendations 没有建议时返回空数组。
             - source_refs 写入 query_report_source_data 和使用的数据表名或口径说明。
+            - tool_call_success 表示 FastAPI AI Tool 是否调用成功。
+            - tool_status_code 必须等于 FastAPI AI Tool 返回状态码。
+            - tool_error 成功时为空字符串，失败时写入工具返回的错误摘要。
+            - 如果 FastAPI AI Tool 返回状态码不是 200，不要生成业务分析内容，只返回 tool_call_success=false、tool_status_code、tool_error，并在 title/summary 中说明数据获取失败。
+            - 如果 FastAPI AI Tool 返回状态码是 200，必须设置 tool_call_success=true、tool_status_code=200、tool_error=""，并且只围绕 body.data.result 中已有的业务指标写报告。
+            - 如果 FastAPI AI Tool 返回状态码是 200，owner_user_id 为 null 只表示不按负责人筛选，不是错误；不得把正常空筛选条件、空负责人筛选或空 trace_id 描述成工具调用失败。
+            - 如果 FastAPI AI Tool 返回状态码是 200，不要写任何接口失败、参数错误、数据获取失败、无法获取数据的描述。
         - role: user
           text: |-
             后端初始报告类型：

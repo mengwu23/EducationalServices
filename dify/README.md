@@ -156,6 +156,9 @@ report
 
 ```json
 {
+  "tool_call_success": true,
+  "tool_status_code": 200,
+  "tool_error": "",
   "title": "投诉处理周报",
   "summary": "本周期投诉处理整体平稳。",
   "sections": [
@@ -178,11 +181,17 @@ report
 输出要求：
 
 - 只输出 JSON，不输出 Markdown 代码块。
+- 不输出 `<think>`、推理过程或解释性前后缀。
+- `tool_call_success` 必填，表示 FastAPI AI Tool 是否调用成功。
+- `tool_status_code` 必填，必须等于 FastAPI AI Tool 返回状态码。
+- `tool_error` 成功时为空字符串，失败时写入工具错误摘要。
+- 当 `tool_status_code=200` 时，报告正文不得出现 `HTTP 422`、`参数校验错误`、`请求被拒绝`、`无可用数据表` 等工具失败描述；`owner_user_id=null` 只表示未按负责人筛选，不是错误。
 - `title` 必填。
 - `sections` 至少包含 2 个章节。
 - `metrics` 必须来自 AI Tool 返回数据。
 - 不能编造没有数据支撑的指标。
 - 不能包含 SQL 或数据库写入动作。
+- 如果 AI Tool 状态码不是 200，只返回工具失败说明，不生成业务分析内容；后端会拒绝该草稿入库为可确认草稿。
 
 ## 5. Prompt 模板要点
 
@@ -193,7 +202,7 @@ report
 你只能基于 FastAPI AI Tool 返回的受控聚合数据生成报告草稿。
 你不能直接连接数据库，不能输出 SQL，不能发布报告，不能写入任何业务表。
 你不能编造指标。无法从工具数据判断的信息，必须写入 risks 或 recommendations。
-你必须只输出一个 JSON 对象，不要输出 Markdown，不要输出代码块，不要输出解释性前后缀。
+你必须只输出一个 JSON 对象，不要输出 Markdown，不要输出代码块，不要输出解释性前后缀，不要输出 <think> 或任何思考过程。
 ```
 
 用户 Prompt 应提供：
@@ -245,8 +254,10 @@ POST /api/v1/reports/generate-draft
 
 8. 模型配置：
 
-- `reports.yml` 默认使用本地 Dify 已安装的 `langgenius/deepseek/deepseek` / `deepseek-chat`。
-- 如果团队环境使用 OpenAI 或其他供应商，在 Dify 画布中打开 `Generate Report JSON` 节点切换模型即可。
+- `reports.yml` 默认使用本地 Dify 已安装的 `langgenius/deepseek/deepseek` / `deepseek-v4-flash`。
+- 在 Dify 画布中打开 `Generate Report JSON` 节点，确认模型为 `deepseek-v4-flash`，并开启“高思考模式”。
+- 当前草案在 `completion_params` 中写入 `thinking_mode: high` 和 `reasoning_effort: high`；如果 Dify 导入后使用不同字段名，以控制台开启后的重新导出结果为准同步回 `reports.yml`。
+- 温度保持 `0.2`，最大输出长度保持 `2400`。
 
 ## 7. 五类报告最小测试输入
 
@@ -313,7 +324,8 @@ POST /api/v1/reports/generate-draft
 - 最终输出变量是否命名为 `report`。
 - `report` 是否是 JSON 对象或 JSON 字符串。
 - JSON 是否包含 `title`。
-- 是否输出了 Markdown 代码块。
+- 是否输出了 Markdown 代码块、`<think>` 或解释性前后缀。
+- JSON 中 `tool_call_success` 是否为 `true`，`tool_status_code` 是否为 `200`。
 
 如果 AI Tool 调用失败，检查：
 
@@ -322,6 +334,7 @@ POST /api/v1/reports/generate-draft
 - 请求路径是否为 `/api/v1/ai-tools/query_report_source_data`。
 - 请求体是否包含 `report_type`、`date_start`、`date_end`。
 - `filters` 是否是合法 JSON，且能被 `Parse Report Filters` 节点解析。
+- `department_id` 和 `owner_user_id` 是否是未加引号的数字或 `null`，不能是空字符串。
 
 如果报告内容指标不对，检查：
 

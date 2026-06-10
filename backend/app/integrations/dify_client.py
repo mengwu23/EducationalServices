@@ -1,5 +1,5 @@
 import json
-import json
+import re
 from typing import Any
 
 import httpx
@@ -164,15 +164,66 @@ class DifyClient:
         if isinstance(value, dict):
             return value
         if isinstance(value, str):
-            try:
-                parsed = json.loads(value)
-            except json.JSONDecodeError as exc:
-                raise RuntimeError("Dify 返回内容无法解析为报告草稿") from exc
-            if isinstance(parsed, dict):
-                return parsed
+            for candidate in self._candidate_json_strings(value):
+                try:
+                    parsed = json.loads(candidate)
+                except json.JSONDecodeError:
+                    continue
+                if isinstance(parsed, dict):
+                    return parsed
         raise RuntimeError("Dify 返回内容无法解析为报告草稿")
 
+    def _candidate_json_strings(self, text: str) -> list[str]:
+        stripped = text.strip()
+        without_think = re.sub(r"<think>.*?</think>", "", stripped, flags=re.IGNORECASE | re.DOTALL).strip()
+        candidates = [stripped, without_think]
+
+        fence_match = re.search(r"```(?:json)?\s*(.*?)```", without_think, flags=re.IGNORECASE | re.DOTALL)
+        if fence_match:
+            candidates.append(fence_match.group(1).strip())
+
+        embedded_json = self._extract_first_json_object(without_think)
+        if embedded_json:
+            candidates.append(embedded_json)
+
+        unique_candidates = []
+        for candidate in candidates:
+            if candidate and candidate not in unique_candidates:
+                unique_candidates.append(candidate)
+        return unique_candidates
+
+    def _extract_first_json_object(self, text: str) -> str | None:
+        start = text.find("{")
+        if start < 0:
+            return None
+
+        depth = 0
+        in_string = False
+        escaped = False
+        for index in range(start, len(text)):
+            char = text[index]
+            if in_string:
+                if escaped:
+                    escaped = False
+                elif char == "\\":
+                    escaped = True
+                elif char == '"':
+                    in_string = False
+                continue
+
+            if char == '"':
+                in_string = True
+            elif char == "{":
+                depth += 1
+            elif char == "}":
+                depth -= 1
+                if depth == 0:
+                    return text[start : index + 1]
+        return None
+
     def _normalize_report_draft(self, draft: dict[str, Any]) -> dict[str, Any]:
+        self._raise_for_failed_tool_call(draft)
+        self._raise_for_failure_content(draft)
         title = draft.get("title")
         if not isinstance(title, str) or not title.strip():
             raise RuntimeError("Dify 返回内容无法解析为报告草稿")
@@ -202,3 +253,40 @@ class DifyClient:
             else [],
             "source_refs": draft.get("source_refs") if isinstance(draft.get("source_refs"), list) else [],
         }
+
+    def _raise_for_failed_tool_call(self, draft: dict[str, Any]) -> None:
+        tool_call_success = draft.get("tool_call_success")
+        tool_status_code = self._coerce_status_code(draft.get("tool_status_code"))
+
+        success_is_false = tool_call_success is False or (
+            isinstance(tool_call_success, str) and tool_call_success.strip().lower() in {"false", "0", "no"}
+        )
+        status_is_failed = tool_status_code is not None and tool_status_code != 200
+        if success_is_false or status_is_failed:
+            error = draft.get("tool_error") or draft.get("summary") or "Dify AI Tool 返回失败状态"
+            raise RuntimeError(f"Dify AI Tool 调用失败：{error}")
+
+    def _raise_for_failure_content(self, draft: dict[str, Any]) -> None:
+        content = json.dumps(draft, ensure_ascii=False)
+        failure_markers = (
+            "HTTP 422",
+            "HTTP 401",
+            "HTTP 403",
+            "FastAPI AI Tool返回",
+            "FastAPI AI Tool 返回",
+            "参数校验错误",
+            "请求被拒绝",
+            "query_report_source_data未成功执行",
+            "query_report_source_data 未成功执行",
+            "无可用数据表",
+        )
+        if any(marker in content for marker in failure_markers):
+            raise RuntimeError("Dify AI Tool 调用失败：模型输出包含工具失败或参数校验错误内容")
+
+    def _coerce_status_code(self, value: Any) -> int | None:
+        if value is None or value == "":
+            return None
+        try:
+            return int(value)
+        except (TypeError, ValueError):
+            return None

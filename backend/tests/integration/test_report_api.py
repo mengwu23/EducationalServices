@@ -316,6 +316,34 @@ def test_ai_tool_query_report_source_data_supports_new_report_type(client):
     assert result["total_alerts"] == 2
 
 
+def test_ai_tool_query_report_source_data_accepts_blank_optional_ids(client, db_session):
+    response = client.post(
+        "/api/v1/ai-tools/query_report_source_data",
+        json={
+            "report_type": "complaint_weekly",
+            "date_start": "2026-06-01",
+            "date_end": "2026-06-07",
+            "department_id": "",
+            "owner_user_id": "",
+            "conversation_id": "conv-blank-ids",
+            "trace_id": "trace-blank-ids",
+            "caller": "dify",
+        },
+    )
+
+    assert response.status_code == 200
+    result = response.json()["data"]["result"]
+    assert result["department_id"] is None
+    tool_log = (
+        db_session.query(AiToolCallLog)
+        .filter(AiToolCallLog.trace_id == "trace-blank-ids")
+        .one()
+    )
+    assert tool_log.caller == "dify"
+    assert tool_log.arguments_summary["department_id"] is None
+    assert tool_log.arguments_summary["owner_user_id"] is None
+
+
 def test_ai_tool_secret_is_required_when_configured(client, monkeypatch):
     monkeypatch.setenv("AI_TOOLS_SECRET", "test-ai-tool-secret")
     get_settings.cache_clear()
