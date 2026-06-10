@@ -2,7 +2,15 @@
 
 本目录存放教育服务系统的 Dify 工作流草案和联调说明。当前已补充智能报告工作流：
 
-- `workflows/reports.yml`：智能报告生成工作流导入草案。
+- `workflows/reports.yml`：智能报告生成工作流导入草案，已在本地 Dify `1.14.2` 验证可创建应用。
+
+当前工作流节点顺序：
+
+```text
+Start -> Parse Report Filters -> Query Report Source Data -> Generate Report JSON -> End
+```
+
+其中 `Parse Report Filters` 用于把后端传入的 `filters` JSON 拆成 AI Tool 需要的顶层字段，`Query Report Source Data` 是必须执行的 FastAPI HTTP Tool 调用。
 
 ## 1. 边界说明
 
@@ -30,17 +38,27 @@ FastAPI 调用 Dify `/v1/workflows/run` 时传入：
 {
   "inputs": {
     "report_type": "complaint_weekly",
-    "source_data": {},
-    "filters": {
-      "date_start": "2026-06-01",
-      "date_end": "2026-06-07",
-      "department_id": 1,
-      "owner_user_id": null
-    },
+    "source_data": "{}",
+    "filters": "{\"date_start\":\"2026-06-01\",\"date_end\":\"2026-06-07\",\"department_id\":1,\"owner_user_id\":null}",
     "trace_id": "report-trace-id"
   },
   "response_mode": "blocking",
   "user": "education-service-backend"
+}
+```
+
+说明：
+
+- `source_data` 和 `filters` 在 Dify Start 节点里按 `paragraph` 接收，推荐后端传 JSON 字符串。
+- 如果后端直接传 JSON 对象，`Parse Report Filters` 节点也保留了对象兼容逻辑，但真实联调时以当前 Dify 版本实际校验为准。
+- `filters` 至少包含：
+
+```json
+{
+  "date_start": "2026-06-01",
+  "date_end": "2026-06-07",
+  "department_id": 1,
+  "owner_user_id": null
 }
 ```
 
@@ -65,10 +83,10 @@ POST /api/v1/ai-tools/query_report_source_data
 推荐 Dify HTTP Tool URL：
 
 ```text
-{{AI_TOOLS_BASE_URL}}/api/v1/ai-tools/query_report_source_data
+{{#env.AI_TOOLS_BASE_URL#}}/api/v1/ai-tools/query_report_source_data
 ```
 
-请求体：
+HTTP Tool 请求体由 `Parse Report Filters` 节点输出拼装：
 
 ```json
 {
@@ -183,9 +201,10 @@ report
 3. 配置 Dify 环境变量：
 
 ```text
-AI_TOOLS_BASE_URL=http://127.0.0.1:8000
-REPORT_LLM_MODEL=gpt-4o-mini
+AI_TOOLS_BASE_URL=http://host.docker.internal:8000
 ```
+
+如果 Dify 和 FastAPI 都运行在宿主机上，也可以改为 `http://127.0.0.1:8000`。如果 Dify 运行在 Docker 容器内，通常使用 `host.docker.internal` 访问宿主机 FastAPI。
 
 4. 在后端 `.env` 中配置：
 
@@ -205,10 +224,16 @@ POST /api/v1/reports/generate-draft
 7. 检查结果：
 
 - Dify 工作流执行成功。
+- `Parse Report Filters` 节点能从 `filters` 中拆出 `date_start`、`date_end`、`department_id`、`owner_user_id`。
 - Dify 工作流调用了 `query_report_source_data`。
 - 后端 `ai_tool_call_log` 有工具调用记录。
 - 后端 `ai_draft` 生成报告草稿。
 - 草稿 `content_json` 包含 `title`、`summary`、`sections`。
+
+8. 模型配置：
+
+- `reports.yml` 默认使用本地 Dify 已安装的 `langgenius/deepseek/deepseek` / `deepseek-chat`。
+- 如果团队环境使用 OpenAI 或其他供应商，在 Dify 画布中打开 `Generate Report JSON` 节点切换模型即可。
 
 ## 7. 五类报告最小测试输入
 
@@ -283,6 +308,7 @@ POST /api/v1/reports/generate-draft
 - FastAPI 后端是否启动。
 - 请求路径是否为 `/api/v1/ai-tools/query_report_source_data`。
 - 请求体是否包含 `report_type`、`date_start`、`date_end`。
+- `filters` 是否是合法 JSON，且能被 `Parse Report Filters` 节点解析。
 
 如果报告内容指标不对，检查：
 
