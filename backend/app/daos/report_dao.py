@@ -107,10 +107,15 @@ class ReportDAO:
         return draft
 
     def get_draft(self, draft_id: int) -> AiDraft | None:
-        return self.db.get(AiDraft, draft_id)
+        stmt = select(AiDraft).where(AiDraft.id == draft_id, AiDraft.is_deleted.is_(False))
+        return self.db.scalar(stmt)
 
     def list_report_drafts(self) -> list[AiDraft]:
-        stmt = select(AiDraft).where(AiDraft.biz_module == "report").order_by(AiDraft.create_time.desc())
+        stmt = (
+            select(AiDraft)
+            .where(AiDraft.biz_module == "report", AiDraft.is_deleted.is_(False))
+            .order_by(AiDraft.create_time.desc())
+        )
         return list(self.db.scalars(stmt).all())
 
     def add_report(self, report: AiReport) -> AiReport:
@@ -119,10 +124,11 @@ class ReportDAO:
         return report
 
     def get_report(self, report_id: int) -> AiReport | None:
-        return self.db.get(AiReport, report_id)
+        stmt = select(AiReport).where(AiReport.id == report_id, AiReport.is_deleted.is_(False))
+        return self.db.scalar(stmt)
 
     def list_reports(self) -> list[AiReport]:
-        stmt = select(AiReport).order_by(AiReport.create_time.desc())
+        stmt = select(AiReport).where(AiReport.is_deleted.is_(False)).order_by(AiReport.create_time.desc())
         return list(self.db.scalars(stmt).all())
 
     def add_export_record(self, record: ReportExportRecord) -> ReportExportRecord:
@@ -133,7 +139,7 @@ class ReportDAO:
     def list_export_records(self, report_id: int) -> list[ReportExportRecord]:
         stmt = (
             select(ReportExportRecord)
-            .where(ReportExportRecord.report_id == report_id)
+            .where(ReportExportRecord.report_id == report_id, ReportExportRecord.is_deleted.is_(False))
             .order_by(ReportExportRecord.create_time.desc())
         )
         return list(self.db.scalars(stmt).all())

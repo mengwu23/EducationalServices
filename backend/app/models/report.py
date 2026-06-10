@@ -1,6 +1,6 @@
 from datetime import UTC, date, datetime
 
-from sqlalchemy import Date, DateTime, ForeignKey, JSON, String
+from sqlalchemy import Boolean, Date, DateTime, ForeignKey, JSON, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.database import Base
@@ -29,6 +29,7 @@ class AiReport(Base):
         onupdate=lambda: datetime.now(UTC),
         nullable=False,
     )
+    is_deleted: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
 
 
 class ReportExportRecord(Base):
@@ -43,3 +44,10 @@ class ReportExportRecord(Base):
     error_message: Mapped[str | None] = mapped_column(String(1000), nullable=True)
     created_by: Mapped[int | None] = mapped_column(ForeignKey("sys_user.id"), nullable=True)
     create_time: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(UTC), nullable=False)
+    update_time: Mapped[datetime] = mapped_column(
+        DateTime,
+        default=lambda: datetime.now(UTC),
+        onupdate=lambda: datetime.now(UTC),
+        nullable=False,
+    )
+    is_deleted: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)

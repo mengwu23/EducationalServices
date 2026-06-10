@@ -1,6 +1,6 @@
 from datetime import UTC, datetime
 
-from sqlalchemy import DateTime, ForeignKey, JSON, String
+from sqlalchemy import Boolean, DateTime, ForeignKey, JSON, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.database import Base
@@ -23,6 +23,13 @@ class AuditLog(Base):
     result: Mapped[str] = mapped_column(String(30), default="success", nullable=False)
     error_message: Mapped[str | None] = mapped_column(String(1000), nullable=True)
     create_time: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(UTC), nullable=False)
+    update_time: Mapped[datetime] = mapped_column(
+        DateTime,
+        default=lambda: datetime.now(UTC),
+        onupdate=lambda: datetime.now(UTC),
+        nullable=False,
+    )
+    is_deleted: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
 
 
 class AiToolCallLog(Base):
@@ -39,3 +46,10 @@ class AiToolCallLog(Base):
     status: Mapped[str] = mapped_column(String(30), default="success", nullable=False)
     error_message: Mapped[str | None] = mapped_column(String(1000), nullable=True)
     create_time: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(UTC), nullable=False)
+    update_time: Mapped[datetime] = mapped_column(
+        DateTime,
+        default=lambda: datetime.now(UTC),
+        onupdate=lambda: datetime.now(UTC),
+        nullable=False,
+    )
+    is_deleted: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)

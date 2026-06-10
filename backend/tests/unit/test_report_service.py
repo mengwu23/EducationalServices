@@ -9,9 +9,9 @@ from app.common.enums import ExportType, ReportType
 from app.common.exceptions import ReportGenerationError
 from app.core.config import Settings
 from app.core.security import CurrentUser
-from app.models.audit_log import AuditLog
+from app.models.audit_log import AiToolCallLog, AuditLog
 from app.models.draft import AiDraft
-from app.models.report import ReportExportRecord
+from app.models.report import AiReport, ReportExportRecord
 from app.schemas.report_schema import ReportGenerateDraftRequest
 from app.services.report_service import ReportService
 
@@ -38,6 +38,34 @@ def test_admin_generate_complaint_weekly_draft(db_session):
 
     assert draft["status"] == "pending_confirm"
     assert draft["content_json"]["title"] == "投诉处理周报"
+
+
+def test_report_related_models_have_update_time_and_soft_delete_defaults(db_session):
+    service = ReportService(db_session)
+    draft = service.generate_draft(build_request(), CurrentUser(id=1, role="admin"))
+    report = service.confirm_draft(draft["id"], CurrentUser(id=1, role="admin"))
+    service.publish_report(report["id"], CurrentUser(id=1, role="admin"))
+    service.export_report(report["id"], ExportType.WORD, CurrentUser(id=1, role="admin"))
+    service.query_source_data_for_tool(
+        ReportType.CUSTOMER_OPERATION,
+        date(2026, 6, 1),
+        date(2026, 6, 7),
+        1,
+        2,
+        "dify",
+        "conv-default",
+        "trace-default",
+    )
+
+    ai_draft = db_session.query(AiDraft).filter(AiDraft.id == draft["id"]).one()
+    ai_report = db_session.query(AiReport).filter(AiReport.id == report["id"]).one()
+    audit_log = db_session.query(AuditLog).filter(AuditLog.action_type == "generate_draft").first()
+    tool_log = db_session.query(AiToolCallLog).filter(AiToolCallLog.tool_name == "query_report_source_data").one()
+    export_record = db_session.query(ReportExportRecord).filter(ReportExportRecord.status == "success").one()
+
+    for model in [audit_log, ai_draft, ai_report, export_record, tool_log]:
+        assert model.update_time is not None
+        assert model.is_deleted is False
 
 
 def test_employee_generate_customer_operation_draft(db_session):
