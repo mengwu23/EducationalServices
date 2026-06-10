@@ -1,11 +1,14 @@
+"""客户分析记录表实体。"""
+
 from sqlalchemy import BigInteger, CheckConstraint, Column, DateTime, ForeignKey, Index, Integer, Numeric, String, Text, UniqueConstraint
 from sqlalchemy.dialects.mysql import LONGTEXT
 from sqlalchemy.sql import func
 
-from backend.app.database import Base
+from ..database import Base
 
 
 class CustomerAnalysisRecord(Base):
+    """持久化客户分析输入、评分和 AI 结论。"""
     __tablename__ = "customer_analysis_record"
     __table_args__ = (
         CheckConstraint("match_score IS NULL OR (match_score >= 0 AND match_score <= 100)", name="chk_analysis_match_score"),
@@ -30,5 +33,6 @@ class CustomerAnalysisRecord(Base):
     suggestion = Column(Text, nullable=True, comment="后续跟进建议")
     status = Column(String(30), nullable=False, default="pending", server_default="pending", comment="状态：pending待研判/completed已完成/failed失败")
     submitter_user_id = Column(BigInteger, ForeignKey("sys_user.id"), nullable=True, comment="提交人用户ID")
+    is_delete = Column(Integer, nullable=False, default=0, server_default="0", comment="软删除标记：0-未删除，1-已删除")
     create_time = Column(DateTime, nullable=False, server_default=func.current_timestamp(), comment="创建时间")
     update_time = Column(DateTime, nullable=False, server_default=func.current_timestamp(), onupdate=func.current_timestamp(), comment="更新时间")

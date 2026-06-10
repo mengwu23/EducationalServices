@@ -1,10 +1,13 @@
-from sqlalchemy import BigInteger, Column, DateTime, ForeignKey, Index, String, Text
+"""学业提醒与截止事件表实体。"""
+
+from sqlalchemy import BigInteger, Column, DateTime, ForeignKey, Index, Integer, String, Text
 from sqlalchemy.sql import func
 
-from backend.app.database import Base
+from ..database import Base
 
 
 class AcademicEvent(Base):
+    """用于存储学业截止时间、考试与其他学生事项节点。"""
     __tablename__ = "academic_event"
     __table_args__ = (
         Index("idx_academic_student_id", "student_id"),
@@ -23,5 +26,6 @@ class AcademicEvent(Base):
     deadline_time = Column(DateTime, nullable=False, comment="截止或考试时间")
     reminder_time = Column(DateTime, nullable=True, comment="提醒时间")
     status = Column(String(30), nullable=False, default="active", server_default="active", comment="状态：active有效/completed已完成/cancelled已取消")
+    is_delete = Column(Integer, nullable=False, default=0, server_default="0", comment="软删除标记：0-未删除，1-已删除")
     create_time = Column(DateTime, nullable=False, server_default=func.current_timestamp(), comment="创建时间")
     update_time = Column(DateTime, nullable=False, server_default=func.current_timestamp(), onupdate=func.current_timestamp(), comment="更新时间")
