@@ -1,14 +1,17 @@
 """集中导入所有 ORM 实体，确保 SQLAlchemy 元数据能注册全部表。"""
 
 from .academic_event import AcademicEvent
+from .audit_log import AiToolCallLog, AuditLog
 from .course_project import CourseProject
 from .crm_lead import CrmLead
 from .customer_analysis_record import CustomerAnalysisRecord
+from .draft import AiDraft
 from .employee_daily_report import EmployeeDailyReport
 from .employee_profile import EmployeeProfile
 from .event_lecture import EventLecture
 from .event_registration import EventRegistration
 from .faq_qa import FaqQa
+from .report import AiReport, ReportExportRecord
 from .student_application_progress import StudentApplicationProgress
 from .student_feedback_ticket import StudentFeedbackTicket
 from .student_leave_request import StudentLeaveRequest
@@ -21,6 +24,10 @@ from .sys_user import SysUser
 
 __all__ = [
     "AcademicEvent",
+    "AiDraft",
+    "AiReport",
+    "AiToolCallLog",
+    "AuditLog",
     "CourseProject",
     "CrmLead",
     "CustomerAnalysisRecord",
@@ -29,6 +36,7 @@ __all__ = [
     "EventLecture",
     "EventRegistration",
     "FaqQa",
+    "ReportExportRecord",
     "StudentApplicationProgress",
     "StudentFeedbackTicket",
     "StudentLeaveRequest",
