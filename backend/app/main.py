@@ -16,14 +16,25 @@ FastAPI 应用入口
     - /api/v1/student-assistant/messages    — AI 聊天
 """
 
+import sys
+from pathlib import Path
+
+if __package__ is None or __package__ == "":
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from app.common.exceptions import AppException
-from app.common.responses import error_response
-from app.controllers.student_leave_controller import router as student_leave_router
-from app.controllers.student_psych_controller import router as student_psych_router
+from backend.app.common.exceptions import AppException
+from backend.app.common.responses import error_response
+from backend.app.controllers.academic_event_controller import router as academic_event_router
+from backend.app.controllers.ai_tool_controller import router as ai_tool_router
+from backend.app.controllers.student_leave_controller import router as student_leave_router
+from backend.app.controllers.student_feedback_ticket_controller import (
+    router as student_feedback_ticket_router,
+)
+from backend.app.controllers.student_psych_controller import router as student_psych_router
 
 # ============================================================
 # 创建 FastAPI 应用实例
@@ -102,8 +113,8 @@ app.include_router(ai_tool_router, prefix="/api")
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(
-        "app.main:app",
-        host="127.0.0.1",
+        "backend.app.main:app",
+        host="0.0.0.0",
         port=8000,
         reload=True,        # 开发模式：代码变更自动重启
     )

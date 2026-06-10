@@ -1,4 +1,4 @@
-"""
+﻿"""
 心理关怀模块 — 业务逻辑层（Service）
 ========================================
 
@@ -26,19 +26,19 @@ from typing import Optional
 
 from sqlalchemy.orm import Session
 
-from app.common.enums import PsychAlertStatus, PsychRiskLevel, UserType
-from app.common.exceptions import (
+from backend.app.common.enums import PsychAlertStatus, PsychRiskLevel, UserType
+from backend.app.common.exceptions import (
     NotFoundException,
     PermissionDeniedException,
     StateConflictException,
     ValidationErrorException,
 )
-from app.common.pagination import PageQuery
-from app.daos.student_psych_dao import StudentPsychDao
-from app.models.employee_profile import EmployeeProfile
-from app.models.student_profile import StudentProfile
-from app.models.sys_user import SysUser
-from app.schemas.student_psych_schema import (
+from backend.app.common.pagination import PageQuery
+from backend.app.daos.student_psych_dao import StudentPsychDao
+from backend.app.models.employee_profile import EmployeeProfile
+from backend.app.models.student_profile import StudentProfile
+from backend.app.models.sys_user import SysUser
+from backend.app.schemas.student_psych_schema import (
     EmotionUpdateRequest,
     PsychAlertCreateRequest,
     PsychAlertResponse,
@@ -368,7 +368,7 @@ class StudentPsychService:
         profile = self.dao.get_profile_by_student_id(student_id)
         if profile is None:
             # 如果没有画像，创建一个新的
-            from app.models.student_psych_profile import StudentPsychProfile
+            from backend.app.models.student_psych_profile import StudentPsychProfile
             profile = StudentPsychProfile(
                 student_id=student_id,
                 risk_level=PsychRiskLevel.LOW.value,

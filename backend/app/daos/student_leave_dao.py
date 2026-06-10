@@ -1,4 +1,4 @@
-"""
+﻿"""
 请假审批模块 — 数据访问层（DAO）
 ====================================
 
@@ -17,9 +17,9 @@ from typing import Optional
 from sqlalchemy import desc
 from sqlalchemy.orm import Session
 
-from app.common.enums import LeaveStatus
-from app.common.pagination import PageQuery
-from app.models.student_leave_request import StudentLeaveRequest
+from backend.app.common.enums import LeaveStatus
+from backend.app.common.pagination import PageQuery
+from backend.app.models.student_leave_request import StudentLeaveRequest
 
 
 class StudentLeaveDao:

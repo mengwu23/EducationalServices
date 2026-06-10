@@ -1,4 +1,4 @@
-"""
+﻿"""
 分页模型模块（仅请假审批模块所需）
 ====================================
 
@@ -13,6 +13,12 @@ from pydantic import BaseModel, Field
 
 # 泛型变量 T，表示分页数据中单个元素的类型
 T = TypeVar("T")
+
+
+def normalize_page(page: int = 1, size: int = 20) -> tuple[int, int]:
+    page = max(page or 1, 1)
+    size = min(max(size or 20, 1), 100)
+    return page, size
 
 
 class PageQuery(BaseModel):

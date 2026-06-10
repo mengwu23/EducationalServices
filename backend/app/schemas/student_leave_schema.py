@@ -1,4 +1,4 @@
-"""
+﻿"""
 请假审批模块 — Pydantic 请求/响应模型
 ========================================
 
@@ -17,8 +17,8 @@ from typing import Optional
 
 from pydantic import BaseModel, Field, field_validator
 
-from app.common.enums import LeaveStatus, LeaveType
-from app.common.pagination import PageQuery
+from backend.app.common.enums import LeaveStatus, LeaveType
+from backend.app.common.pagination import PageQuery
 
 
 # ============================================================

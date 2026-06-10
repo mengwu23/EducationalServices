@@ -1,4 +1,4 @@
-"""集中导入所有 ORM 实体，确保 SQLAlchemy 元数据能注册全部表。"""
+﻿"""集中导入所有 ORM 实体，确保 SQLAlchemy 元数据能注册全部表。"""
 
 from .academic_event import AcademicEvent
 from .course_project import CourseProject

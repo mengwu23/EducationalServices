@@ -1,4 +1,4 @@
-"""
+﻿"""
 请假审批模块 — 业务逻辑层（Service）
 ========================================
 
@@ -24,19 +24,19 @@ from typing import Optional
 
 from sqlalchemy.orm import Session
 
-from app.common.enums import LeaveStatus, UserType
-from app.common.exceptions import (
+from backend.app.common.enums import LeaveStatus, UserType
+from backend.app.common.exceptions import (
     NotFoundException,
     PermissionDeniedException,
     StateConflictException,
 )
-from app.common.pagination import PageQuery
-from app.daos.student_leave_dao import StudentLeaveDao
-from app.models.employee_profile import EmployeeProfile
-from app.models.student_profile import StudentProfile
-from app.models.student_leave_request import StudentLeaveRequest
-from app.models.sys_user import SysUser
-from app.schemas.student_leave_schema import (
+from backend.app.common.pagination import PageQuery
+from backend.app.daos.student_leave_dao import StudentLeaveDao
+from backend.app.models.employee_profile import EmployeeProfile
+from backend.app.models.student_profile import StudentProfile
+from backend.app.models.student_leave_request import StudentLeaveRequest
+from backend.app.models.sys_user import SysUser
+from backend.app.schemas.student_leave_schema import (
     LeaveCreateRequest,
     LeaveListQuery,
     LeaveResponse,

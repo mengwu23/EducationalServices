@@ -1,4 +1,4 @@
-"""
+﻿"""
 心理关怀模块 — 数据访问层（DAO）
 ====================================
 
@@ -18,10 +18,10 @@ from typing import Optional
 from sqlalchemy import desc
 from sqlalchemy.orm import Session
 
-from app.common.enums import PsychAlertStatus, PsychRiskLevel
-from app.common.pagination import PageQuery
-from app.models.student_psych_alert import StudentPsychAlert
-from app.models.student_psych_profile import StudentPsychProfile
+from backend.app.common.enums import PsychAlertStatus, PsychRiskLevel
+from backend.app.common.pagination import PageQuery
+from backend.app.models.student_psych_alert import StudentPsychAlert
+from backend.app.models.student_psych_profile import StudentPsychProfile
 
 
 class StudentPsychDao:

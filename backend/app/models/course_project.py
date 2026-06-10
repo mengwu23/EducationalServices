@@ -1,4 +1,4 @@
-"""课程与项目目录表实体。"""
+﻿"""课程与项目目录表实体。"""
 
 from sqlalchemy import BigInteger, Column, DateTime, Index, Integer, String, Text
 from sqlalchemy.sql import func

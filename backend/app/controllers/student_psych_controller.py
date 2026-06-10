@@ -1,4 +1,4 @@
-"""
+﻿"""
 心理关怀模块 — API 路由层（Controller）
 ==========================================
 
@@ -23,18 +23,18 @@ from typing import Optional
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
-from app.common.exceptions import AppException
-from app.common.pagination import PageQuery
-from app.common.responses import ApiResponse, error_response, success_response
-from app.database import get_db
-from app.schemas.student_psych_schema import (
+from backend.app.common.exceptions import AppException
+from backend.app.common.pagination import PageQuery
+from backend.app.common.responses import ApiResponse, error_response, success_response
+from backend.app.database import get_db
+from backend.app.schemas.student_psych_schema import (
     EmotionUpdateRequest,
     PsychAlertActionRequest,
     PsychAlertCreateRequest,
     PsychAlertListQuery,
     PsychProfileListQuery,
 )
-from app.services.student_psych_service import StudentPsychService
+from backend.app.services.student_psych_service import StudentPsychService
 
 # 创建路由
 router = APIRouter(

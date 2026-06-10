@@ -1,4 +1,4 @@
-"""
+﻿"""
 心理关怀模块 — Pydantic 请求/响应模型
 ========================================
 
@@ -23,8 +23,8 @@ from typing import Optional
 
 from pydantic import BaseModel, Field
 
-from app.common.enums import PsychAlertStatus, PsychRiskLevel
-from app.common.pagination import PageQuery
+from backend.app.common.enums import PsychAlertStatus, PsychRiskLevel
+from backend.app.common.pagination import PageQuery
 
 
 # ============================================================

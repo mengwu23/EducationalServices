@@ -1,4 +1,4 @@
-"""
+﻿"""
 请假审批模块 — API 路由层（Controller）
 ==========================================
 
@@ -27,17 +27,17 @@ from typing import Optional
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
-from app.common.exceptions import AppException
-from app.common.pagination import PageQuery
-from app.common.responses import ApiResponse, error_response, success_response
-from app.database import get_db
-from app.schemas.student_leave_schema import (
+from backend.app.common.exceptions import AppException
+from backend.app.common.pagination import PageQuery
+from backend.app.common.responses import ApiResponse, error_response, success_response
+from backend.app.database import get_db
+from backend.app.schemas.student_leave_schema import (
     LeaveApproveRequest,
     LeaveCancelRequest,
     LeaveCreateRequest,
     LeaveListQuery,
 )
-from app.services.student_leave_service import StudentLeaveService
+from backend.app.services.student_leave_service import StudentLeaveService
 
 # 创建路由，prefix 定义统一前缀，tags 用于 OpenAPI 文档分组
 router = APIRouter(

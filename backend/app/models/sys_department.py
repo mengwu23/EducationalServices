@@ -1,4 +1,4 @@
-"""部门组织架构表实体。"""
+﻿"""部门组织架构表实体。"""
 
 from sqlalchemy import BigInteger, Column, DateTime, ForeignKey, Index, Integer, String
 from sqlalchemy.sql import func
