@@ -1,4 +1,6 @@
 .superpowers/
+.codegraph/
+.vscode/
 __pycache__/
 .pytest_cache/
 *.pyc
