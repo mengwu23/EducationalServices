@@ -1,7 +1,7 @@
 from sqlalchemy import BigInteger, Column, DateTime, ForeignKey, Index, String
 from sqlalchemy.sql import func
 
-from database import Base
+from app.database import Base
 
 
 class EventRegistration(Base):
