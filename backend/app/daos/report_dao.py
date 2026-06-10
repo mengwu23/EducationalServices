@@ -4,15 +4,15 @@ from typing import Any
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.common.enums import ReportType
-from app.models.audit_log import AiToolCallLog, AuditLog
-from app.models.crm_lead import CrmLead
-from app.models.customer_analysis_record import CustomerAnalysisRecord
-from app.models.employee_profile import EmployeeProfile
-from app.models.event_registration import EventRegistration
-from app.models.student_feedback_ticket import StudentFeedbackTicket
-from app.models.draft import AiDraft
-from app.models.report import AiReport, ReportExportRecord
+from backend.app.common.enums import ReportType
+from backend.app.models.audit_log import AiToolCallLog, AuditLog
+from backend.app.models.crm_lead import CrmLead
+from backend.app.models.customer_analysis_record import CustomerAnalysisRecord
+from backend.app.models.employee_profile import EmployeeProfile
+from backend.app.models.event_registration import EventRegistration
+from backend.app.models.student_feedback_ticket import StudentFeedbackTicket
+from backend.app.models.draft import AiDraft
+from backend.app.models.report import AiReport, ReportExportRecord
 
 
 class ReportDAO:

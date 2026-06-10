@@ -4,7 +4,8 @@ from typing import Any
 
 import httpx
 
-from ..core.config import Settings, get_settings
+from backend.app.common.enums import ReportType
+from backend.app.core.config import Settings, get_settings
 
 COMPLAINT_WEEKLY_REPORT = "complaint_weekly"
 CUSTOMER_OPERATION_REPORT = "customer_operation"

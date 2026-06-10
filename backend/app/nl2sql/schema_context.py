@@ -4,7 +4,7 @@ from functools import lru_cache
 
 from sqlalchemy import inspect
 
-from ..database import engine
+from backend.app.database import get_engine
 
 # 只开放企业管理查询助手“查”相关业务表，避免模型看到内部系统表后乱查。
 BUSINESS_TABLES = {
@@ -73,7 +73,7 @@ AGG_DEFAULTS = [
 @lru_cache(maxsize=1)
 def build_schema_text() -> str:
     """反射当前数据库结构，组装给 LLM 使用的表结构说明。"""
-    inspector = inspect(engine)
+    inspector = inspect(get_engine())
     existing_tables = [table for table in inspector.get_table_names() if table in BUSINESS_TABLES]
     sections: list[str] = []
 

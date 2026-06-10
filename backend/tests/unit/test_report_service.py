@@ -5,15 +5,15 @@ from uuid import uuid4
 import pytest
 from fastapi import HTTPException
 
-from app.common.enums import ExportType, ReportType
-from app.common.exceptions import ReportGenerationError
-from app.core.config import Settings
-from app.core.security import CurrentUser
-from app.models.audit_log import AiToolCallLog, AuditLog
-from app.models.draft import AiDraft
-from app.models.report import AiReport, ReportExportRecord
-from app.schemas.report_schema import ReportGenerateDraftRequest
-from app.services.report_service import ReportService
+from backend.app.common.enums import ExportType, ReportType
+from backend.app.common.exceptions import ReportGenerationError
+from backend.app.core.config import Settings
+from backend.app.core.security import CurrentUser
+from backend.app.models.audit_log import AiToolCallLog, AuditLog
+from backend.app.models.draft import AiDraft
+from backend.app.models.report import AiReport, ReportExportRecord
+from backend.app.schemas.report_schema import ReportGenerateDraftRequest
+from backend.app.services.report_service import ReportService
 
 
 class FailingDifyClient:

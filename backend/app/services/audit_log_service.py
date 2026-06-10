@@ -2,9 +2,9 @@ from typing import Any
 
 from sqlalchemy.orm import Session
 
-from app.core.security import CurrentUser
-from app.daos.report_dao import ReportDAO
-from app.models.audit_log import AiToolCallLog, AuditLog
+from backend.app.core.security import CurrentUser
+from backend.app.daos.report_dao import ReportDAO
+from backend.app.models.audit_log import AiToolCallLog, AuditLog
 
 
 class AuditLogService:

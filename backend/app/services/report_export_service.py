@@ -1,9 +1,9 @@
 from pathlib import Path
 from zipfile import ZIP_DEFLATED, ZipFile
 
-from app.common.enums import ExportType
-from app.core.config import Settings
-from app.models.report import AiReport
+from backend.app.common.enums import ExportType
+from backend.app.core.config import Settings
+from backend.app.models.report import AiReport
 
 
 class ReportExportService:

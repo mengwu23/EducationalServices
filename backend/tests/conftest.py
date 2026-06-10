@@ -9,10 +9,10 @@ from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 
-from app.database import Base
-from app.db.session import get_db
-from app.main import create_app
-from app.models import (
+from backend.app.database import Base
+from backend.app.db.session import get_db
+from backend.app.main import create_app
+from backend.app.models import (
     CrmLead,
     CustomerAnalysisRecord,
     EmployeeProfile,

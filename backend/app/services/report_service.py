@@ -5,17 +5,17 @@ from uuid import uuid4
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
-from app.common.enums import DraftStatus, ExportStatus, ExportType, ReportStatus
-from app.common.exceptions import BusinessError, NotFoundError, ReportGenerationError
-from app.core.config import Settings, get_settings
-from app.core.security import CurrentUser, require_roles
-from app.daos.report_dao import ReportDAO
-from app.integrations.dify_client import DifyClient
-from app.models.report import AiReport, ReportExportRecord
-from app.schemas.report_schema import ReportGenerateDraftRequest
-from app.services.audit_log_service import AuditLogService
-from app.services.draft_service import DraftService
-from app.services.report_export_service import ReportExportService
+from backend.app.common.enums import DraftStatus, ExportStatus, ExportType, ReportStatus
+from backend.app.common.exceptions import BusinessError, NotFoundError, ReportGenerationError
+from backend.app.core.config import Settings, get_settings
+from backend.app.core.security import CurrentUser, require_roles
+from backend.app.daos.report_dao import ReportDAO
+from backend.app.integrations.dify_client import DifyClient
+from backend.app.models.report import AiReport, ReportExportRecord
+from backend.app.schemas.report_schema import ReportGenerateDraftRequest
+from backend.app.services.audit_log_service import AuditLogService
+from backend.app.services.draft_service import DraftService
+from backend.app.services.report_export_service import ReportExportService
 
 
 class ReportService:
