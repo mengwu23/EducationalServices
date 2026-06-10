@@ -1,10 +1,13 @@
-from sqlalchemy import BigInteger, Column, DateTime, ForeignKey, Index, String, Text, UniqueConstraint
+"""学生心理预警表实体。"""
+
+from sqlalchemy import BigInteger, Column, DateTime, ForeignKey, Index, Integer, String, Text, UniqueConstraint
 from sqlalchemy.sql import func
 
-from app.database import Base
+from ..database import Base
 
 
 class StudentPsychAlert(Base):
+    """存储需要后续跟进处理的心理风险预警。"""
     __tablename__ = "student_psych_alert"
     __table_args__ = (
         UniqueConstraint("alert_no", name="uk_psych_alert_no"),
@@ -23,5 +26,6 @@ class StudentPsychAlert(Base):
     teacher_employee_id = Column(BigInteger, ForeignKey("employee_profile.id"), nullable=True, comment="负责跟进老师ID")
     handle_result = Column(Text, nullable=True, comment="处理结果")
     close_time = Column(DateTime, nullable=True, comment="关闭时间")
+    is_delete = Column(Integer, nullable=False, default=0, server_default="0", comment="软删除标记：0-未删除，1-已删除")
     create_time = Column(DateTime, nullable=False, server_default=func.current_timestamp(), comment="创建时间")
     update_time = Column(DateTime, nullable=False, server_default=func.current_timestamp(), onupdate=func.current_timestamp(), comment="更新时间")

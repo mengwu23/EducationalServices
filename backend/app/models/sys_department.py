@@ -1,10 +1,13 @@
+"""部门组织架构表实体。"""
+
 from sqlalchemy import BigInteger, Column, DateTime, ForeignKey, Index, Integer, String
 from sqlalchemy.sql import func
 
-from app.database import Base
+from ..database import Base
 
 
 class SysDepartment(Base):
+    """存储员工归属和日报汇总所需的组织架构信息。"""
     __tablename__ = "sys_department"
     __table_args__ = (
         Index("idx_department_parent_id", "parent_id"),
@@ -19,5 +22,6 @@ class SysDepartment(Base):
     department_desc = Column(String(500), nullable=True, comment="部门职责说明")
     sort_order = Column(Integer, nullable=False, default=0, server_default="0", comment="排序号")
     status = Column(String(20), nullable=False, default="enabled", server_default="enabled", comment="状态：enabled启用/disabled停用")
+    is_delete = Column(Integer, nullable=False, default=0, server_default="0", comment="软删除标记：0-未删除，1-已删除")
     create_time = Column(DateTime, nullable=False, server_default=func.current_timestamp(), comment="创建时间")
     update_time = Column(DateTime, nullable=False, server_default=func.current_timestamp(), onupdate=func.current_timestamp(), comment="更新时间")

@@ -1,10 +1,13 @@
+"""学生反馈与投诉工单表实体。"""
+
 from sqlalchemy import BigInteger, CheckConstraint, Column, DateTime, ForeignKey, Index, Integer, String, Text, UniqueConstraint
 from sqlalchemy.sql import func
 
-from app.database import Base
+from ..database import Base
 
 
 class StudentFeedbackTicket(Base):
+    """存储学生提交的投诉、咨询和建议工单。"""
     __tablename__ = "student_feedback_ticket"
     __table_args__ = (
         CheckConstraint("satisfaction_score IS NULL OR (satisfaction_score BETWEEN 1 AND 5)", name="chk_feedback_satisfaction"),
@@ -31,5 +34,6 @@ class StudentFeedbackTicket(Base):
     satisfaction_score = Column(Integer, nullable=True, comment="满意度评分1-5")
     is_notified = Column(Integer, nullable=False, default=0, server_default="0", comment="是否已通知学生：1是/0否")
     close_time = Column(DateTime, nullable=True, comment="关闭时间")
+    is_delete = Column(Integer, nullable=False, default=0, server_default="0", comment="软删除标记：0-未删除，1-已删除")
     create_time = Column(DateTime, nullable=False, server_default=func.current_timestamp(), comment="创建时间")
     update_time = Column(DateTime, nullable=False, server_default=func.current_timestamp(), onupdate=func.current_timestamp(), comment="更新时间")

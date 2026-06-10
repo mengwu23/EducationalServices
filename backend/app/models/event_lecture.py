@@ -1,10 +1,13 @@
+"""活动与讲座表实体。"""
+
 from sqlalchemy import BigInteger, Column, DateTime, Index, Integer, String, UniqueConstraint
 from sqlalchemy.sql import func
 
-from app.database import Base
+from ..database import Base
 
 
 class EventLecture(Base):
+    """存储讲座或活动流程中使用的基础元数据。"""
     __tablename__ = "event_lecture"
     __table_args__ = (
         UniqueConstraint("event_no", name="uk_event_no"),
@@ -27,5 +30,6 @@ class EventLecture(Base):
     max_participants = Column(Integer, nullable=True, comment="最大报名人数")
     current_participants = Column(Integer, nullable=False, default=0, server_default="0", comment="当前报名人数")
     status = Column(String(30), nullable=False, default="open", server_default="open", comment="活动状态：open报名中/full已满/closed已结束/cancelled已取消")
+    is_delete = Column(Integer, nullable=False, default=0, server_default="0", comment="软删除标记：0-未删除，1-已删除")
     create_time = Column(DateTime, nullable=False, server_default=func.current_timestamp(), comment="创建时间")
     update_time = Column(DateTime, nullable=False, server_default=func.current_timestamp(), onupdate=func.current_timestamp(), comment="更新时间")

@@ -1,10 +1,13 @@
-from sqlalchemy import BigInteger, CheckConstraint, Column, Date, DateTime, ForeignKey, Index, Numeric, String
+"""学生成绩表实体。"""
+
+from sqlalchemy import BigInteger, CheckConstraint, Column, Date, DateTime, ForeignKey, Index, Integer, Numeric, String
 from sqlalchemy.sql import func
 
-from app.database import Base
+from ..database import Base
 
 
 class StudentScore(Base):
+    """存储成绩、考试信息及录入责任人。"""
     __tablename__ = "student_score"
     __table_args__ = (
         CheckConstraint("score >= 0 AND score <= 100", name="chk_student_score_range"),
@@ -24,5 +27,6 @@ class StudentScore(Base):
     exam_date = Column(Date, nullable=True, comment="考试日期")
     operator_employee_id = Column(BigInteger, ForeignKey("employee_profile.id"), nullable=True, comment="录入员工ID")
     remark = Column(String(500), nullable=True, comment="备注")
+    is_delete = Column(Integer, nullable=False, default=0, server_default="0", comment="软删除标记：0-未删除，1-已删除")
     create_time = Column(DateTime, nullable=False, server_default=func.current_timestamp(), comment="创建时间")
     update_time = Column(DateTime, nullable=False, server_default=func.current_timestamp(), onupdate=func.current_timestamp(), comment="更新时间")

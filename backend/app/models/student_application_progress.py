@@ -1,10 +1,13 @@
-from sqlalchemy import BigInteger, Column, DateTime, ForeignKey, Index, String, Text
+"""学生申请进度表实体。"""
+
+from sqlalchemy import BigInteger, Column, DateTime, ForeignKey, Index, Integer, String, Text
 from sqlalchemy.sql import func
 
-from app.database import Base
+from ..database import Base
 
 
 class StudentApplicationProgress(Base):
+    """存储院校申请、签证等办理进度。"""
     __tablename__ = "student_application_progress"
     __table_args__ = (
         Index("idx_progress_student_id", "student_id"),
@@ -24,5 +27,6 @@ class StudentApplicationProgress(Base):
     progress_desc = Column(Text, nullable=True, comment="进度说明")
     handler_employee_id = Column(BigInteger, ForeignKey("employee_profile.id"), nullable=True, comment="负责人员工ID")
     expected_finish_time = Column(DateTime, nullable=True, comment="预计完成时间")
+    is_delete = Column(Integer, nullable=False, default=0, server_default="0", comment="软删除标记：0-未删除，1-已删除")
     create_time = Column(DateTime, nullable=False, server_default=func.current_timestamp(), comment="创建时间")
     update_time = Column(DateTime, nullable=False, server_default=func.current_timestamp(), onupdate=func.current_timestamp(), comment="更新时间")

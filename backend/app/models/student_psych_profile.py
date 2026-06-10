@@ -1,10 +1,13 @@
+"""学生心理画像表实体。"""
+
 from sqlalchemy import BigInteger, CheckConstraint, Column, DateTime, ForeignKey, Index, Integer, String, Text, UniqueConstraint
 from sqlalchemy.sql import func
 
-from app.database import Base
+from ..database import Base
 
 
 class StudentPsychProfile(Base):
+    """存储学生长期心理状态画像信息。"""
     __tablename__ = "student_psych_profile"
     __table_args__ = (
         CheckConstraint("emotion_score IS NULL OR (emotion_score >= 0 AND emotion_score <= 100)", name="chk_psych_emotion_score"),
@@ -20,5 +23,6 @@ class StudentPsychProfile(Base):
     risk_level = Column(String(30), nullable=False, default="low", server_default="low", comment="风险等级：low低/medium中/high高/critical危急")
     last_interaction_time = Column(DateTime, nullable=True, comment="最近心理相关交互时间")
     emotion_summary = Column(Text, nullable=True, comment="长期情绪摘要")
+    is_delete = Column(Integer, nullable=False, default=0, server_default="0", comment="软删除标记：0-未删除，1-已删除")
     create_time = Column(DateTime, nullable=False, server_default=func.current_timestamp(), comment="创建时间")
     update_time = Column(DateTime, nullable=False, server_default=func.current_timestamp(), onupdate=func.current_timestamp(), comment="更新时间")

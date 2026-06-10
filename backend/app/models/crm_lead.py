@@ -1,10 +1,13 @@
-from sqlalchemy import BigInteger, Column, DateTime, ForeignKey, Index, String, Text, UniqueConstraint
+"""客户线索表实体。"""
+
+from sqlalchemy import BigInteger, Column, DateTime, ForeignKey, Index, Integer, String, Text, UniqueConstraint
 from sqlalchemy.sql import func
 
-from app.database import Base
+from ..database import Base
 
 
 class CrmLead(Base):
+    """存储客户身份、负责人以及跟进进度信息。"""
     __tablename__ = "crm_lead"
     __table_args__ = (
         UniqueConstraint("lead_no", name="uk_lead_no"),
@@ -38,5 +41,6 @@ class CrmLead(Base):
     last_follow_up_time = Column(DateTime, nullable=True, comment="最近跟进时间")
     lost_reason = Column(String(500), nullable=True, comment="流失原因")
     signed_time = Column(DateTime, nullable=True, comment="签约时间")
+    is_delete = Column(Integer, nullable=False, default=0, server_default="0", comment="软删除标记：0-未删除，1-已删除")
     create_time = Column(DateTime, nullable=False, server_default=func.current_timestamp(), comment="创建时间")
     update_time = Column(DateTime, nullable=False, server_default=func.current_timestamp(), onupdate=func.current_timestamp(), comment="更新时间")
