@@ -183,13 +183,18 @@ def test_export_word_creates_file_and_record(db_session):
     assert Path(export["file_path"]).exists()
 
 
-def test_export_pdf_failure_writes_record_and_audit_log(db_session):
+def test_export_failure_writes_record_and_audit_log(db_session, monkeypatch):
     export_dir = Path("storage/test_reports") / uuid4().hex
     settings = Settings(report_export_dir=str(export_dir), report_pdf_converter_path="", dify_mock_enabled=True)
     service = ReportService(db_session, settings=settings)
     draft = service.generate_draft(build_request(), CurrentUser(id=1, role="admin"))
     report = service.confirm_draft(draft["id"], CurrentUser(id=1, role="admin"))
     service.publish_report(report["id"], CurrentUser(id=1, role="admin"))
+    monkeypatch.setattr(
+        service.export_service,
+        "export",
+        lambda report, export_type: (_ for _ in ()).throw(RuntimeError("模板导出失败")),
+    )
 
     with pytest.raises(HTTPException) as exc_info:
         service.export_report(report["id"], ExportType.PDF, CurrentUser(id=1, role="admin"))
@@ -197,5 +202,5 @@ def test_export_pdf_failure_writes_record_and_audit_log(db_session):
     assert exc_info.value.status_code == 500
     failed_record = db_session.query(ReportExportRecord).filter(ReportExportRecord.status == "fail").one()
     failed_log = db_session.query(AuditLog).filter(AuditLog.action_type == "export", AuditLog.result == "fail").one()
-    assert "PDF 转换器" in failed_record.error_message
-    assert "PDF 转换器" in failed_log.error_message
+    assert "模板导出失败" in failed_record.error_message
+    assert "模板导出失败" in failed_log.error_message

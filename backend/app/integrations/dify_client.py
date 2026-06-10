@@ -1,3 +1,4 @@
+import json
 from typing import Any
 
 import httpx
@@ -146,7 +147,57 @@ class DifyClient:
             response.raise_for_status()
         data = response.json()
         outputs = data.get("data", {}).get("outputs", {})
-        draft = outputs.get("report") or outputs
-        if not isinstance(draft, dict) or "title" not in draft:
+        draft = self._extract_report_output(outputs)
+        return self._normalize_report_draft(draft)
+
+    def _extract_report_output(self, outputs: Any) -> dict[str, Any]:
+        if isinstance(outputs, dict):
+            for key in ("report", "text", "result"):
+                value = outputs.get(key)
+                if value:
+                    return self._coerce_report_dict(value)
+            return self._coerce_report_dict(outputs)
+        return self._coerce_report_dict(outputs)
+
+    def _coerce_report_dict(self, value: Any) -> dict[str, Any]:
+        if isinstance(value, dict):
+            return value
+        if isinstance(value, str):
+            try:
+                parsed = json.loads(value)
+            except json.JSONDecodeError as exc:
+                raise RuntimeError("Dify 返回内容无法解析为报告草稿") from exc
+            if isinstance(parsed, dict):
+                return parsed
+        raise RuntimeError("Dify 返回内容无法解析为报告草稿")
+
+    def _normalize_report_draft(self, draft: dict[str, Any]) -> dict[str, Any]:
+        title = draft.get("title")
+        if not isinstance(title, str) or not title.strip():
             raise RuntimeError("Dify 返回内容无法解析为报告草稿")
-        return draft
+        sections = draft.get("sections", [])
+        if not isinstance(sections, list):
+            sections = []
+        normalized_sections = []
+        for section in sections:
+            if not isinstance(section, dict):
+                continue
+            metrics = section.get("metrics", [])
+            normalized_sections.append(
+                {
+                    "heading": str(section.get("heading", "")),
+                    "content": str(section.get("content", "")),
+                    "metrics": metrics if isinstance(metrics, list) else [],
+                }
+            )
+        return {
+            **draft,
+            "title": title.strip(),
+            "summary": str(draft.get("summary", "")),
+            "sections": normalized_sections,
+            "risks": draft.get("risks") if isinstance(draft.get("risks"), list) else [],
+            "recommendations": draft.get("recommendations")
+            if isinstance(draft.get("recommendations"), list)
+            else [],
+            "source_refs": draft.get("source_refs") if isinstance(draft.get("source_refs"), list) else [],
+        }
