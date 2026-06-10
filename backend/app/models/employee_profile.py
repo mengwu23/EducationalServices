@@ -1,10 +1,13 @@
-from sqlalchemy import BigInteger, Column, DateTime, ForeignKey, Index, String, UniqueConstraint
+"""员工档案表实体。"""
+
+from sqlalchemy import BigInteger, Column, DateTime, ForeignKey, Index, Integer, String, UniqueConstraint
 from sqlalchemy.sql import func
 
-from backend.app.database import Base
+from ..database import Base
 
 
 class EmployeeProfile(Base):
+    """存储员工身份、部门归属和角色信息。"""
     __tablename__ = "employee_profile"
     __table_args__ = (
         UniqueConstraint("user_id", name="uk_employee_user_id"),
@@ -23,5 +26,6 @@ class EmployeeProfile(Base):
     role_code = Column(String(50), nullable=False, comment="角色编码：sales顾问/teacher老师/service客服/manager主管/admin管理员")
     job_title = Column(String(100), nullable=True, comment="岗位名称")
     status = Column(String(20), nullable=False, default="active", server_default="active", comment="员工状态：active在职/resigned离职/disabled停用")
+    is_delete = Column(Integer, nullable=False, default=0, server_default="0", comment="软删除标记：0-未删除，1-已删除")
     create_time = Column(DateTime, nullable=False, server_default=func.current_timestamp(), comment="创建时间")
     update_time = Column(DateTime, nullable=False, server_default=func.current_timestamp(), onupdate=func.current_timestamp(), comment="更新时间")
