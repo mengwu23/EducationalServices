@@ -1,0 +1,191 @@
+kind: app
+version: 0.3.0
+app:
+  name: education-service-report-workflow
+  mode: workflow
+  icon: bar_chart
+  icon_background: "#E0F2FE"
+  description: >
+    教育服务系统智能报告生成工作流草案。工作流必须先调用 FastAPI
+    AI Tool 查询受控聚合数据，再生成统一 JSON 报告草稿。
+
+workflow:
+  description: >
+    Start -> HTTP Tool(query_report_source_data) -> LLM(generate_report_json)
+    -> Output(report)。本文件尽量贴近 Dify DSL 导入结构，导入后需按实际
+    Dify 版本检查 HTTP 节点、变量引用和模型配置。
+  environment_variables:
+    - name: AI_TOOLS_BASE_URL
+      value: http://127.0.0.1:8000
+      description: FastAPI 后端基础地址，不包含 /api/v1。
+    - name: REPORT_LLM_MODEL
+      value: gpt-4o-mini
+      description: 报告生成模型名称，导入 Dify 后可按团队模型供应商调整。
+
+  inputs:
+    - variable: report_type
+      type: text-input
+      required: true
+      description: >
+        报告类型。允许值：complaint_weekly、customer_operation、
+        employee_daily_summary、employee_weekly_summary、student_psych_weekly。
+    - variable: source_data
+      type: paragraph
+      required: true
+      description: 后端传入的源数据 JSON。工作流仍必须调用 AI Tool，并以工具结果为准。
+    - variable: filters
+      type: paragraph
+      required: true
+      description: >
+        后端传入的筛选条件 JSON，至少包含 date_start、date_end，可包含
+        department_id、owner_user_id。
+    - variable: trace_id
+      type: text-input
+      required: false
+      description: 后端链路追踪 ID。
+
+  graph:
+    nodes:
+      - id: start
+        type: start
+        title: 接收后端报告生成参数
+        data:
+          variables:
+            - report_type
+            - source_data
+            - filters
+            - trace_id
+
+      - id: http_query_source_data
+        type: http-request
+        title: 必须调用 FastAPI AI Tool 查询报告聚合数据
+        data:
+          method: POST
+          url: "{{AI_TOOLS_BASE_URL}}/api/v1/ai-tools/query_report_source_data"
+          headers:
+            Content-Type: application/json
+          body_type: json
+          body: |
+            {
+              "report_type": "{{#start.report_type#}}",
+              "date_start": "{{#start.filters.date_start#}}",
+              "date_end": "{{#start.filters.date_end#}}",
+              "department_id": "{{#start.filters.department_id#}}",
+              "owner_user_id": "{{#start.filters.owner_user_id#}}",
+              "caller": "dify",
+              "conversation_id": "{{#sys.conversation_id#}}",
+              "trace_id": "{{#start.trace_id#}}"
+            }
+          success_condition: "status_code == 200"
+          output_variable: tool_response
+          notes:
+            - 该节点每次报告生成都必须执行。
+            - Dify 不允许直连数据库，也不允许执行任意 SQL。
+            - 后续如 FastAPI AI Tool 增加鉴权，在 headers 中补充内部访问令牌。
+
+      - id: llm_generate_report_json
+        type: llm
+        title: 根据 AI Tool 结果生成结构化报告 JSON
+        data:
+          model:
+            provider: openai
+            name: "{{REPORT_LLM_MODEL}}"
+            mode: chat
+            completion_params:
+              temperature: 0.2
+              max_tokens: 2400
+          prompt_template:
+            system: |
+              你是教育服务系统的智能报告生成助手。
+
+              你只能基于 FastAPI AI Tool 返回的受控聚合数据生成报告草稿。
+              你不能直接连接数据库，不能输出 SQL，不能发布报告，不能写入任何业务表。
+              你不能编造指标。无法从工具数据判断的信息，必须写入 risks 或 recommendations。
+
+              支持的 report_type：
+              - complaint_weekly：投诉处理周报
+              - customer_operation：全域客户经营分析报告
+              - employee_daily_summary：员工日报汇总报告（日）
+              - employee_weekly_summary：员工日报汇总报告（周）
+              - student_psych_weekly：学生心理健康周报
+
+              你必须只输出一个 JSON 对象，不要输出 Markdown，不要输出代码块，不要输出解释性前后缀。
+              JSON 对象必须符合以下结构：
+              {
+                "title": "报告标题",
+                "summary": "报告摘要",
+                "sections": [
+                  {
+                    "heading": "章节标题",
+                    "content": "章节正文",
+                    "metrics": [
+                      {"name": "指标名", "value": "指标值"}
+                    ]
+                  }
+                ],
+                "risks": ["风险提示"],
+                "recommendations": ["建议事项"],
+                "source_refs": ["数据来源或口径说明"]
+              }
+
+              字段要求：
+              - title 必须是中文标题。
+              - summary 用 1 到 3 句话概括本周期情况。
+              - sections 至少 2 个章节，每个章节必须有 heading 和 content。
+              - metrics 必须来自工具返回 result，不允许创造不存在的数值。
+              - risks 没有风险时返回空数组。
+              - recommendations 没有建议时返回空数组。
+              - source_refs 写入使用的数据口径、表名或工具名称。
+            user: |
+              后端初始报告类型：
+              {{#start.report_type#}}
+
+              后端初始 source_data：
+              {{#start.source_data#}}
+
+              后端筛选条件：
+              {{#start.filters#}}
+
+              FastAPI AI Tool 返回：
+              {{#http_query_source_data.tool_response#}}
+
+              请以 FastAPI AI Tool 返回 data.result 为准，生成报告 JSON。
+          output_variable: report
+
+      - id: output
+        type: end
+        title: 输出报告草稿
+        data:
+          outputs:
+            - variable: report
+              value_selector:
+                - llm_generate_report_json
+                - report
+              description: >
+                后端 DifyClient 会读取 outputs.report。该值可以是 JSON 对象，
+                也可以是 JSON 字符串，但必须包含 title。
+
+    edges:
+      - source: start
+        target: http_query_source_data
+      - source: http_query_source_data
+        target: llm_generate_report_json
+      - source: llm_generate_report_json
+        target: output
+
+  acceptance:
+    tool_call_policy: query_report_source_data_must_be_called_every_run
+    backend_output_contract:
+      output_name: report
+      required_fields:
+        - title
+        - summary
+        - sections
+        - risks
+        - recommendations
+        - source_refs
+    forbidden_actions:
+      - direct_database_connection
+      - arbitrary_sql
+      - report_publish
+      - business_table_write
