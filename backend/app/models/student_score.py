@@ -1,7 +1,7 @@
 from sqlalchemy import BigInteger, CheckConstraint, Column, Date, DateTime, ForeignKey, Index, Numeric, String
 from sqlalchemy.sql import func
 
-from app.database import Base
+from backend.app.database import Base
 
 
 class StudentScore(Base):

@@ -1,7 +1,7 @@
 from sqlalchemy import BigInteger, Column, DateTime, Index, Integer, String, Text
 from sqlalchemy.sql import func
 
-from app.database import Base
+from backend.app.database import Base
 
 
 class FaqQa(Base):
