@@ -1,7 +1,7 @@
 from sqlalchemy import BigInteger, Column, Date, DateTime, ForeignKey, Index, String, Text, UniqueConstraint
 from sqlalchemy.sql import func
 
-from app.database import Base
+from backend.app.database import Base
 
 
 class EmployeeDailyReport(Base):
