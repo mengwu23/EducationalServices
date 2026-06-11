@@ -53,16 +53,17 @@ class CustomerJudgementService:
         file_names: list[str] = []
         if files:
             for f in files:
-                if f.filename and f.size and f.size > 0:
+                if f.filename:
                     content = f.file.read()
-                    await_result = f.filename  # 避免 await 关键字
+                    if not content:
+                        continue
                     upload_result = self.dify_client.upload_file(
-                        file_path=f.filename or "file",
+                        file_path=f.filename,
                         file_content=content,
                         mime_type=f.content_type or "application/octet-stream",
                     )
                     file_ids.append(upload_result.get("id", ""))
-                    file_names.append(f.filename or "")
+                    file_names.append(f.filename)
 
         source_type = "text"
         if file_names:
