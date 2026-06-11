@@ -367,7 +367,7 @@ class EnterpriseAssistantService:
             status="answered",
             message="新人入职指引问答已由本地 Dify RAG 应用返回。",
             question=question,
-            category=category,
+            category=None,
             answer=dify_result["answer"],
             conversation_id=dify_result.get("conversation_id"),
             message_id=dify_result.get("message_id"),
