@@ -37,6 +37,7 @@ from backend.app.controllers.report_controller import router as report_router
 from backend.app.controllers.student_feedback_ticket_controller import (
     router as student_feedback_ticket_router,
 )
+from backend.app.controllers.student_assistant_controller import router as student_assistant_router
 from backend.app.controllers.student_leave_controller import router as student_leave_router
 from backend.app.controllers.student_psych_controller import router as student_psych_router
 
@@ -102,6 +103,7 @@ async def health_check():
 
 app.include_router(student_leave_router)
 app.include_router(student_psych_router)
+app.include_router(student_assistant_router)
 app.include_router(enterprise_assistant_router)
 app.include_router(enterprise_nl2sql_router)
 app.include_router(report_router)
