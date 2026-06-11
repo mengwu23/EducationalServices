@@ -28,6 +28,7 @@ from backend.app.common.pagination import PageQuery
 from backend.app.common.responses import ApiResponse, error_response, success_response
 from backend.app.database import get_db
 from backend.app.schemas.student_psych_schema import (
+    AIEmotionAnalysisRequest,
     EmotionUpdateRequest,
     PsychAlertActionRequest,
     PsychAlertCreateRequest,
@@ -388,5 +389,44 @@ def handle_alert(
                 message=f"不支持的动作：{data.action}，仅支持 process / resolve / close",
             )
 
+    except AppException as e:
+        return error_response(code=e.code, message=e.message)
+
+
+# ----------------------------------------------------------
+# POST /psych/alerts/analyze-emotion — AI情绪分析（Dify 触发）
+# ----------------------------------------------------------
+
+@router.post("/alerts/analyze-emotion", response_model=ApiResponse, summary="AI情绪分析（Dify聊天触发）")
+def analyze_emotion(
+    data: "AIEmotionAnalysisRequest",
+    db: Session = Depends(get_db),
+    current_user: CurrentUser = Depends(get_current_user),
+):
+    """AI 聊天后分析学生情绪，自动更新画像并视风险创建预警
+
+    使用场景：
+        Dify 聊天模块完成一轮对话后，分析学生的情绪状态，
+        调用此接口更新心理画像。若风险等级为 high/critical，
+        自动创建预警通知老师介入。
+
+    请求体：
+    {
+        "student_id": 1,
+        "emotion_tag": "焦虑",
+        "emotion_score": 35,
+        "risk_level": "high",
+        "trigger_reason": "学生多次提到考试压力大，表现出明显焦虑",
+        "summary": "近期学业压力导致情绪波动"
+    }
+    """
+    try:
+        service = StudentPsychService(db)
+        result = service.analyze_emotion(
+            current_user_id=current_user.user_id,
+            current_user_type=current_user.user_type,
+            data=data,
+        )
+        return success_response(data=result, message=result.get("message", "情绪分析完成"))
     except AppException as e:
         return error_response(code=e.code, message=e.message)

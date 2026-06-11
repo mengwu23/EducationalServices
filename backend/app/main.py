@@ -1,5 +1,14 @@
+import os
 import sys
 from pathlib import Path
+
+# ── 数据库配置 ──────────────────────────────────────────────
+# 在导入其他模块前设置 DATABASE_URL，确保 database.py 能读取到
+# 配置来源：项目根 backend/database.py 中的硬编码连接信息
+os.environ.setdefault(
+    "DATABASE_URL",
+    "mysql+pymysql://root:123456@localhost:3306/education_service_ai",
+)
 
 from fastapi import FastAPI, Request
 from fastapi.encoders import jsonable_encoder
@@ -14,6 +23,9 @@ if __package__ is None or __package__ == "":
 from backend.app.common.exceptions import AppException
 from backend.app.common.responses import ApiResponse, error_response, success_response
 from backend.app.controllers.academic_event_controller import router as academic_event_router
+from backend.app.controllers.application_progress_controller import (
+    router as application_progress_router,
+)
 from backend.app.controllers.ai_tool_controller import router as ai_tool_router
 from backend.app.controllers.enterprise_assistant_controller import (
     router as enterprise_assistant_router,
@@ -94,6 +106,7 @@ app.include_router(enterprise_assistant_router)
 app.include_router(enterprise_nl2sql_router)
 app.include_router(report_router)
 app.include_router(academic_event_router, prefix="/api")
+app.include_router(application_progress_router)
 app.include_router(student_feedback_ticket_router, prefix="/api")
 app.include_router(ai_tool_router, prefix="/api")
 app.include_router(ai_tool_router, prefix="/api/v1")

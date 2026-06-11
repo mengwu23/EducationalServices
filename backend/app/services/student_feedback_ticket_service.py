@@ -134,6 +134,29 @@ class StudentFeedbackTicketService:
         )
 
     @classmethod
+    def notify_ticket(cls, db: Session, ticket_id: int) -> StudentFeedbackTicket:
+        """标记工单已通知学生
+
+        老师在解决工单后调用此方法，向学生同步"您的xxx投诉已解决"通知。
+        设置 is_notified=1 标记已通知。
+
+        Args:
+            db: 数据库会话
+            ticket_id: 工单 ID
+
+        Returns:
+            更新后的工单对象
+
+        Raises:
+            NotFoundError: 工单不存在
+            BadRequestError: 工单状态不允许通知（仅 resolved/closed 可通知）
+        """
+        ticket = cls._get_or_raise(db, ticket_id)
+        if ticket.status not in (FeedbackTicketStatus.RESOLVED.value, FeedbackTicketStatus.CLOSED.value):
+            raise BadRequestError("Only resolved or closed feedback tickets can be notified to student")
+        return StudentFeedbackTicketDAO.update(db, ticket, {"is_notified": 1})
+
+    @classmethod
     def close_ticket(
         cls,
         db: Session,
