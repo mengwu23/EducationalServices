@@ -38,6 +38,8 @@ from backend.app.controllers.student_assistant_controller import router as stude
 from backend.app.controllers.student_feedback_ticket_controller import router as student_feedback_ticket_router
 from backend.app.controllers.student_leave_controller import router as student_leave_router
 from backend.app.controllers.student_psych_controller import router as student_psych_router
+from backend.app.controllers.service_agent_controller import router as service_agent_router
+from backend.app.controllers.customer_judgement_controller import router as customer_judgement_router
 
 # ═══════════════════════════════════════════════════════════
 app = FastAPI(
@@ -118,6 +120,8 @@ app.include_router(enterprise_assistant_router, prefix="/enterprise", tags=["企
 # 挂载企业业务办理助手路由。
 app.include_router(operation_router, prefix="/enterprise", tags=["企业业务办理助手"])
 app.include_router(enterprise_nl2sql_router, prefix="/enterprise", tags=["企业智能助手NL2SQL模块"])
+app.include_router(service_agent_router, prefix="/api", tags=["客服Agent模块"])
+app.include_router(customer_judgement_router, tags=["客户研判模块"])
 
 
 if __name__ == "__main__":
