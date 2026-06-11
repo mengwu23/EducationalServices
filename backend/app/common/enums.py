@@ -42,3 +42,68 @@ class ExportType(StrEnum):
 class ExportStatus(StrEnum):
     SUCCESS = "success"
     FAIL = "fail"
+
+
+class AcademicEventType(StrEnum):
+    PAPER_DEADLINE = "paper_deadline"
+    EXAM = "exam"
+    COURSE_DEADLINE = "course_deadline"
+    OTHER = "other"
+
+
+class AcademicEventStatus(StrEnum):
+    ACTIVE = "active"
+    COMPLETED = "completed"
+    CANCELLED = "cancelled"
+
+
+class PsychAlertStatus(StrEnum):
+    PENDING = "pending"
+    PROCESSING = "processing"
+    RESOLVED = "resolved"
+    CLOSED = "closed"
+
+
+class PsychRiskLevel(StrEnum):
+    LOW = "low"
+    MEDIUM = "medium"
+    HIGH = "high"
+    CRITICAL = "critical"
+
+
+class UserType(StrEnum):
+    STUDENT = "student"
+    EMPLOYEE = "employee"
+    ADMIN = "admin"
+
+
+class LeaveStatus(StrEnum):
+    PENDING = "pending"
+    APPROVED = "approved"
+    REJECTED = "rejected"
+    CANCELLED = "cancelled"
+
+
+class LeaveType(StrEnum):
+    SICK = "sick"
+    PERSONAL = "personal"
+    OTHER = "other"
+
+
+class FeedbackPriorityLevel(StrEnum):
+    NORMAL = "normal"
+    URGENT = "urgent"
+    SEVERE = "severe"
+
+
+class FeedbackTicketType(StrEnum):
+    COMPLAINT = "complaint"
+    SUGGESTION = "suggestion"
+    CONSULT = "consult"
+
+
+class FeedbackTicketStatus(StrEnum):
+    PENDING = "pending"
+    PROCESSING = "processing"
+    RESOLVED = "resolved"
+    CLOSED = "closed"

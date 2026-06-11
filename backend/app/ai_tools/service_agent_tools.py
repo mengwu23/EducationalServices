@@ -1,12 +1,12 @@
 from sqlalchemy.orm import Session
 
-from app.schemas.service_agent_schema import (
+from backend.app.schemas.service_agent_schema import (
     ActivitySignupRequest,
     ServiceAgentEventSearchRequest,
     ServiceAgentFaqSearchRequest,
     ServiceAgentProjectSearchRequest,
 )
-from app.services.service_agent_service import ServiceAgentService
+from backend.app.services.service_agent_service import ServiceAgentService
 
 TOOL_DESCRIPTIONS = {
     "search_customer_service_faq": "查询客服 FAQ，适用于公司信息、业务规则、留学政策等高频问答",

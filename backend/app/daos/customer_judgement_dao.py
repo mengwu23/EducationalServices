@@ -3,7 +3,7 @@ from datetime import date, datetime
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.models.customer_analysis_record import CustomerAnalysisRecord
+from backend.app.models.customer_analysis_record import CustomerAnalysisRecord
 
 
 class CustomerJudgementDAO:
