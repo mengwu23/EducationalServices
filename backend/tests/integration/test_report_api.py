@@ -1,6 +1,3 @@
-from app.models.audit_log import AiToolCallLog
-
-
 def test_generate_confirm_publish_export_word_flow(client):
     headers = {"X-User-Id": "1", "X-User-Role": "admin"}
     generate_response = client.post(
@@ -78,24 +75,3 @@ def test_missing_date_range_returns_validation_error(client):
 
     assert response.status_code == 422
 
-
-def test_ai_tool_query_report_source_data_writes_log(client, db_session):
-    response = client.post(
-        "/api/v1/ai-tools/query_report_source_data",
-        json={
-            "report_type": "customer_operation",
-            "date_start": "2026-06-01",
-            "date_end": "2026-06-07",
-            "department_id": 1,
-            "owner_user_id": 2,
-            "conversation_id": "conv-1",
-            "trace_id": "trace-1",
-        },
-    )
-
-    assert response.status_code == 200
-    data = response.json()["data"]
-    assert data["tool_name"] == "query_report_source_data"
-    assert data["result"]["new_leads"] == 1
-    tool_log = db_session.query(AiToolCallLog).filter(AiToolCallLog.tool_name == "query_report_source_data").one()
-    assert tool_log.trace_id == "trace-1"

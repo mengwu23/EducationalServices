@@ -19,7 +19,7 @@ from app.schemas.service_agent_schema import (
     ServiceAgentProjectSearchRequest,
 )
 
-router = APIRouter(prefix="/api/v1/ai-tools", tags=["Dify 工具接口"])
+router = APIRouter()
 
 
 @router.get("", summary="查询可供 Dify 调用的工具列表")
@@ -105,4 +105,3 @@ def service_agent_signup(request: ActivitySignupRequest, db: Session = Depends(g
         },
         trace_id=request.trace_id,
     )
-

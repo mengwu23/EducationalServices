@@ -1,6 +1,12 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
+from app.ai_tools.service_agent_tools import (
+    create_activity_signup as tool_create_activity_signup,
+    list_open_events,
+    recommend_course_projects,
+    search_customer_service_faq,
+)
 from app.common.responses import success
 from app.db.session import get_db
 from app.schemas.service_agent_schema import (
@@ -12,7 +18,7 @@ from app.schemas.service_agent_schema import (
 )
 from app.services.service_agent_service import ServiceAgentService
 
-router = APIRouter(prefix="/api/v1/service-agent", tags=["客服 Agent"])
+router = APIRouter()
 
 
 @router.post("/messages", summary="访客发送客服消息并直接返回回复")
@@ -41,3 +47,26 @@ def create_activity_signup(request: ActivitySignupRequest, db: Session = Depends
     data = ServiceAgentService(db).create_activity_signup(request)
     return success(data, trace_id=request.trace_id)
 
+
+@router.post("/dify-tools/search_customer_service_faq", summary="Dify 工具：查询客服 FAQ")
+def dify_search_customer_service_faq(request: ServiceAgentFaqSearchRequest, db: Session = Depends(get_db)):
+    data = search_customer_service_faq(db, request)
+    return success({"tool_name": "search_customer_service_faq", "result": data}, trace_id=request.trace_id)
+
+
+@router.post("/dify-tools/recommend_course_projects", summary="Dify 工具：查询课程与项目推荐")
+def dify_recommend_course_projects(request: ServiceAgentProjectSearchRequest, db: Session = Depends(get_db)):
+    data = recommend_course_projects(db, request)
+    return success({"tool_name": "recommend_course_projects", "result": data}, trace_id=request.trace_id)
+
+
+@router.post("/dify-tools/list_open_events", summary="Dify 工具：查询可报名活动")
+def dify_list_open_events(request: ServiceAgentEventSearchRequest, db: Session = Depends(get_db)):
+    data = list_open_events(db, request)
+    return success({"tool_name": "list_open_events", "result": data}, trace_id=request.trace_id)
+
+
+@router.post("/dify-tools/create_activity_signup", summary="Dify 工具：创建活动报名并直接写入报名表")
+def dify_create_activity_signup(request: ActivitySignupRequest, db: Session = Depends(get_db)):
+    data = tool_create_activity_signup(db, request)
+    return success({"tool_name": "create_activity_signup", "result": data}, trace_id=request.trace_id)
