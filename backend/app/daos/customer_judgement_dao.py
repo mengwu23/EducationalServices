@@ -86,11 +86,10 @@ class CustomerJudgementDAO:
     # ------------------------------------------------------------------
 
     def generate_analysis_no(self) -> str:
-        today = date.today()
-        today_str = today.strftime("%Y%m%d")
+        year = date.today().year
         count_stmt = select(func.count(CustomerAnalysisRecord.id)).where(
-            func.date(CustomerAnalysisRecord.create_time) == today,
+            func.year(CustomerAnalysisRecord.create_time) == year,
         )
-        today_count = self.db.scalar(count_stmt) or 0
-        next_seq = today_count + 1
-        return f"CJ-{today_str}-{next_seq:06d}"
+        year_count = self.db.scalar(count_stmt) or 0
+        next_seq = year_count + 1
+        return f"CA{year}{next_seq:03d}"

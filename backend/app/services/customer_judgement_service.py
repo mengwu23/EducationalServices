@@ -1,9 +1,9 @@
-import json
 from datetime import datetime
 from typing import Any
-from uuid import uuid4
 
+from fastapi import UploadFile
 from sqlalchemy.orm import Session
+from uuid import uuid4
 
 from app.common.exceptions import NotFoundError, ReportGenerationError
 from app.core.config import Settings, get_settings
@@ -13,7 +13,6 @@ from app.integrations.dify_client import DifyClient
 from app.models.customer_analysis_record import CustomerAnalysisRecord
 from app.schemas.customer_judgement_schema import (
     CustomerJudgementRequest,
-    CustomerJudgementResult,
     JudgementListRequest,
 )
 from app.services.audit_log_service import AuditLogService
@@ -38,20 +37,46 @@ class CustomerJudgementService:
     # 核心研判
     # ------------------------------------------------------------------
 
-    def analyze_customer(self, request: CustomerJudgementRequest, user: CurrentUser) -> dict[str, Any]:
-        """提交客户信息进行智能画像研判。"""
+    def analyze_customer(
+        self,
+        request: CustomerJudgementRequest,
+        user: CurrentUser,
+        files: list[UploadFile] | None = None,
+    ) -> dict[str, Any]:
+        """提交客户信息进行智能画像研判，支持可选的附件上传。"""
         require_roles(user, {"admin", "employee"})
         trace_id = f"cj-{uuid4().hex[:12]}"
         analysis_no = self.dao.generate_analysis_no()
 
+        # 处理文件上传：先上传到 Dify 获取 file_id
+        file_ids: list[str] = []
+        file_names: list[str] = []
+        if files:
+            for f in files:
+                if f.filename and f.size and f.size > 0:
+                    content = f.file.read()
+                    await_result = f.filename  # 避免 await 关键字
+                    upload_result = self.dify_client.upload_file(
+                        file_path=f.filename or "file",
+                        file_content=content,
+                        mime_type=f.content_type or "application/octet-stream",
+                    )
+                    file_ids.append(upload_result.get("id", ""))
+                    file_names.append(f.filename or "")
+
+        source_type = "text"
+        if file_names:
+            source_type = "pdf简历" if any(n.lower().endswith(".pdf") for n in file_names) else "excel表格" if any(n.lower().endswith((".xls", ".xlsx")) for n in file_names) else "text"
+
         record = CustomerAnalysisRecord(
             analysis_no=analysis_no,
-            source_type="text",
+            source_type=source_type,
+            source_file_name=", ".join(file_names) if file_names else None,
             raw_content=request.text,
             target_product=request.target_product,
-            lead_id=request.lead_id,
+            lead_id=None,
             status="pending",
-            submitter_user_id=user.id,
+            submitter_user_id=None,
         )
 
         try:
@@ -60,19 +85,14 @@ class CustomerJudgementService:
                 customer_info_text=request.text,
                 sys_query=request.sys_query,
                 trace_id=trace_id,
+                file_ids=file_ids if file_ids else None,
             )
 
-            # 将原始输入 + AI 结果打包存入 raw_content（LONGTEXT）
-            record.raw_content = json.dumps(
-                {"input_text": request.text, "ai_result": result},
-                ensure_ascii=False,
-            )
-
-            # 映射关键字段到独立列以支持 SQL 筛选
+            # 映射关键字段到独立列，AI 结果不冗余存 DB
             record.is_target_customer = 1 if result.get("is_target_customer") else 0
             record.match_score = result.get("overall_match_score")
             record.match_level = result.get("overall_match_level")
-            record.reason_summary = result.get("reason_summary")
+            record.reason_summary = result.get("executive_summary") or result.get("reason_summary")
             record.suggestion = result.get("suggestion")
             record.status = "completed"
 
@@ -168,23 +188,16 @@ class CustomerJudgementService:
         }
 
     def _record_to_detail(self, record: CustomerAnalysisRecord) -> dict[str, Any]:
-        """将 ORM 记录转为详情字典，含 AI 研判结果。"""
+        """将 ORM 记录转为详情字典。"""
         detail = self._record_to_item(record)
         detail["raw_content"] = record.raw_content
-        detail["executive_summary"] = None
-        detail["ai_result"] = self._parse_ai_result(record)
-        if detail["ai_result"]:
-            detail["executive_summary"] = detail["ai_result"].get("executive_summary")
+        detail["executive_summary"] = record.reason_summary
+        detail["ai_result"] = {
+            "is_target_customer": bool(record.is_target_customer) if record.is_target_customer is not None else None,
+            "overall_match_score": float(record.match_score) if record.match_score is not None else None,
+            "overall_match_level": record.match_level,
+            "executive_summary": record.reason_summary,
+            "reason_summary": record.reason_summary,
+            "suggestion": record.suggestion,
+        }
         return detail
-
-    def _parse_ai_result(self, record: CustomerAnalysisRecord) -> dict[str, Any] | None:
-        """从 raw_content 中解析 AI 研判结果 JSON。"""
-        if record.status != "completed" or not record.raw_content:
-            return None
-        try:
-            data = json.loads(record.raw_content)
-            if isinstance(data, dict) and "ai_result" in data:
-                return data["ai_result"]
-        except (json.JSONDecodeError, TypeError):
-            pass
-        return None

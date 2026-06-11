@@ -13,6 +13,17 @@ from pydantic import BaseModel, Field
 class CustomerJudgementRequest(BaseModel):
     """提交客户画像研判的请求体。"""
 
+    model_config = {
+        "json_schema_extra": {
+            "example": {
+                "text": "学员王明，22岁，南京大学软件工程本科大四在读，GPA 3.6，雅思6.5。意向申请新加坡国立大学计算机硕士，预算25-30万/年。有一段腾讯实习经历。",
+                "sys_query": "请研判该学员是否符合新加坡留学要求",
+                "lead_id": 0,
+                "target_product": "新加坡国际本硕升学计划",
+            }
+        }
+    }
+
     text: str = Field(
         ...,
         min_length=1,

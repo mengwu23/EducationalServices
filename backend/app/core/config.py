@@ -8,7 +8,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     app_env: str = Field(default="local", alias="APP_ENV")
     database_url: str = Field(
-        default="sqlite:///./education_service.db",
+        default="mysql+pymysql://root:123456@localhost:3306/education_service_ai",
         alias="DATABASE_URL",
     )
     dify_api_base_url: str = Field(default="http://192.168.110.171/v1", alias="DIFY_API_BASE_URL")
@@ -19,7 +19,7 @@ class Settings(BaseSettings):
     report_pdf_converter_path: str = Field(default="", alias="REPORT_PDF_CONVERTER_PATH")
 
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file=str(Path(__file__).resolve().parent.parent.parent / ".env"),
         env_file_encoding="utf-8",
         populate_by_name=True,
         extra="ignore",

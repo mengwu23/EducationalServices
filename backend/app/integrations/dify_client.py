@@ -1,4 +1,5 @@
 import json
+from pathlib import Path
 from typing import Any
 
 import httpx
@@ -12,6 +13,28 @@ class DifyClient:
         self.settings = settings or get_settings()
 
     # ------------------------------------------------------------------
+    # 文件上传
+    # ------------------------------------------------------------------
+
+    def upload_file(self, file_path: str, file_content: bytes, mime_type: str = "application/octet-stream") -> dict[str, Any]:
+        """上传文件到 Dify，返回 upload_file_id 等信息。"""
+        api_key = self.settings.dify_cj_api_key or self.settings.dify_api_key
+        if not api_key:
+            raise RuntimeError("未配置 Dify API Key")
+        url = f"{self.settings.dify_api_base_url.rstrip('/')}/files/upload"
+        file_name = Path(file_path).name
+        headers = {"Authorization": f"Bearer {api_key}"}
+        with httpx.Client(timeout=120) as client:
+            response = client.post(
+                url,
+                data={"user": "education-service-backend"},
+                files={"file": (file_name, file_content, mime_type)},
+                headers=headers,
+            )
+            response.raise_for_status()
+        return response.json()
+
+    # ------------------------------------------------------------------
     # 客户画像研判
     # ------------------------------------------------------------------
 
@@ -20,17 +43,19 @@ class DifyClient:
         customer_info_text: str,
         sys_query: str | None = None,
         trace_id: str | None = None,
+        file_ids: list[str] | None = None,
     ) -> dict[str, Any]:
         """调用 Dify 客户画像研判工作流，返回结构化研判结果。"""
         if self.settings.dify_mock_enabled:
             return _mock_customer_judgement_result()
-        return self._call_dify_judgement_workflow(customer_info_text, sys_query, trace_id)
+        return self._call_dify_judgement_workflow(customer_info_text, sys_query, trace_id, file_ids)
 
     def _call_dify_judgement_workflow(
         self,
         customer_info_text: str,
         sys_query: str | None,
         trace_id: str | None,
+        file_ids: list[str] | None = None,
     ) -> dict[str, Any]:
         api_key = self.settings.dify_cj_api_key or self.settings.dify_api_key
         if not api_key:
@@ -42,18 +67,30 @@ class DifyClient:
             "response_mode": "blocking",
             "user": "education-service-backend",
         }
+        if file_ids:
+            payload["files"] = [
+                {"type": "document", "transfer_method": "local_file", "upload_file_id": fid}
+                for fid in file_ids
+            ]
         headers = {"Authorization": f"Bearer {api_key}"}
         with httpx.Client(timeout=120) as client:
             response = client.post(url, json=payload, headers=headers)
             response.raise_for_status()
         data = response.json()
-        # 优先从 outputs 取（兼容 workflow 模式），其次从 answer 取（chat 模式）
-        raw = data.get("data", {}).get("outputs", {})
-        if not raw or not isinstance(raw, dict) or "executive_summary" not in raw:
-            answer_text = data.get("data", {}).get("answer", "")
+        # 兼容多种响应结构：data.data.outputs / data.data.answer / data.answer
+        answer_text = (
+            data.get("answer", "")
+            or data.get("data", {}).get("answer", "")
+            or data.get("data", {}).get("outputs", {}).get("result", "")
+        )
+        if not answer_text:
+            raise RuntimeError(f"Dify 返回内容为空，完整响应: {json.dumps(data, ensure_ascii=False)[:500]}")
+        try:
             raw = _parse_llm_json(answer_text)
+        except Exception:
+            raise RuntimeError(f"Dify 返回内容非 JSON，原文: {answer_text[:300]}")
         if not isinstance(raw, dict) or "executive_summary" not in raw:
-            raise RuntimeError("Dify 返回内容无法解析为客户研判结果")
+            raise RuntimeError(f"Dify 返回 JSON 缺少 executive_summary 字段，内容: {json.dumps(raw, ensure_ascii=False)[:300]}")
         return raw
 
     # ------------------------------------------------------------------
@@ -171,85 +208,87 @@ def _parse_llm_json(text: str) -> dict[str, Any]:
 def _mock_customer_judgement_result() -> dict[str, Any]:
     """当 Dify 处于 Mock 模式时返回示例研判结果。"""
     return {
-        "executive_summary": "学员张三，25岁，北大计算机本科，GPA 3.5，托福100，意向美国计算机硕士。学历背景优异，语言成绩达标，与产品A高度匹配。建议优先推介美国TOP30硕士申请服务。",
+        "executive_summary": "学员王明，22岁，南大软件工程大四，GPA 3.6，雅思6.5，意向新加坡国立大学计算机硕士。学历与语言满足产品A要求，与新加坡2+2+1本硕连读项目高度匹配。",
         "is_target_customer": True,
-        "overall_match_score": 88,
+        "overall_match_score": 85,
         "overall_match_level": "high",
         "customer_profile": {
-            "core_tags": ["985本科", "计算机专业", "美国留学", "高GPA", "托福100+"],
-            "education_level": "本科",
-            "school_name": "北京大学",
-            "major": "计算机科学与技术",
-            "current_grade": "已毕业",
-            "language_scores": "托福100",
-            "target_country": "美国",
+            "core_tags": ["本科在读", "计算机专业", "新加坡留学", "雅思达标"],
+            "education_level": "本科大四在读",
+            "school_name": "南京大学",
+            "major": "软件工程",
+            "current_grade": "大四",
+            "language_level": "雅思6.5",
+            "target_country": "新加坡",
             "target_program": "计算机硕士",
-            "budget_range": "30万以内",
-            "key_strengths": "985院校背景，GPA优秀，语言成绩达标，专业热门，意向明确",
-            "potential_risks": "美国TOP30竞争激烈，GRE成绩未知，科研/实习经历未提及",
+            "budget_range": "25-30万/年",
+            "key_strengths": "985院校背景，GPA良好，英语达标，实习经历加分，意向明确",
+            "potential_risks": "新加坡公立大学竞争激烈，建议同时申请私立大学保底",
         },
         "product_a_evaluation": {
-            "product_name": "美国硕士申请服务",
+            "product_name": "新加坡国际本硕升学计划",
             "conclusion": "match",
-            "match_score": 90,
+            "match_score": 85,
             "match_level": "high",
+            "recommended_program": "2+2+1本硕连读或直接申请硕士",
             "dimension_analysis": [
                 {
                     "dimension": "学历背景",
-                    "customer_value": "北京大学本科",
-                    "rule_requirement": "985/211院校优先",
+                    "customer_value": "南京大学（985）软件工程本科大四",
+                    "rule_requirement": "认可的本科学历",
                     "is_match": True,
-                    "evidence": "北京大学计算机科学与技术专业本科毕业",
+                    "evidence": "南京大学软件工程本科大四在读，GPA 3.6/4.0",
                 },
                 {
-                    "dimension": "GPA要求",
-                    "customer_value": "GPA 3.5",
-                    "rule_requirement": "GPA≥3.0",
+                    "dimension": "语言能力",
+                    "customer_value": "雅思6.5",
+                    "rule_requirement": "雅思≥6.0或通过入学测试",
                     "is_match": True,
-                    "evidence": "GPA 3.5",
+                    "evidence": "雅思6.5分",
                 },
                 {
-                    "dimension": "语言成绩",
-                    "customer_value": "托福100分",
-                    "rule_requirement": "托福≥90或雅思≥6.5",
+                    "dimension": "预算能力",
+                    "customer_value": "25-30万/年",
+                    "rule_requirement": "新加坡留学年均费用约20-30万",
                     "is_match": True,
-                    "evidence": "托福100分",
+                    "evidence": "预算25-30万/年",
                 },
             ],
-            "summary_reason": "学历、GPA、语言成绩均满足产品A的准入要求，匹配度高",
+            "summary_reason": "学历、语言、预算均满足新加坡留学准入要求，推荐本硕连读路径",
             "missing_info": [],
-            "actionable_advice": "优先推介美国TOP30硕士申请全流程服务，强调同背景成功案例",
+            "actionable_advice": "优先推介新加坡公立大学硕士申请，同时准备私立大学作为备选方案",
         },
         "product_b_evaluation": {
-            "product_name": "学术背景提升服务",
+            "product_name": "中德精英人才共建计划",
             "conclusion": "insufficient_info",
-            "match_score": 60,
-            "match_level": "medium",
+            "match_score": 40,
+            "match_level": "low",
+            "recommended_program": "暂无推荐",
             "dimension_analysis": [
                 {
-                    "dimension": "科研经历",
-                    "customer_value": "未提供",
-                    "rule_requirement": "需有科研项目或论文发表经历",
+                    "dimension": "语言能力",
+                    "customer_value": "雅思6.5，德语零基础",
+                    "rule_requirement": "德语B1水平",
                     "is_match": False,
-                    "evidence": "未提供",
+                    "evidence": "英语较好但无德语基础",
                 },
                 {
-                    "dimension": "竞赛获奖",
-                    "customer_value": "未提供",
-                    "rule_requirement": "需有省级以上竞赛获奖",
+                    "dimension": "职业规划",
+                    "customer_value": "意向读硕士深造",
+                    "rule_requirement": "双元制面向就业导向",
                     "is_match": False,
-                    "evidence": "未提供",
+                    "evidence": "意向申请硕士，非就业导向",
                 },
             ],
-            "summary_reason": "缺少科研经历和竞赛信息，无法完整评估",
-            "missing_info": ["科研项目经历", "竞赛获奖情况", "实习经历"],
-            "actionable_advice": "通过微信追问客户的科研经历和竞赛获奖情况",
+            "summary_reason": "客户目标是硕士深造而非技能就业，且无德语基础，德国双元制不匹配",
+            "missing_info": [],
+            "actionable_advice": "不推荐德国方向，集中资源推进新加坡方案",
         },
-        "reason_summary": "客户学历背景优秀，满足产品A（美国硕士申请）的核心准入条件，综合匹配度88分，属于高价值目标客户",
-        "suggestion": "优先跟进产品A，同时补充产品B所需的科研/竞赛信息后再做完整评估",
+        "reason_summary": "满足新加坡国际本硕升学计划的学历与语言要求，推荐本硕连读路径",
+        "suggestion": "集中跟进新加坡方向，安排顾问1对1咨询公立大学申请方案",
         "final_next_steps": [
-            "安排资深顾问1对1咨询，重点介绍美国TOP30硕士申请成功案例",
-            "发送产品A资料包和费用方案",
-            "通过微信追问GRE成绩、科研经历、竞赛获奖情况",
+            "安排新加坡留学顾问1对1咨询",
+            "发送新加坡公立大学硕士项目资料和成功案例",
+            "准备成绩单和推荐信等申请材料",
         ],
     }
