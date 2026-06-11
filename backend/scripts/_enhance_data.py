@@ -103,13 +103,14 @@ for i in range(20):
 print(f"Tickets: 20 inserted")
 
 for i, sid in enumerate(STUDENT_IDS):
-    monday, friday = week_dates()
+    monday, friday = week_dates(1)
     dt = rand_date(monday, friday)
     db.merge(StudentPsychProfile(
         id=100+i, student_id=sid, latest_emotion_tag=random.choice(emotion_tags),
         emotion_score=random.randint(30,95), risk_level=["low","medium","high","low","medium","low"][i],
         emotion_summary=random.choice(["考试季压力大","跨文化适应良好","轻度孤独感","学业滞后焦虑","生活适应良好","与室友沟通问题"]),
-        last_interaction_time=datetime(dt.year, dt.month, dt.day, random.randint(9,18),0,0),
+        create_time=datetime(dt.year, dt.month, dt.day, random.randint(9, 18), 0, 0),
+        last_interaction_time=datetime(dt.year, dt.month, dt.day, random.randint(9, 18), 0, 0),
         is_delete=0, update_time=datetime.now()))
 print(f"Psych profiles: 6 merged")
 
