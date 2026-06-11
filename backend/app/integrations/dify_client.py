@@ -1,6 +1,7 @@
 import json
 from pathlib import Path
 from typing import Any
+from uuid import uuid4
 
 import httpx
 
@@ -92,6 +93,56 @@ class DifyClient:
         if not isinstance(raw, dict) or "executive_summary" not in raw:
             raise RuntimeError(f"Dify 返回 JSON 缺少 executive_summary 字段，内容: {json.dumps(raw, ensure_ascii=False)[:300]}")
         return raw
+
+    def call_service_agent(
+        self,
+        query: str,
+        conversation_id: str | None = None,
+        visitor_id: str | None = None,
+        context: dict[str, Any] | None = None,
+        trace_id: str | None = None,
+    ) -> dict[str, Any]:
+        """Call the Dify Chatflow that powers the public service agent."""
+        if self.settings.dify_mock_enabled:
+            return _mock_service_agent_result(query, conversation_id, context)
+        api_key = self.settings.dify_service_agent_api_key or self.settings.dify_api_key
+        if not api_key:
+            raise RuntimeError("未配置 Dify 客服 Agent API Key")
+        url = f"{self.settings.dify_api_base_url.rstrip('/')}/chat-messages"
+        payload = {
+            "inputs": {
+                "visitor_id": visitor_id,
+                "trace_id": trace_id,
+                "context": context or {},
+            },
+            "query": query,
+            "response_mode": "blocking",
+            "user": visitor_id or "visitor",
+        }
+        if conversation_id:
+            payload["conversation_id"] = conversation_id
+        headers = {"Authorization": f"Bearer {api_key}"}
+        with httpx.Client(timeout=120) as client:
+            response = client.post(url, json=payload, headers=headers)
+            response.raise_for_status()
+        data = response.json()
+        answer = data.get("answer") or data.get("data", {}).get("answer") or ""
+        outputs = data.get("data", {}).get("outputs", {}) if isinstance(data.get("data"), dict) else {}
+        parsed_outputs = outputs if isinstance(outputs, dict) else {}
+        if not parsed_outputs and answer:
+            try:
+                parsed_outputs = _parse_llm_json(answer)
+                answer = parsed_outputs.get("reply_text") or parsed_outputs.get("answer") or answer
+            except Exception:
+                parsed_outputs = {}
+        return {
+            "answer": answer,
+            "conversation_id": data.get("conversation_id") or data.get("data", {}).get("conversation_id") or conversation_id,
+            "intent": parsed_outputs.get("intent"),
+            "suggested_actions": parsed_outputs.get("suggested_actions", []),
+            "references": parsed_outputs.get("references", []),
+            "raw": data,
+        }
 
     # ------------------------------------------------------------------
     # 报告生成（已有）
@@ -291,4 +342,38 @@ def _mock_customer_judgement_result() -> dict[str, Any]:
             "发送新加坡公立大学硕士项目资料和成功案例",
             "准备成绩单和推荐信等申请材料",
         ],
+    }
+
+
+def _mock_service_agent_result(
+    query: str,
+    conversation_id: str | None,
+    context: dict[str, Any] | None,
+) -> dict[str, Any]:
+    faq_items = (context or {}).get("faq_examples") or []
+    projects = (context or {}).get("projects") or []
+    events = (context or {}).get("events") or []
+    references: list[dict[str, Any]] = []
+    if faq_items:
+        references.append({"type": "faq", "id": faq_items[0].get("id"), "title": faq_items[0].get("question")})
+        answer = faq_items[0].get("answer") or "我已根据 FAQ 找到相关答案，建议客服确认后发送。"
+        intent = "faq"
+    elif "活动" in query or "讲座" in query or events:
+        references.extend({"type": "event", "id": item.get("id"), "title": item.get("event_name")} for item in events[:3])
+        answer = "目前有可报名活动，我已整理活动信息。若访客提供姓名和手机号，可以继续生成报名草稿。"
+        intent = "event_consult"
+    elif "课程" in query or "项目" in query or projects:
+        references.extend({"type": "project", "id": item.get("id"), "title": item.get("project_name")} for item in projects[:3])
+        answer = "我已根据访客意向匹配课程项目，建议客服确认推荐话术后发送。"
+        intent = "project_recommendation"
+    else:
+        answer = "您好，已收到您的咨询。客服会结合公司业务资料确认后回复您。"
+        intent = "general_consult"
+    return {
+        "answer": answer,
+        "conversation_id": conversation_id or f"mock-service-agent-{uuid4().hex[:12]}",
+        "intent": intent,
+        "suggested_actions": [],
+        "references": references,
+        "raw": {"mock": True},
     }
