@@ -1,4 +1,5 @@
 from datetime import date
+from datetime import timedelta
 from typing import Any
 
 from sqlalchemy import and_, func, or_, select, text
@@ -124,6 +125,8 @@ class ReportDAO:
         department_id: int | None,
         owner_user_id: int | None,
     ) -> dict[str, Any]:
+        from datetime import timedelta
+
         employee_filters = []
         if department_id is not None:
             employee_filters.append(EmployeeProfile.department_id == department_id)
@@ -204,19 +207,66 @@ class ReportDAO:
         ).all()
         event_registration_breakdown = {s or "???": c for s, c in event_status_rows}
 
+        new_leads = self.db.scalar(lead_stmt) or 0
+        analysis_records = self.db.scalar(analysis_stmt) or 0
+        event_regs = self.db.scalar(registration_stmt) or 0
+
+        # === 同环比数据：上周同期 ===
+        period_days = (date_end - date_start).days or 7
+        prev_start = date_start - timedelta(days=period_days)
+        prev_end = date_end - timedelta(days=period_days)
+        prev_lead_stmt = (
+            select(func.count(CrmLead.id))
+            .join(EmployeeProfile, CrmLead.owner_employee_id == EmployeeProfile.id)
+            .where(func.date(CrmLead.create_time).between(prev_start, prev_end), CrmLead.is_delete == 0, *employee_filters)
+        )
+        prev_leads = self.db.scalar(prev_lead_stmt) or 0
+        prev_analysis = self.db.scalar(analysis_stmt.where(func.date(CustomerAnalysisRecord.create_time).between(prev_start, prev_end))) or 0
+        prev_events = self.db.scalar(registration_stmt.where(func.date(EventRegistration.create_time).between(prev_start, prev_end))) or 0
+        lead_delta_pct = round((new_leads - prev_leads) / prev_leads * 100, 1) if prev_leads > 0 else (100 if new_leads > 0 else 0)
+        trend_label = "上升" if lead_delta_pct > 5 else ("下降" if lead_delta_pct < -5 else "持平")
+
+        # === 流失归因：按渠道和阶段细分 ===
+        lost_statuses = ["已流失", "废弃", "已关单", "lost", "closed"]
+        churn_source_rows = self.db.execute(
+            select(CrmLead.source_channel, func.count(CrmLead.id))
+            .join(EmployeeProfile, CrmLead.owner_employee_id == EmployeeProfile.id)
+            .where(CrmLead.status.in_(lost_statuses), CrmLead.is_delete == 0, *employee_filters)
+            .group_by(CrmLead.source_channel)
+        ).all()
+        churn_source_breakdown = {s or "未归类": c for s, c in churn_source_rows}
+
+        churn_stage_rows = self.db.execute(
+            select(CrmLead.status, func.count(CrmLead.id))
+            .join(EmployeeProfile, CrmLead.owner_employee_id == EmployeeProfile.id)
+            .where(CrmLead.status.in_(lost_statuses), CrmLead.is_delete == 0, *employee_filters)
+            .group_by(CrmLead.status)
+        ).all()
+        churn_stage_breakdown = {s or "未归类": c for s, c in churn_stage_rows}
+
         return {
             "report_type": ReportType.CUSTOMER_OPERATION,
             "date_start": str(date_start),
             "date_end": str(date_end),
             "department_id": department_id,
             "owner_user_id": owner_user_id,
-            "new_leads": self.db.scalar(lead_stmt) or 0,
-            "analysis_records": self.db.scalar(analysis_stmt) or 0,
-            "event_registrations": self.db.scalar(registration_stmt) or 0,
+            "new_leads": new_leads,
+            "analysis_records": analysis_records,
+            "event_registrations": event_regs,
             "lead_source_breakdown": lead_source_breakdown,
             "lead_status_breakdown": lead_status_breakdown,
             "analysis_result_breakdown": analysis_result_breakdown,
             "event_registration_breakdown": event_registration_breakdown,
+            "prev_period": {
+                "date_start": str(prev_start),
+                "date_end": str(prev_end),
+                "leads": prev_leads,
+                "analysis": prev_analysis,
+                "events": prev_events,
+            },
+            "lead_trend": {"delta_pct": lead_delta_pct, "label": trend_label},
+            "churn_source_breakdown": churn_source_breakdown,
+            "churn_stage_breakdown": churn_stage_breakdown,
         }
 
     def _query_employee_daily_summary(
