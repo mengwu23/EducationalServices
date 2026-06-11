@@ -25,7 +25,7 @@ app = FastAPI(
 app.include_router(service_agent_router, prefix="/api/v1/service-agent", tags=["客服 Agent 模块"])
 app.include_router(report_router)
 app.include_router(enterprise_assistant_router, prefix="/enterprise", tags=["企业智能助手模块"])
-app.include_router(customer_judgement_router)
+app.include_router(customer_judgement_router,tags=["客户研判助手模块"])
 
 if __name__ == "__main__":
     uvicorn.run("backend.app.main:app", host="localhost", port=8088, reload=True)
