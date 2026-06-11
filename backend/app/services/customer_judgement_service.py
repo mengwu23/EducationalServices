@@ -5,17 +5,17 @@ from fastapi import UploadFile
 from sqlalchemy.orm import Session
 from uuid import uuid4
 
-from app.common.exceptions import NotFoundError, ReportGenerationError
-from app.core.config import Settings, get_settings
-from app.core.security import CurrentUser, require_roles
-from app.daos.customer_judgement_dao import CustomerJudgementDAO
-from app.integrations.dify_client import DifyClient
-from app.models.customer_analysis_record import CustomerAnalysisRecord
-from app.schemas.customer_judgement_schema import (
+from backend.app.common.exceptions import NotFoundError, ReportGenerationError
+from backend.app.core.config import Settings, get_settings
+from backend.app.core.security import CurrentUser, require_roles
+from backend.app.daos.customer_judgement_dao import CustomerJudgementDAO
+from backend.app.integrations.dify_client import DifyClient
+from backend.app.models.customer_analysis_record import CustomerAnalysisRecord
+from backend.app.schemas.customer_judgement_schema import (
     CustomerJudgementRequest,
     JudgementListRequest,
 )
-from app.services.audit_log_service import AuditLogService
+from backend.app.services.audit_log_service import AuditLogService
 
 
 class CustomerJudgementService:

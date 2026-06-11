@@ -3,12 +3,12 @@ from uuid import uuid4
 
 from sqlalchemy.orm import Session
 
-from app.common.exceptions import BusinessError, NotFoundError, ReportGenerationError
-from app.core.config import Settings, get_settings
-from app.daos.service_agent_dao import ServiceAgentDAO
-from app.integrations.dify_client import DifyClient
-from app.models.event_registration import EventRegistration
-from app.schemas.service_agent_schema import (
+from backend.app.common.exceptions import BusinessError, NotFoundError, ReportGenerationError
+from backend.app.core.config import Settings, get_settings
+from backend.app.daos.service_agent_dao import ServiceAgentDAO
+from backend.app.integrations.dify_client import DifyClient
+from backend.app.models.event_registration import EventRegistration
+from backend.app.schemas.service_agent_schema import (
     ActivitySignupRequest,
     ServiceAgentEventSearchRequest,
     ServiceAgentFaqSearchRequest,

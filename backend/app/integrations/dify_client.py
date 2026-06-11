@@ -5,8 +5,8 @@ from uuid import uuid4
 
 import httpx
 
-from app.common.enums import ReportType
-from app.core.config import Settings, get_settings
+from backend.app.common.enums import ReportType
+from backend.app.core.config import Settings, get_settings
 
 
 class DifyClient:

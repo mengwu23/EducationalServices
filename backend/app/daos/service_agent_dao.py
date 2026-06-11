@@ -3,10 +3,10 @@ from datetime import datetime
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
-from app.models.course_project import CourseProject
-from app.models.event_lecture import EventLecture
-from app.models.event_registration import EventRegistration
-from app.models.faq_qa import FaqQa
+from backend.app.models.course_project import CourseProject
+from backend.app.models.event_lecture import EventLecture
+from backend.app.models.event_registration import EventRegistration
+from backend.app.models.faq_qa import FaqQa
 
 
 class ServiceAgentDAO:

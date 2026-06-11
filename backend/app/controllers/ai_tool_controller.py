@@ -1,18 +1,18 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
-from app.ai_tools.report_tools import query_report_source_data
-from app.ai_tools.service_agent_tools import (
+from backend.app.ai_tools.report_tools import query_report_source_data
+from backend.app.ai_tools.service_agent_tools import (
     TOOL_DESCRIPTIONS as SERVICE_AGENT_TOOL_DESCRIPTIONS,
     create_activity_signup,
     list_open_events,
     recommend_course_projects,
     search_customer_service_faq,
 )
-from app.common.responses import success
-from app.db.session import get_db
-from app.schemas.report_schema import AiToolReportSourceDataRequest
-from app.schemas.service_agent_schema import (
+from backend.app.common.responses import success
+from backend.app.db.session import get_db
+from backend.app.schemas.report_schema import AiToolReportSourceDataRequest
+from backend.app.schemas.service_agent_schema import (
     ActivitySignupRequest,
     ServiceAgentEventSearchRequest,
     ServiceAgentFaqSearchRequest,

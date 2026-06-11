@@ -6,14 +6,14 @@ from typing import Annotated, Optional
 from fastapi import APIRouter, Depends, File, Form, Query, UploadFile
 from sqlalchemy.orm import Session
 
-from app.common.responses import success
-from app.core.security import CurrentUser, get_current_user
-from app.db.session import get_db
-from app.schemas.customer_judgement_schema import (
+from backend.app.common.responses import success
+from backend.app.core.security import CurrentUser, get_current_user
+from backend.app.db.session import get_db
+from backend.app.schemas.customer_judgement_schema import (
     CustomerJudgementRequest,
     JudgementListRequest,
 )
-from app.services.customer_judgement_service import CustomerJudgementService
+from backend.app.services.customer_judgement_service import CustomerJudgementService
 
 router = APIRouter(prefix="/api/v1/customer-judgement")
 

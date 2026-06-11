@@ -4,9 +4,9 @@ from typing import Any
 
 from sqlalchemy.orm import Session
 
-from app.core.security import CurrentUser
-from app.schemas.customer_judgement_schema import CustomerJudgementRequest
-from app.services.customer_judgement_service import CustomerJudgementService
+from backend.app.core.security import CurrentUser
+from backend.app.schemas.customer_judgement_schema import CustomerJudgementRequest
+from backend.app.services.customer_judgement_service import CustomerJudgementService
 
 # 暴露给编排层的工具注册表。
 CUSTOMER_JUDGEMENT_TOOLS = {

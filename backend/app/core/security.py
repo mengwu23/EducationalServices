@@ -23,6 +23,15 @@ def get_current_user() -> CurrentUser:
     return _DEFAULT_USER
 
 
+def require_roles(user: CurrentUser, allowed_roles: set[str]) -> None:
+    """校验用户角色，不在允许列表中则抛出 403。"""
+    if user.role not in allowed_roles:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"无权操作，需要角色: {', '.join(allowed_roles)}",
+        )
+
+
 def verify_ai_tools_secret(
     request: Request,
     x_ai_tools_secret: str = Header(default="", alias="X-AI-Tools-Secret"),
