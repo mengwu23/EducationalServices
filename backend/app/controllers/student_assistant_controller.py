@@ -5,22 +5,12 @@ from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from backend.app.database import get_db
-from backend.app.schemas.student_assistant_schema import LifeFaqResult
 from backend.app.services.student_assistant_service import StudentAssistantService
 
 router = APIRouter(
     prefix="/api/v1/student-assistant",
     tags=["学生智能助手"],
 )
-
-
-@router.get("/life-support/faq", response_model=LifeFaqResult, summary="搜索本地生活知识库")
-def search_life_faq(
-    keyword: str = Query(..., min_length=1), limit: int = Query(default=10, ge=1, le=50),
-    db: Session = Depends(get_db),
-):
-    """本地 FAQ 知识库搜索。"""
-    return StudentAssistantService.search_life_faq(db, keyword, limit)
 
 
 @router.post("/life-support/chat", summary="生活助手 AI 对话")
