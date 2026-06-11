@@ -28,6 +28,10 @@ class Settings(BaseSettings):
         default="deepseek-chat",
         validation_alias=AliasChoices("NL2SQL_LLM_MODEL", "MODEL_NAME"),
     )
+    dify_onboarding_api_key: str = Field(default="app-3YDkdTb9x8Ot1X5jzhLK4nCN", alias="DIFY_ONBOARDING_API_KEY")
+    deepseek_api_key: str = Field(default="", alias="DEEPSEEK_API_KEY")
+    deepseek_base_url: str = Field(default="https://api.deepseek.com", alias="DEEPSEEK_BASE_URL")
+    deepseek_model: str = Field(default="deepseek-chat", alias="DEEPSEEK_MODEL")
     report_export_dir: str = Field(default="storage/reports", alias="REPORT_EXPORT_DIR")
     report_pdf_converter_path: str = Field(default="", alias="REPORT_PDF_CONVERTER_PATH")
 
