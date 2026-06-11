@@ -26,4 +26,3 @@ class StudentPsychProfile(Base):
     is_delete = Column(Integer, nullable=False, default=0, server_default="0", comment="软删除标记：0-未删除，1-已删除")
     create_time = Column(DateTime, nullable=False, server_default=func.current_timestamp(), comment="创建时间")
     update_time = Column(DateTime, nullable=False, server_default=func.current_timestamp(), onupdate=func.current_timestamp(), comment="更新时间")
-    is_delete = Column(Integer, nullable=False, default=0, server_default="0", comment="逻辑删除：0未删除/1已删除")
