@@ -1,19 +1,19 @@
-from enum import StrEnum
+from enum import Enum
 
 
-class Role(StrEnum):
+class Role(str, Enum):
     ADMIN = "admin"
     EMPLOYEE = "employee"
     STUDENT = "student"
     VISITOR = "visitor"
 
 
-class ReportType(StrEnum):
+class ReportType(str, Enum):
     COMPLAINT_WEEKLY = "complaint_weekly"
     CUSTOMER_OPERATION = "customer_operation"
 
 
-class DraftStatus(StrEnum):
+class DraftStatus(str, Enum):
     GENERATING = "generating"
     PENDING_CONFIRM = "pending_confirm"
     CONFIRMED = "confirmed"
@@ -22,16 +22,16 @@ class DraftStatus(StrEnum):
     PENDING_SECOND_CONFIRM = "pending_second_confirm"
 
 
-class ReportStatus(StrEnum):
+class ReportStatus(str, Enum):
     CONFIRMED = "confirmed"
     PUBLISHED = "published"
 
 
-class ExportType(StrEnum):
+class ExportType(str, Enum):
     WORD = "word"
     PDF = "pdf"
 
 
-class ExportStatus(StrEnum):
+class ExportStatus(str, Enum):
     SUCCESS = "success"
     FAIL = "fail"

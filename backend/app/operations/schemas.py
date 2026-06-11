@@ -1,13 +1,13 @@
 """企业业务办理助手的请求/响应 Pydantic 模型。"""
 
 from datetime import datetime
-from enum import StrEnum
+from enum import Enum
 from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, Field
 
 
-class IntentEnum(StrEnum):
+class IntentEnum(str, Enum):
     """当前支持的业务操作意图。"""
     CREATE_LEAD = "create_lead"
     UPDATE_LEAD_STATUS = "update_lead_status"
