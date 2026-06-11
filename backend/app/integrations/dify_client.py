@@ -105,67 +105,138 @@ class DifyClient:
             new_leads = source_data.get("new_leads", 0)
             analysis_records = source_data.get("analysis_records", 0)
             event_regs = source_data.get("event_registrations", 0)
+            lead_source = source_data.get("lead_source_breakdown", {})
+            lead_status = source_data.get("lead_status_breakdown", {})
+            analysis_result = source_data.get("analysis_result_breakdown", {})
+            event_reg = source_data.get("event_registration_breakdown", {})
             date_start = source_data.get("date_start", "")
             date_end = source_data.get("date_end", "")
+            source_text = "、".join(f"{k}({v}条)" for k, v in lead_source.items()) if lead_source else "暂无渠道数据"
+            status_text = "、".join(f"{k}({v}条)" for k, v in lead_status.items()) if lead_status else "暂无阶段数据"
+            result_text = "、".join(f"{k}({v}条)" for k, v in analysis_result.items()) if analysis_result else "暂无研判等级数据"
             title = f"全域客户经营分析报告（{date_start} 至 {date_end}）"
+
+            lead_to_analysis = round(analysis_records / new_leads * 100, 1) if new_leads > 0 else 0
+            signed_count = lead_status.get("已成交", lead_status.get("已签约", 0))
+            lost_count = lead_status.get("已流失", lead_status.get("废弃", lead_status.get("已关单", 0)))
+            high_intent = analysis_result.get("高意向", analysis_result.get("high", 0))
+            active_event_regs = event_reg.get("已报名", event_reg.get("registered", 0))
+            converted_event_regs = event_reg.get("已转化", event_reg.get("converted", event_reg.get("已参加", 0)))
+
             summary = (
                 f"本周期新增线索 {new_leads} 条，完成客户研判 {analysis_records} 条，"
-                f"活动报名 {event_regs} 人次。"
-                f"{'线索转化率偏低，需关注获客质量' if new_leads > 0 and analysis_records < new_leads * 0.5 else '整体获客和转化节奏正常'}。"
+                f"活动报名 {event_regs} 人次。线索研判覆盖率 {lead_to_analysis}%，"
+                f"{'成交 ' + str(signed_count) + ' 单' if signed_count > 0 else '暂无已成交客户'}。"
+                f"{'存在 ' + str(lost_count) + ' 条流失线索需关注归因' if lost_count > 0 else ''}"
             )
+
             sections = [
                 {
-                    "heading": "线索获取概览",
+                    "heading": "意向客户 - 线索获取与渠道分布",
                     "content": (
-                        f"本周期新增客户线索 {new_leads} 条。"
-                        "建议对比上周同口径数据，判断线索增长趋势和各类渠道的线索质量。"
+                        f"本周期新增客户线索 {new_leads} 条。线索来源渠道分布：{source_text}。"
+                        f"线索当前所处阶段：{status_text}。"
+                        "建议对比上周同期数据判断各渠道线索质量变化趋势，对高量低质渠道做定向优化。"
                     ),
                     "metrics": [
                         {"name": "新增线索", "value": new_leads},
+                        *[{"name": f"渠道-{k}", "value": v} for k, v in lead_source.items()],
                     ],
                 },
                 {
-                    "heading": "客户研判与转化",
+                    "heading": "意向客户 - 研判转化漏斗",
                     "content": (
-                        f"完成客户研判 {analysis_records} 条，研判覆盖率 "
-                        f"{f'{round(analysis_records / new_leads * 100, 1)}%' if new_leads > 0 else 'N/A'}。"
-                        f"{'研判覆盖率不足，建议加强线索跟进节奏' if new_leads > 0 and analysis_records < new_leads * 0.5 else '研判进度正常，可进一步关注研判质量'}"
+                        f"完成客户研判 {analysis_records} 条，研判覆盖率 {lead_to_analysis}%。"
+                        f"研判等级分布：{result_text}。"
+                        f"高意向客户 {high_intent} 条，是近期转化重点跟进对象。"
+                        f"{'研判覆盖率偏低，部分线索尚未进入研判阶段，存在流失风险' if lead_to_analysis < 50 else '研判覆盖率正常。'} "
+                        f"从\"线索\"到\"研判\"的转化漏斗目前为 {new_leads} → {analysis_records}。"
                     ),
                     "metrics": [
-                        {"name": "研判记录", "value": analysis_records},
-                        {
-                            "name": "研判覆盖率",
-                            "value": f"{round(analysis_records / new_leads * 100, 1)}%" if new_leads > 0 else "N/A",
-                        },
+                        {"name": "研判数", "value": analysis_records},
+                        {"name": "研判覆盖率", "value": f"{lead_to_analysis}%"},
+                        *[{"name": f"研判-{k}", "value": v} for k, v in analysis_result.items()],
                     ],
                 },
                 {
-                    "heading": "活动报名参与",
+                    "heading": "成交客户 - 转化路径与高价值特征",
                     "content": (
-                        f"活动报名 {event_regs} 人次。"
-                        "活动参与客户是潜在高意向群体，建议跟进活动参与后的转化动作，评估活动获客 ROI。"
+                        f"本周期成交客户 {signed_count} 单"
+                        f"{'，线索到成交转化率 ' + f'{round(signed_count / new_leads * 100, 1)}%' if new_leads > 0 else ''}。"
+                        f"从研判分布来看，{result_text}，"
+                        f"高意向客户是成交主力来源。"
+                        f"{'研判等级为高意向的客户应纳入优先跟进序列，加速转化' if high_intent > 0 else ''}。"
+                        f"{'暂无成交客户，建议复盘从研判到签约环节的转化障碍' if signed_count == 0 else ''}"
                     ),
                     "metrics": [
-                        {"name": "活动报名人次", "value": event_regs},
+                        {"name": "成交客户数", "value": signed_count},
+                        {"name": "线索→成交转化率", "value": f"{round(signed_count / new_leads * 100, 1)}%" if new_leads > 0 else "N/A"},
                     ],
                 },
                 {
-                    "heading": "经营建议",
+                    "heading": "活动参与与转化跟踪",
+                    "content": (
+                        f"活动报名总计 {event_regs} 人次，"
+                        f"其中已报名 {active_event_regs} 人次、已转化 {converted_event_regs} 人次。"
+                        "活动报名客户是潜在高意向客群，建议建立活动客户专项跟进池，"
+                        f"{'将活动报名 → 研判 → 签约的转化链打通' if converted_event_regs < active_event_regs else '活动转化效果良好'}。"
+                    ),
+                    "metrics": [
+                        {"name": "活动报名总人次", "value": event_regs},
+                        *[{"name": f"活动-{k}", "value": v} for k, v in event_reg.items()],
+                    ],
+                },
+                {
+                    "heading": "流失客户 - 归因分析与预警",
+                    "content": (
+                        f"本周期流失线索 {lost_count} 条，占线索总量的 "
+                        f"{f'{round(lost_count / (new_leads + lost_count) * 100, 1)}%' if (new_leads + lost_count) > 0 else 'N/A'}。"
+                        f"当前处于\"废弃/已关单\"状态的线索 {lost_count} 条，"
+                        f"{'建议逐条复盘流失原因（如价格、竞品、需求不匹配），沉淀流失特征模型' if lost_count > 0 else '暂无流失线索，客户留存状况良好。'}"
+                    ),
+                    "metrics": [
+                        {"name": "流失线索数", "value": lost_count},
+                        {"name": "流失占比", "value": f"{round(lost_count / (new_leads + lost_count) * 100, 1)}%" if (new_leads + lost_count) > 0 else "0%"},
+                    ],
+                },
+                {
+                    "heading": "客群特征与画像提炼",
+                    "content": (
+                        f"基于本周期数据，线索来源以 {max(lead_source, key=lead_source.get) if lead_source else '未归类'} 为主"
+                        f"（占比 {f'{round(max(lead_source.values()) / sum(lead_source.values()) * 100, 1)}%' if lead_source else 'N/A'}）。"
+                        f"研判后高意向客群占比 {f'{round(high_intent / analysis_records * 100, 1)}%' if analysis_records > 0 else 'N/A'}。"
+                        "当前客群画像：以活动引流和转介绍为主要获客方式，高意向客户特征集中在研判结果为\"高意向\"的群体。"
+                        "建议后续补充客户行业、规模、预算等维度数据，进一步提升画像精准度。"
+                    ),
+                    "metrics": [],
+                },
+                {
+                    "heading": "全链路经营建议",
                     "content": (
                         "建议建立线索分级机制，优先跟进高意向线索；"
                         "定期复盘研判转化漏斗，定位各环节流失原因；"
-                        "将活动报名客户纳入专项跟进序列，提升活动线索转化率。"
+                        "将活动报名客户纳入专项跟进序列，提升活动线索转化率；"
+                        "建立流失预警模型，对长期无互动线索自动标记并推送挽回策略；"
+                        "按月/周输出客户经营健康度看板，支撑全链路决策闭环。"
                     ),
                     "metrics": [],
                 },
             ]
-            risks = [
-                f"研判覆盖率偏低，存在线索流失风险" if new_leads > 0 and analysis_records < new_leads * 0.5 else "暂无重大经营风险"
-            ]
+            risks = []
+            if new_leads > 0 and analysis_records < new_leads * 0.5:
+                risks.append(f"线索研判覆盖率仅 {lead_to_analysis}%，半数以上线索未进入研判，存在大量线索沉默流失风险")
+            if lost_count > 0:
+                risks.append(f"已流失 {lost_count} 条线索未做归因分析，同类流失可能持续发生")
+            if signed_count == 0 and new_leads > 0:
+                risks.append("本周期零成交，线索到签约的转化链路存在阻断，需紧急排查瓶颈环节")
+            if not risks:
+                risks = ["暂无重大经营风险，建议保持当前跟进节奏"]
             recommendations = [
                 "优先跟进未研判线索，缩短线索到首次接触的时间窗口",
                 "对活动报名客户建立 48 小时回访机制，推动转化",
                 "建立线索分级标准，按意向度匹配跟进强度",
+                "每周复盘流失线索共性特征，沉淀流失预防 SOP",
+                "将高意向客户纳入重点跟进看板，确保闭环管理",
             ]
             source_refs = [
                 f"数据来源：crm_lead 线索表、customer_analysis_record 客户研判表、event_registration 活动报名表，统计口径：部门 {source_data.get('department_id')}，日期 {date_start} 至 {date_end}"
