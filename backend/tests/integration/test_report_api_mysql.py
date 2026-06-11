@@ -18,14 +18,14 @@ def mysql_client():
     os.environ["DATABASE_URL"] = database_url
     os.environ["DIFY_MOCK_ENABLED"] = "true"
 
-    from app.core.config import get_settings
+    from backend.app.core.config import get_settings
 
     get_settings.cache_clear()
     engine = create_engine(database_url, pool_pre_ping=True)
     TestingSessionLocal = sessionmaker(bind=engine, autocommit=False, autoflush=False)
 
-    from app.db.session import get_db
-    from app.main import create_app
+    from backend.app.db.session import get_db
+    from backend.app.main import create_app
 
     app = create_app()
 

@@ -2,11 +2,11 @@ from fastapi import APIRouter, Depends
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 
-from app.common.responses import success
-from app.core.security import CurrentUser, get_current_user
-from app.db.session import get_db
-from app.schemas.report_schema import ReportExportRequest, ReportGenerateDraftRequest, ReportRejectRequest
-from app.services.report_service import ReportService
+from backend.app.common.responses import success
+from backend.app.core.security import CurrentUser, get_current_user
+from backend.app.db.session import get_db
+from backend.app.schemas.report_schema import ReportExportRequest, ReportGenerateDraftRequest, ReportRejectRequest
+from backend.app.services.report_service import ReportService
 
 router = APIRouter(prefix="/api/v1/reports", tags=["reports"])
 

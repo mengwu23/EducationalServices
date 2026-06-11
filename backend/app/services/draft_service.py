@@ -3,10 +3,10 @@ from uuid import uuid4
 
 from sqlalchemy.orm import Session
 
-from app.common.enums import DraftStatus
-from app.core.security import CurrentUser
-from app.daos.report_dao import ReportDAO
-from app.models.draft import AiDraft
+from backend.app.common.enums import DraftStatus
+from backend.app.core.security import CurrentUser
+from backend.app.daos.report_dao import ReportDAO
+from backend.app.models.draft import AiDraft
 
 
 class DraftService:

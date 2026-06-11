@@ -3,7 +3,7 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field, field_validator
 
-from app.common.enums import ExportType, ReportType
+from backend.app.common.enums import ExportType, ReportType
 
 
 class ReportGenerateDraftRequest(BaseModel):

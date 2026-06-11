@@ -1,11 +1,12 @@
 import json
 import re
+import time
 from typing import Any
 
 import httpx
 
-from app.common.enums import ReportType
-from app.core.config import Settings, get_settings
+from backend.app.common.enums import ReportType
+from backend.app.core.config import Settings, get_settings
 
 
 class DifyClient:
@@ -22,6 +23,68 @@ class DifyClient:
         if self.settings.dify_mock_enabled:
             return self._mock_report_draft(report_type, source_data)
         return self._call_dify_report_workflow(report_type, source_data, filters, trace_id)
+
+    def ask_onboarding_guide(
+        self,
+        question: str,
+        category: str | None = None,
+        trace_id: str | None = None,
+    ) -> dict[str, Any]:
+        """调用新人入职指引 Dify Chat App，并返回模型回答和会话信息。"""
+        if not self.settings.dify_onboarding_api_key:
+            raise RuntimeError("未配置新人入职指引 Dify API Key")
+
+        base_url = self.settings.dify_onboarding_api_base_url.rstrip("/")
+        url = f"{base_url}/chat-messages" if base_url.endswith("/v1") else f"{base_url}/v1/chat-messages"
+        payload = {
+            "inputs": {},
+            "query": question,
+            "response_mode": "blocking",
+            "user": "enterprise-onboarding-guide",
+        }
+        headers = {
+            "Authorization": f"Bearer {self.settings.dify_onboarding_api_key}",
+            "Content-Type": "application/json",
+        }
+        with httpx.Client(timeout=60) as client:
+            response = self._post_with_retry(client, url, payload, headers)
+            response.raise_for_status()
+
+        data = response.json()
+        answer = data.get("answer")
+        if not answer:
+            raise RuntimeError("Dify 返回内容中缺少 answer 字段")
+        return {
+            "answer": self._strip_think_tags(answer),
+            "conversation_id": data.get("conversation_id"),
+            "message_id": data.get("message_id") or data.get("id"),
+            "metadata": data.get("metadata") or {},
+        }
+
+    def _post_with_retry(
+        self,
+        client: httpx.Client,
+        url: str,
+        payload: dict[str, Any],
+        headers: dict[str, str],
+    ) -> httpx.Response:
+        """Dify 或模型服务偶发 502/503/504 时重试，降低临时网关错误影响。"""
+        retry_status_codes = {502, 503, 504}
+        response: httpx.Response | None = None
+        for attempt in range(4):
+            response = client.post(url, json=payload, headers=headers)
+            status_code = getattr(response, "status_code", 200)
+            if status_code not in retry_status_codes:
+                return response
+            if attempt < 3:
+                time.sleep(0.8 * (attempt + 1))
+        if response is None:
+            raise RuntimeError("Dify 请求未返回响应")
+        return response
+
+    def _strip_think_tags(self, answer: str) -> str:
+        """清理部分推理模型返回的 <think>...</think> 内容，只把最终回答给前端。"""
+        return re.sub(r"<think>.*?</think>", "", answer, flags=re.DOTALL).strip()
 
     def _mock_report_draft(self, report_type: str, source_data: dict[str, Any]) -> dict[str, Any]:
         if report_type == ReportType.COMPLAINT_WEEKLY:
@@ -531,7 +594,7 @@ class DifyClient:
         }
         headers = {"Authorization": f"Bearer {self.settings.dify_api_key}"}
         with httpx.Client(timeout=60) as client:
-            response = client.post(url, json=payload, headers=headers)
+            response = self._post_with_retry(client, url, payload, headers)
             response.raise_for_status()
         data = response.json()
         outputs = data.get("data", {}).get("outputs", {})

@@ -1,9 +1,9 @@
 from datetime import date
 
-from app.common.enums import ReportType
-from app.daos.report_dao import ReportDAO
-from app.models.draft import AiDraft
-from app.models.report import AiReport, ReportExportRecord
+from backend.app.common.enums import ReportType
+from backend.app.daos.report_dao import ReportDAO
+from backend.app.models.draft import AiDraft
+from backend.app.models.report import AiReport, ReportExportRecord
 
 
 def test_query_complaint_weekly_by_date_and_department(db_session):

@@ -4,10 +4,10 @@ from uuid import uuid4
 
 from docx import Document
 
-from app.common.enums import ExportType
-from app.core.config import Settings
-from app.models.report import AiReport
-from app.services.report_export_service import ReportExportService
+from backend.app.common.enums import ExportType
+from backend.app.core.config import Settings
+from backend.app.models.report import AiReport
+from backend.app.services.report_export_service import ReportExportService
 
 
 def build_report() -> AiReport:

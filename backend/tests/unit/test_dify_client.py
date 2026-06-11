@@ -2,9 +2,9 @@ import json
 
 import pytest
 
-from app.common.enums import ReportType
-from app.core.config import Settings
-from app.integrations.dify_client import DifyClient
+from backend.app.common.enums import ReportType
+from backend.app.core.config import Settings
+from backend.app.integrations.dify_client import DifyClient
 
 
 class FakeDifyResponse:

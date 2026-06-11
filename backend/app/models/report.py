@@ -3,7 +3,7 @@ from datetime import date, datetime
 from sqlalchemy import Boolean, Date, DateTime, ForeignKey, JSON, String
 from sqlalchemy.orm import Mapped, mapped_column
 
-from app.database import Base
+from backend.app.database import Base
 
 
 class AiReport(Base):

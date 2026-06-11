@@ -2,11 +2,11 @@ from datetime import date
 from pathlib import Path
 from uuid import uuid4
 
-from app.common.enums import DraftStatus, ExportStatus, ExportType, ReportStatus
-from app.core.config import get_settings
-from app.models.audit_log import AiToolCallLog, AuditLog
-from app.models.draft import AiDraft
-from app.models.report import AiReport, ReportExportRecord
+from backend.app.common.enums import DraftStatus, ExportStatus, ExportType, ReportStatus
+from backend.app.core.config import get_settings
+from backend.app.models.audit_log import AiToolCallLog, AuditLog
+from backend.app.models.draft import AiDraft
+from backend.app.models.report import AiReport, ReportExportRecord
 
 
 def create_published_export(client, export_type: str = "word"):

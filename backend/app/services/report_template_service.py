@@ -3,7 +3,7 @@ from typing import Any
 
 from docx import Document
 
-from app.models.report import AiReport
+from backend.app.models.report import AiReport
 
 
 class ReportTemplateService:

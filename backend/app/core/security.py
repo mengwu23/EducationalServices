@@ -3,7 +3,7 @@ from secrets import compare_digest
 
 from fastapi import Header, HTTPException, status
 
-from app.core.config import get_settings
+from backend.app.core.config import get_settings
 
 
 @dataclass(frozen=True)
