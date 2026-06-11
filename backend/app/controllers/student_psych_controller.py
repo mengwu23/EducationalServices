@@ -28,6 +28,7 @@ from backend.app.common.pagination import PageQuery
 from backend.app.common.responses import ApiResponse, error_response, success_response
 from backend.app.database import get_db
 from backend.app.schemas.student_psych_schema import (
+    EmotionCheckinRequest,
     EmotionUpdateRequest,
     PsychAlertActionRequest,
     PsychAlertCreateRequest,
@@ -125,6 +126,34 @@ def update_emotion(
             data=data,
         )
         return success_response(data=result, message="情绪状态已更新")
+    except AppException as e:
+        return error_response(code=e.code, message=e.message)
+
+
+# ----------------------------------------------------------
+# POST /psych/profile/checkin — 学生情绪打卡（AI 识别）
+# ----------------------------------------------------------
+
+@router.post("/profile/checkin", response_model=ApiResponse, summary="学生情绪打卡（AI 识别情绪）")
+def emotion_checkin(
+    data: EmotionCheckinRequest,
+    db: Session = Depends(get_db),
+    current_user: CurrentUser = Depends(get_current_user),
+):
+    """学生提交情绪打卡文本，由 AI 识别情绪标签、分值和摘要并更新心理画像。
+
+    学生输入一段自我情绪描述，系统调用 DeepSeek 识别情绪状态
+    （含焦虑/孤独/文化冲突等留学场景标签），自动更新本人心理画像。
+    需配置 LLM API Key，否则返回服务未就绪提示。
+    """
+    try:
+        service = StudentPsychService(db)
+        result = service.emotion_checkin(
+            current_user_id=current_user.user_id,
+            current_user_type=current_user.user_type,
+            content=data.content,
+        )
+        return success_response(data=result, message="情绪打卡完成")
     except AppException as e:
         return error_response(code=e.code, message=e.message)
 

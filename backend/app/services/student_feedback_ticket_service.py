@@ -16,6 +16,7 @@ from backend.app.schemas.student_feedback_ticket_schema import (
     StudentFeedbackTicketCreate,
     StudentFeedbackTicketUpdate,
 )
+from backend.app.services.ticket_classifier_service import TicketClassifierService
 
 
 class StudentFeedbackTicketService:
@@ -42,10 +43,58 @@ class StudentFeedbackTicketService:
             raise ConflictError("Ticket number already exists")
 
         try:
-            return StudentFeedbackTicketDAO.create(db, data)
+            ticket = StudentFeedbackTicketDAO.create(db, data)
         except IntegrityError as exc:
             db.rollback()
             raise ConflictError("Failed to create feedback ticket") from exc
+
+        # 工单落库后做 AI 分类 + 根因打标（仅补全空字段，失败不影响创建）
+        cls._apply_ai_tagging(db, ticket)
+        return ticket
+
+    @staticmethod
+    def _apply_ai_tagging(
+        db: Session,
+        ticket: StudentFeedbackTicket,
+        classifier: TicketClassifierService | None = None,
+        *,
+        force: bool = False,
+    ) -> StudentFeedbackTicket:
+        """对工单调用 AI 分类与根因打标，写回 category / content_summary。
+
+        默认只补全空字段（尊重人工录入值）；force=True 时覆盖 category。
+        LLM 不可用或失败时静默跳过，绝不阻塞业务流程。
+        """
+        classifier = classifier or TicketClassifierService()
+        if not classifier.is_available():
+            return ticket
+
+        result = classifier.classify(ticket.title, ticket.detail)
+        if not result:
+            return ticket
+
+        update_data: dict = {}
+        if force or not ticket.category:
+            update_data["category"] = result["category"]
+        if not ticket.content_summary and result.get("content_summary"):
+            update_data["content_summary"] = result["content_summary"]
+        if update_data:
+            StudentFeedbackTicketDAO.update(db, ticket, update_data)
+        return ticket
+
+    @classmethod
+    def classify_ticket(
+        cls,
+        db: Session,
+        ticket_id: int,
+        classifier: TicketClassifierService | None = None,
+    ) -> StudentFeedbackTicket:
+        """对已存在工单触发（或重做）AI 分类打标，供异步/独立调用。
+
+        强制覆盖 category，补全 content_summary 根因摘要。
+        """
+        ticket = cls._get_or_raise(db, ticket_id)
+        return cls._apply_ai_tagging(db, ticket, classifier, force=True)
 
     @staticmethod
     def list_tickets(

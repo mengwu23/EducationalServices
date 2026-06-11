@@ -227,6 +227,7 @@ class DifyClient:
             analysis_result = source_data.get("analysis_result_breakdown", {})
             event_reg = source_data.get("event_registration_breakdown", {})
             portrait_breakdown = source_data.get("portrait_breakdown", {})
+            cluster_breakdown = source_data.get("cluster_breakdown", [])
             lost_reason_counts = source_data.get("lost_reason_counts", {})
             date_start = source_data.get("date_start", "")
             date_end = source_data.get("date_end", "")
@@ -290,6 +291,21 @@ class DifyClient:
             ]:
                 for k, v in list((portrait_breakdown.get(dim_key) or {}).items())[:3]:
                     portrait_metrics.append({"name": f"{dim_label}-{k}", "value": v})
+
+            # 多维组合聚类客群文字与 metrics
+            meaningful_clusters = [
+                c for c in cluster_breakdown
+                if c.get("count", 0) > 0 and c.get("label", "").replace("未填写", "").replace("+", "").strip()
+            ]
+            cluster_text = ""
+            cluster_metrics = []
+            if meaningful_clusters:
+                cluster_text = (
+                    "高频组合客群：" +
+                    "、".join(f"{c['label']}（{c['count']}人）" for c in meaningful_clusters[:3]) +
+                    "，可据此识别核心目标客群并定向投放资源。"
+                )
+                cluster_metrics = [{"name": c["label"], "value": c["count"]} for c in meaningful_clusters[:5]]
 
             # 流失归因文字
             top_lost_reasons = sorted(lost_reason_counts.items(), key=lambda x: x[1], reverse=True)[:3] if lost_reason_counts else []
@@ -388,8 +404,9 @@ class DifyClient:
                         f"研判后高意向客群占比 {f'{round(high_intent / analysis_records * 100, 1)}%' if analysis_records > 0 else 'N/A'}。"
                         + (("深度画像：" + "；".join(portrait_content_parts) + "。") if portrait_content_parts else
                            "建议后续补充客户行业、规模、预算等维度数据，进一步提升画像精准度。")
+                        + cluster_text
                     ),
-                    "metrics": portrait_metrics,
+                    "metrics": portrait_metrics + cluster_metrics,
                 },
                 {
                     "heading": "全链路经营建议",
@@ -622,22 +639,25 @@ class DifyClient:
             EMOTION_TAG_MAP = {
                 "anxious": "焦虑", "stable": "平稳", "depressed": "低落",
                 "excited": "亢奋", "lonely": "孤独", "stressed": "压力大",
-                "happy": "积极", "neutral": "平静",
+                "happy": "积极", "neutral": "平静", "cultural_conflict": "文化冲突",
             }
             emotion_tag_cn = {EMOTION_TAG_MAP.get(k, k): v for k, v in emotion_tag_counts.items()}
             anxious_cnt = emotion_tag_counts.get("anxious", 0)
 
-            # 留学周期节点动态化
-            try:
-                month = int(date_start.split("-")[1])
-            except (IndexError, ValueError):
-                month = 0
-            if month in (4, 5, 11, 12):
-                period_hint = "当前处于考试季高压期，学业焦虑风险显著上升"
-            elif month in (1, 7, 8):
-                period_hint = "当前处于假期/学期衔接期，跨文化孤独感风险较高"
-            else:
-                period_hint = "当前处于常规学期阶段，持续关注高风险个案"
+            # 留学周期节点：优先用 DAO 基于真实学业日历派生的 period_hint，
+            # 无真实事件时回退到按月近似判断。
+            period_hint = source_data.get("period_hint")
+            if not period_hint:
+                try:
+                    month = int(date_start.split("-")[1])
+                except (IndexError, ValueError):
+                    month = 0
+                if month in (4, 5, 11, 12):
+                    period_hint = "当前处于考试季高压期，学业焦虑风险显著上升"
+                elif month in (1, 7, 8):
+                    period_hint = "当前处于假期/学期衔接期，跨文化孤独感风险较高"
+                else:
+                    period_hint = "当前处于常规学期阶段，持续关注高风险个案"
 
             # 情绪摘要样本（最多3条，脱敏）
             sample_text = ""

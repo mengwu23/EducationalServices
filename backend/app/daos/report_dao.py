@@ -5,6 +5,7 @@ from sqlalchemy import and_, func, or_, select, text
 from sqlalchemy.orm import Session, aliased
 
 from backend.app.common.enums import ReportType
+from backend.app.models.academic_event import AcademicEvent
 from backend.app.models.audit_log import AiToolCallLog, AuditLog
 from backend.app.models.crm_lead import CrmLead
 from backend.app.models.customer_analysis_record import CustomerAnalysisRecord
@@ -339,6 +340,32 @@ class ReportDAO:
             ).all()
             portrait_breakdown[field_key] = {v if v else "未填写": c for v, c in pb_rows}
 
+        # 客群多维组合聚类：按 (意向国家 + 意向项目 + 预算区间) 组合分组，
+        # 输出"美国+计算机硕士+50-80万（3人）"这样的真聚类客群，取 Top-N。
+        cluster_rows = self.db.execute(
+            select(
+                CrmLead.target_country,
+                CrmLead.target_program,
+                CrmLead.budget_range,
+                func.count(CrmLead.id),
+            )
+            .join(EmployeeProfile, CrmLead.owner_employee_id == EmployeeProfile.id)
+            .where(func.date(CrmLead.create_time).between(date_start, date_end), CrmLead.is_delete == 0, *employee_filters)
+            .group_by(CrmLead.target_country, CrmLead.target_program, CrmLead.budget_range)
+            .order_by(func.count(CrmLead.id).desc())
+        ).all()
+        cluster_breakdown = [
+            {
+                "target_country": country or "未填写",
+                "target_program": program or "未填写",
+                "budget_range": budget or "未填写",
+                "count": count,
+                "label": f"{country or '未填写'}+{program or '未填写'}+{budget or '未填写'}",
+            }
+            for country, program, budget, count in cluster_rows
+            if count > 0
+        ][:5]
+
         # 流失归因
         lost_reason_rows = self.db.execute(
             select(CrmLead.lost_reason, func.count(CrmLead.id))
@@ -409,6 +436,7 @@ class ReportDAO:
             "churn_source_breakdown": churn_source_breakdown,
             "churn_stage_breakdown": churn_stage_breakdown,
             "portrait_breakdown": portrait_breakdown,
+            "cluster_breakdown": cluster_breakdown,
             "lost_reason_counts": lost_reason_counts,
             "signed_count": signed_count,
             "signed_source_breakdown": signed_source_breakdown,
@@ -686,6 +714,8 @@ class ReportDAO:
             for sid, s in self.db.execute(sample_stmt).all()
         ]
 
+        period_hint = self._derive_period_hint(date_start, date_end)
+
         return {
             "report_type": ReportType.STUDENT_PSYCH_WEEKLY,
             "date_start": str(date_start),
@@ -700,7 +730,40 @@ class ReportDAO:
             "alert_risk_level_counts": alert_risk_level_counts,
             "interaction_trend": interaction_trend,
             "emotion_summary_samples": emotion_summary_samples,
+            "period_hint": period_hint,
         }
+
+    def _derive_period_hint(self, date_start: date, date_end: date) -> str | None:
+        """根据真实学业日历（academic_event）派生当前周期的留学阶段背景。
+
+        优先读取周期内的公共学业事件（student_id 为空，如考试周/论文DDL/课程截止），
+        识别落在统计周期内的真实节点。无匹配事件时返回 None，
+        由报告渲染层回退到按月近似判断。
+        """
+        event_rows = self.db.execute(
+            select(AcademicEvent.event_type, func.count(AcademicEvent.id))
+            .where(
+                AcademicEvent.student_id.is_(None),
+                AcademicEvent.is_delete == 0,
+                AcademicEvent.status == "active",
+                func.date(AcademicEvent.deadline_time).between(date_start, date_end),
+            )
+            .group_by(AcademicEvent.event_type)
+        ).all()
+        if not event_rows:
+            return None
+
+        type_counts = {etype: cnt for etype, cnt in event_rows}
+        exam_cnt = type_counts.get("exam", 0)
+        paper_cnt = type_counts.get("paper_deadline", 0)
+        course_cnt = type_counts.get("course_deadline", 0)
+
+        if exam_cnt > 0:
+            return f"当前周期内有 {exam_cnt} 场考试安排，处于考试季高压期，学业焦虑风险显著上升"
+        if paper_cnt > 0 or course_cnt > 0:
+            ddl_total = paper_cnt + course_cnt
+            return f"当前周期内有 {ddl_total} 项论文/课程截止节点，处于作业冲刺期，时间管理压力较大"
+        return "当前周期内有学业事项节点，建议结合学业节奏关注学生情绪波动"
 
     def _apply_student_department_filter(self, stmt, department_id: int | None):
         if department_id is None:

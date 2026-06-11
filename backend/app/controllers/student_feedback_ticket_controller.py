@@ -65,6 +65,12 @@ def list_student_feedback_tickets(
     return success_response(data=data)
 
 
+@router.post("/{ticket_id}/classify", response_model=ApiResponse, summary="对工单触发 AI 分类与根因打标")
+def classify_student_feedback_ticket(ticket_id: int, db: Session = Depends(get_db)):
+    ticket = StudentFeedbackTicketService.classify_ticket(db, ticket_id)
+    return success_response(data=StudentFeedbackTicketOut.model_validate(ticket), message="工单 AI 打标完成")
+
+
 @router.get("/{ticket_id}", response_model=ApiResponse, summary="获取学生反馈工单详情")
 def get_student_feedback_ticket(ticket_id: int, db: Session = Depends(get_db)):
     ticket = StudentFeedbackTicketService.get_ticket(db, ticket_id)

@@ -3,7 +3,7 @@ from datetime import date, datetime
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
+from sqlalchemy import BigInteger, create_engine
 from sqlalchemy.dialects.mysql import LONGTEXT
 from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.orm import Session, sessionmaker
@@ -31,6 +31,13 @@ from backend.app.models import (
 @compiles(LONGTEXT, "sqlite")
 def compile_longtext_for_sqlite(_type, compiler, **kw):
     return "TEXT"
+
+
+@compiles(BigInteger, "sqlite")
+def compile_bigint_for_sqlite(_type, compiler, **kw):
+    # SQLite 仅对 INTEGER PRIMARY KEY 提供 rowid 自增；将 BIGINT 主键映射为
+    # INTEGER 后，未显式赋 id 的插入（如 create_ticket）才能自增主键。
+    return "INTEGER"
 
 
 @pytest.fixture()
