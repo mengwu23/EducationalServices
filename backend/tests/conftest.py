@@ -11,7 +11,7 @@ from sqlalchemy.pool import StaticPool
 
 from app.database import Base
 from app.db.session import get_db
-from app.main import create_app
+from app.main import app
 from app.models import (
     CrmLead,
     CustomerAnalysisRecord,
@@ -50,8 +50,6 @@ def db_session() -> Generator[Session, None, None]:
 
 @pytest.fixture()
 def client(db_session: Session) -> Generator[TestClient, None, None]:
-    app = create_app()
-
     def override_get_db():
         yield db_session
 
