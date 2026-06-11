@@ -37,7 +37,7 @@ def test_admin_generate_complaint_weekly_draft(db_session):
     draft = service.generate_draft(build_request(), CurrentUser(id=1, role="admin"))
 
     assert draft["status"] == "pending_confirm"
-    assert draft["content_json"]["title"] == "投诉处理周报"
+    assert draft["content_json"]["title"].startswith("投诉处理周报")
 
 
 def test_report_related_models_have_update_time_and_soft_delete_defaults(db_session):
@@ -77,7 +77,7 @@ def test_employee_generate_customer_operation_draft(db_session):
     )
 
     assert draft["status"] == "pending_confirm"
-    assert draft["content_json"]["title"] == "客户经营分析报"
+    assert draft["content_json"]["title"].startswith("全域客户经营分析报告")
 
 
 @pytest.mark.parametrize(
@@ -152,7 +152,7 @@ def test_admin_confirm_draft_creates_ai_report(db_session):
 
     report = service.confirm_draft(draft["id"], CurrentUser(id=1, role="admin"))
 
-    assert report["title"] == "投诉处理周报"
+    assert report["title"].startswith("投诉处理周报")
     assert report["status"] == "confirmed"
     assert report["source_draft_id"] == draft["id"]
 

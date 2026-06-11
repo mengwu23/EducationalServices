@@ -1,7 +1,7 @@
 from datetime import date
 from typing import Any
 
-from sqlalchemy import and_, func, or_, select
+from sqlalchemy import and_, func, or_, select, text
 from sqlalchemy.orm import Session, aliased
 
 from app.common.enums import ReportType
@@ -15,6 +15,8 @@ from app.models.student_profile import StudentProfile
 from app.models.student_feedback_ticket import StudentFeedbackTicket
 from app.models.student_psych_alert import StudentPsychAlert
 from app.models.student_psych_profile import StudentPsychProfile
+from app.models.sys_department import SysDepartment
+from app.models.sys_department import SysDepartment
 from app.models.draft import AiDraft
 from app.models.report import AiReport, ReportExportRecord
 
@@ -63,6 +65,46 @@ class ReportDAO:
         rows = self.db.execute(stmt).all()
         status_counts = {status: count for status, count in rows}
         total = sum(status_counts.values())
+        category_rows = self.db.execute(
+            select(StudentFeedbackTicket.category, func.count(StudentFeedbackTicket.id))
+            .outerjoin(EmployeeProfile, StudentFeedbackTicket.handler_employee_id == EmployeeProfile.id)
+            .where(
+                func.date(StudentFeedbackTicket.create_time).between(date_start, date_end),
+                StudentFeedbackTicket.is_delete == 0,
+                EmployeeProfile.department_id == department_id if department_id is not None else text('1=1'),
+                EmployeeProfile.is_delete == 0 if department_id is not None else text('1=1'),
+            )
+            .group_by(StudentFeedbackTicket.category)
+        ).all()
+        category_counts = {cat or "未分类": count for cat, count in category_rows}
+        type_rows = self.db.execute(
+            select(StudentFeedbackTicket.ticket_type, func.count(StudentFeedbackTicket.id))
+            .outerjoin(EmployeeProfile, StudentFeedbackTicket.handler_employee_id == EmployeeProfile.id)
+            .where(
+                func.date(StudentFeedbackTicket.create_time).between(date_start, date_end),
+                StudentFeedbackTicket.is_delete == 0,
+                EmployeeProfile.department_id == department_id if department_id is not None else text('1=1'),
+                EmployeeProfile.is_delete == 0 if department_id is not None else text('1=1'),
+            )
+            .group_by(StudentFeedbackTicket.ticket_type)
+        ).all()
+        ticket_type_counts = {tt or "未分类": count for tt, count in type_rows}
+        time_rows = self.db.execute(
+            select(StudentFeedbackTicket.create_time, StudentFeedbackTicket.close_time)
+            .outerjoin(EmployeeProfile, StudentFeedbackTicket.handler_employee_id == EmployeeProfile.id)
+            .where(
+                func.date(StudentFeedbackTicket.create_time).between(date_start, date_end),
+                StudentFeedbackTicket.close_time.is_not(None),
+                StudentFeedbackTicket.is_delete == 0,
+                EmployeeProfile.department_id == department_id if department_id is not None else text('1=1'),
+                EmployeeProfile.is_delete == 0 if department_id is not None else text('1=1'),
+            )
+        ).all()
+        hours_list = [
+            (close - create).total_seconds() / 3600
+            for create, close in time_rows
+        ]
+        avg_hours = round(sum(hours_list) / len(hours_list), 1) if hours_list else None
         return {
             "report_type": ReportType.COMPLAINT_WEEKLY,
             "date_start": str(date_start),
@@ -70,6 +112,9 @@ class ReportDAO:
             "department_id": department_id,
             "total_tickets": total,
             "status_counts": status_counts,
+            "category_counts": category_counts,
+            "ticket_type_counts": ticket_type_counts,
+            "avg_processing_hours": round(float(avg_hours), 1) if avg_hours else None,
         }
 
     def _query_customer_operation(
@@ -114,6 +159,51 @@ class ReportDAO:
             )
         )
 
+
+        source_rows = self.db.execute(
+            select(CrmLead.source_channel, func.count(CrmLead.id))
+            .join(EmployeeProfile, CrmLead.owner_employee_id == EmployeeProfile.id)
+            .where(func.date(CrmLead.create_time).between(date_start, date_end), CrmLead.is_delete == 0, *employee_filters)
+            .group_by(CrmLead.source_channel)
+        ).all()
+        lead_source_breakdown = {s or "???": c for s, c in source_rows}
+
+        status_rows = self.db.execute(
+            select(CrmLead.status, func.count(CrmLead.id))
+            .join(EmployeeProfile, CrmLead.owner_employee_id == EmployeeProfile.id)
+            .where(CrmLead.is_delete == 0, *employee_filters)
+            .group_by(CrmLead.status)
+        ).all()
+        lead_status_breakdown = {s or "???": c for s, c in status_rows}
+
+        result_rows = self.db.execute(
+            select(CustomerAnalysisRecord.match_level, func.count(CustomerAnalysisRecord.id))
+            .join(CrmLead, CustomerAnalysisRecord.lead_id == CrmLead.id)
+            .join(EmployeeProfile, CrmLead.owner_employee_id == EmployeeProfile.id)
+            .where(
+                func.date(CustomerAnalysisRecord.create_time).between(date_start, date_end),
+                CustomerAnalysisRecord.is_delete == 0,
+                CrmLead.is_delete == 0,
+                *employee_filters,
+            )
+            .group_by(CustomerAnalysisRecord.match_level)
+        ).all()
+        analysis_result_breakdown = {r or "???": c for r, c in result_rows}
+
+        event_status_rows = self.db.execute(
+            select(EventRegistration.registration_status, func.count(EventRegistration.id))
+            .join(CrmLead, EventRegistration.lead_id == CrmLead.id)
+            .join(EmployeeProfile, CrmLead.owner_employee_id == EmployeeProfile.id)
+            .where(
+                func.date(EventRegistration.create_time).between(date_start, date_end),
+                EventRegistration.is_delete == 0,
+                CrmLead.is_delete == 0,
+                *employee_filters,
+            )
+            .group_by(EventRegistration.registration_status)
+        ).all()
+        event_registration_breakdown = {s or "???": c for s, c in event_status_rows}
+
         return {
             "report_type": ReportType.CUSTOMER_OPERATION,
             "date_start": str(date_start),
@@ -123,6 +213,10 @@ class ReportDAO:
             "new_leads": self.db.scalar(lead_stmt) or 0,
             "analysis_records": self.db.scalar(analysis_stmt) or 0,
             "event_registrations": self.db.scalar(registration_stmt) or 0,
+            "lead_source_breakdown": lead_source_breakdown,
+            "lead_status_breakdown": lead_status_breakdown,
+            "analysis_result_breakdown": analysis_result_breakdown,
+            "event_registration_breakdown": event_registration_breakdown,
         }
 
     def _query_employee_daily_summary(
@@ -138,6 +232,42 @@ class ReportDAO:
             filters.append(EmployeeDailyReport.department_id == department_id)
 
         status_counts = self._count_employee_daily_status(filters)
+
+        progress_rows = self.db.execute(
+            select(EmployeeDailyReport.summary, EmployeeDailyReport.key_progress, EmployeeProfile.employee_name)
+            .join(EmployeeProfile, EmployeeDailyReport.employee_id == EmployeeProfile.id, isouter=True)
+            .where(*filters, or_(EmployeeDailyReport.summary.is_not(None), EmployeeDailyReport.key_progress.is_not(None)))
+            .limit(5)
+        ).all()
+        key_progress_items = [
+            {"emp": row.employee_name or "", "text": (row.key_progress or row.summary or "")[:120]}
+            for row in progress_rows if (row.key_progress or row.summary or "").strip()
+        ]
+
+        risk_rows = self.db.execute(
+            select(EmployeeDailyReport.risks, EmployeeProfile.employee_name)
+            .join(EmployeeProfile, EmployeeDailyReport.employee_id == EmployeeProfile.id, isouter=True)
+            .where(*filters, EmployeeDailyReport.risks.is_not(None), EmployeeDailyReport.risks != "")
+            .limit(5)
+        ).all()
+        risk_items = [
+            {"emp": row.employee_name or "", "text": (row.risks or "")[:120]}
+            for row in risk_rows
+        ]
+
+        sub_list_rows = self.db.execute(
+            select(EmployeeProfile.employee_name, EmployeeDailyReport.report_status,
+                   EmployeeDailyReport.risks, EmployeeDailyReport.tomorrow_plan)
+            .join(EmployeeDailyReport, EmployeeProfile.id == EmployeeDailyReport.employee_id, isouter=True)
+            .where(
+                EmployeeProfile.department_id == department_id if department_id is not None else text('1=1'),
+                EmployeeProfile.is_delete == 0,
+            )
+            .limit(20)
+        ).all()
+        dept_emp_count = len(sub_list_rows)
+        submission_rate = f"{round(sum(status_counts.values()) / dept_emp_count * 100, 1)}%" if dept_emp_count > 0 else "N/A"
+
         return {
             "report_type": ReportType.EMPLOYEE_DAILY_SUMMARY,
             "date_start": str(report_date),
@@ -150,6 +280,10 @@ class ReportDAO:
             "archived_reports": status_counts.get("archived", 0),
             "risk_reports": self._count_employee_daily_text_field(filters, EmployeeDailyReport.risks),
             "tomorrow_plan_reports": self._count_employee_daily_text_field(filters, EmployeeDailyReport.tomorrow_plan),
+            "key_progress_items": key_progress_items,
+            "risk_items": risk_items,
+            "submission_rate": submission_rate,
+            "employee_submission_list": [dict(r._mapping) for r in sub_list_rows[:10]],
         }
 
     def _query_employee_weekly_summary(
@@ -171,19 +305,54 @@ class ReportDAO:
             .group_by(EmployeeDailyReport.report_date)
             .order_by(EmployeeDailyReport.report_date)
         ).all()
+
+        total = self.db.scalar(select(func.count(EmployeeDailyReport.id)).where(*filters)) or 0
+        distinct = self.db.scalar(
+            select(func.count(func.distinct(EmployeeDailyReport.employee_id))).where(*filters)
+        ) or 0
+        trend = {str(report_date): count for report_date, count in trend_rows}
+        risk_count = self._count_employee_daily_text_field(filters, EmployeeDailyReport.risks)
+
+        dept_emp_count = self.db.scalar(
+            select(func.count(EmployeeProfile.id))
+            .where(
+                EmployeeProfile.department_id == department_id if department_id is not None else text('1=1'),
+                EmployeeProfile.is_delete == 0,
+            )
+        ) or 1
+        week_days = max(len(trend), 1)
+        week_submission_rate = f"{round(total / (dept_emp_count * week_days) * 100, 1)}%" if dept_emp_count > 0 else "N/A"
+
+        risk_text_rows = self.db.execute(
+            select(EmployeeDailyReport.risks)
+            .where(*filters, EmployeeDailyReport.risks.is_not(None), EmployeeDailyReport.risks != "")
+            .limit(30)
+        ).all()
+        risk_keywords: dict[str, int] = {}
+        for (rtext,) in risk_text_rows:
+            for kw in ["??", "??", "??", "??", "??", "??", "??", "??", "??", "??"]:
+                if kw in (rtext or ""):
+                    risk_keywords[kw] = risk_keywords.get(kw, 0) + 1
+        top_risk_themes = sorted(risk_keywords.items(), key=lambda x: x[1], reverse=True)[:5]
+
+        trend_dates = sorted(trend.keys())
+        peak_day = max(trend, key=trend.get) if trend else None
+        valley_day = min(trend, key=trend.get) if trend else None
+
         return {
             "report_type": ReportType.EMPLOYEE_WEEKLY_SUMMARY,
             "date_start": str(date_start),
             "date_end": str(date_end),
             "department_id": department_id,
-            "total_reports": self.db.scalar(select(func.count(EmployeeDailyReport.id)).where(*filters)) or 0,
-            "distinct_employees": self.db.scalar(
-                select(func.count(func.distinct(EmployeeDailyReport.employee_id))).where(*filters)
-            )
-            or 0,
+            "total_reports": total,
+            "distinct_employees": distinct,
             "status_counts": self._count_employee_daily_status(filters),
-            "daily_trend": {str(report_date): count for report_date, count in trend_rows},
-            "risk_reports": self._count_employee_daily_text_field(filters, EmployeeDailyReport.risks),
+            "daily_trend": trend,
+            "risk_reports": risk_count,
+            "week_submission_rate": week_submission_rate,
+            "top_risk_themes": top_risk_themes,
+            "peak_submission_day": peak_day,
+            "valley_submission_day": valley_day,
         }
 
     def _count_employee_daily_status(self, filters: list[Any]) -> dict[str, int]:
