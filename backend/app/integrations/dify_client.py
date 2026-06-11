@@ -156,6 +156,7 @@ class DifyClient:
                         {"name": "研判数", "value": analysis_records},
                         {"name": "研判覆盖率", "value": f"{lead_to_analysis}%"},
                         *[{"name": f"研判-{k}", "value": v} for k, v in analysis_result.items()],
+                        {"name": "上周研判数", "value": prev_analysis},
                     ],
                 },
                 {
@@ -226,7 +227,9 @@ class DifyClient:
             if new_leads > 0 and analysis_records < new_leads * 0.5:
                 risks.append(f"线索研判覆盖率仅 {lead_to_analysis}%，半数以上线索未进入研判，存在大量线索沉默流失风险")
             if lost_count > 0:
-                risks.append(f"已流失 {lost_count} 条线索未做归因分析，同类流失可能持续发生")
+                risks.append(f"已流失 {lost_count} 条线索（主要来自 {top_churn_source} 渠道），建议重点复盘该渠道线索质量和跟进流程")
+            if delta_pct < -20 and new_leads > 0:
+                risks.append(f"线索量较上周下降 {abs(delta_pct)}%，获客能力出现明显下滑，建议排查渠道投放和营销活动效果")
             if signed_count == 0 and new_leads > 0:
                 risks.append("本周期零成交，线索到签约的转化链路存在阻断，需紧急排查瓶颈环节")
             if not risks:
