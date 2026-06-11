@@ -30,6 +30,13 @@ class Settings(BaseSettings):
     report_export_dir: str = Field(default="storage/reports", alias="REPORT_EXPORT_DIR")
     report_pdf_converter_path: str = Field(default="", alias="REPORT_PDF_CONVERTER_PATH")
 
+    # 学生助手 — Dify + DeepSeek
+    dify_api_url: str = Field(default="http://localhost/v1/chat-messages", alias="DIFY_API_URL")
+    dify_life_key: str = Field(default="", alias="DIFY_LIFE_KEY")
+    dify_policy_key: str = Field(default="", alias="DIFY_POLICY_KEY")
+    deepseek_api_url: str = Field(default="https://api.deepseek.com/chat/completions", alias="DEEPSEEK_API_URL")
+    deepseek_api_key: str = Field(default="", alias="DEEPSEEK_API_KEY")
+
     model_config = SettingsConfigDict(
         env_file=PROJECT_ROOT / ".env",
         env_file_encoding="utf-8-sig",
