@@ -1,6 +1,7 @@
-"""客户画像研判的 HTTP 接口。"""
+"""Customer judgement API endpoints."""
 
 from datetime import date
+from typing import Annotated, Optional
 
 from fastapi import APIRouter, Depends, File, Form, Query, UploadFile
 from sqlalchemy.orm import Session
@@ -14,27 +15,27 @@ from app.schemas.customer_judgement_schema import (
 )
 from app.services.customer_judgement_service import CustomerJudgementService
 
-router = APIRouter(prefix="/api/v1/customer-judgement", tags=["客户画像研判"])
+router = APIRouter(prefix="/api/v1/customer-judgement", tags=["Customer Judgement"])
 
 
-@router.post("/analyze", summary="提交客户画像研判")
+@router.post("/analyze", summary="Submit customer info for judgement")
 def analyze_customer(
-    text: str = Form(..., description="待研判的客户信息文本"),
-    sys_query: str | None = Form(None, description="补充研判要求"),
-    lead_id: int | None = Form(None, description="关联线索ID"),
-    target_product: str | None = Form(None, description="指定研判目标产品"),
-    files: list[UploadFile] = File(default=[], description="附件（选填，支持PDF/Word/Excel/图片）"),
+    text: Annotated[str, Form(description="Customer info text (required)")],
+    sys_query: Annotated[str | None, Form(description="Extra analysis requirement")] = None,
+    lead_id: Annotated[int | None, Form(description="Linked CRM lead ID")] = None,
+    target_product: Annotated[str | None, Form(description="Target product")] = None,
+    files: Optional[list[UploadFile]] = File(None, description="Attachments (PDF/Word/Excel/image)"),
     db: Session = Depends(get_db),
     user: CurrentUser = Depends(get_current_user),
 ):
-    """提交客户信息文本及可选附件，调用 Dify 工作流进行智能画像研判。"""
+    """Submit customer info text with optional attachments. Dify workflow analyses and returns structured result."""
     request = CustomerJudgementRequest(
         text=text,
         sys_query=sys_query,
         lead_id=lead_id,
         target_product=target_product,
     )
-    data = CustomerJudgementService(db).analyze_customer(request, user, files)
+    data = CustomerJudgementService(db).analyze_customer(request, user, files or [])
     return success(data)
 
 

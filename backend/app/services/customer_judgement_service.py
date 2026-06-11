@@ -53,16 +53,17 @@ class CustomerJudgementService:
         file_names: list[str] = []
         if files:
             for f in files:
-                if f.filename and f.size and f.size > 0:
+                if f.filename:
                     content = f.file.read()
-                    await_result = f.filename  # 避免 await 关键字
+                    if not content:
+                        continue
                     upload_result = self.dify_client.upload_file(
-                        file_path=f.filename or "file",
+                        file_path=f.filename,
                         file_content=content,
                         mime_type=f.content_type or "application/octet-stream",
                     )
                     file_ids.append(upload_result.get("id", ""))
-                    file_names.append(f.filename or "")
+                    file_names.append(f.filename)
 
         source_type = "text"
         if file_names:
@@ -88,31 +89,84 @@ class CustomerJudgementService:
                 file_ids=file_ids if file_ids else None,
             )
 
-            # 映射关键字段到独立列，AI 结果不冗余存 DB
-            record.is_target_customer = 1 if result.get("is_target_customer") else 0
-            record.match_score = result.get("overall_match_score")
-            record.match_level = result.get("overall_match_level")
-            record.reason_summary = result.get("executive_summary") or result.get("reason_summary")
-            record.suggestion = result.get("suggestion")
-            record.status = "completed"
+            # 判断是否批量结果（JSON数组）
+            if isinstance(result, list) and len(result) > 0:
+                # 批量：为每位客户创建独立记录
+                records_detail = []
+                first_record_id = record.id
 
-            self.dao.update(record)
-            self.audit_service.record(
-                user,
-                action_type="customer_judge",
-                biz_object_type="customer_analysis_record",
-                biz_object_id=record.id,
-                trace_id=trace_id,
-                after_json={
-                    "analysis_no": analysis_no,
-                    "status": "completed",
-                    "match_score": record.match_score,
-                    "match_level": record.match_level,
-                },
-            )
-            self.db.commit()
-            self.db.refresh(record)
-            return self._record_to_detail(record)
+                for i, item in enumerate(result):
+                    batch_no = f"{analysis_no}-{item.get('customer_index', i + 1):02d}"
+                    batch_record = CustomerAnalysisRecord(
+                        analysis_no=batch_no,
+                        source_type=source_type,
+                        source_file_name=", ".join(file_names) if file_names else None,
+                        raw_content=request.text,
+                        target_product=request.target_product,
+                        lead_id=None,
+                        status="completed",
+                        submitter_user_id=None,
+                        is_target_customer=1 if item.get("is_target_customer") else 0,
+                        match_score=item.get("overall_match_score"),
+                        match_level=item.get("overall_match_level"),
+                        reason_summary=item.get("executive_summary") or item.get("reason_summary"),
+                        suggestion=item.get("suggestion"),
+                    )
+                    self.dao.add(batch_record)
+                    self.audit_service.record(
+                        user,
+                        action_type="customer_judge",
+                        biz_object_type="customer_analysis_record",
+                        biz_object_id=batch_record.id,
+                        trace_id=trace_id,
+                        after_json={
+                            "analysis_no": batch_no,
+                            "batch": True,
+                            "customer_name": item.get("customer_name", ""),
+                            "match_score": batch_record.match_score,
+                            "match_level": batch_record.match_level,
+                        },
+                    )
+                    records_detail.append(self._record_to_detail(batch_record))
+
+                # 删除初始的空 pending 记录
+                self.db.delete(record)
+                self.db.commit()
+
+                # 返回批量结果
+                return {
+                    "batch": True,
+                    "total_customers": len(result),
+                    "records": records_detail,
+                }
+            else:
+                # 单客户：原有逻辑
+                item = result if isinstance(result, dict) else result[0] if isinstance(result, list) else result
+
+                record.is_target_customer = 1 if item.get("is_target_customer") else 0
+                record.match_score = item.get("overall_match_score")
+                record.match_level = item.get("overall_match_level")
+                record.reason_summary = item.get("executive_summary") or item.get("reason_summary")
+                record.suggestion = item.get("suggestion")
+                record.status = "completed"
+
+                self.dao.update(record)
+                self.audit_service.record(
+                    user,
+                    action_type="customer_judge",
+                    biz_object_type="customer_analysis_record",
+                    biz_object_id=record.id,
+                    trace_id=trace_id,
+                    after_json={
+                        "analysis_no": analysis_no,
+                        "status": "completed",
+                        "match_score": record.match_score,
+                        "match_level": record.match_level,
+                    },
+                )
+                self.db.commit()
+                self.db.refresh(record)
+                return self._record_to_detail(record)
 
         except Exception as exc:
             self.db.rollback()

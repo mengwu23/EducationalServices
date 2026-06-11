@@ -90,8 +90,17 @@ class DifyClient:
             raw = _parse_llm_json(answer_text)
         except Exception:
             raise RuntimeError(f"Dify 返回内容非 JSON，原文: {answer_text[:300]}")
-        if not isinstance(raw, dict) or "executive_summary" not in raw:
-            raise RuntimeError(f"Dify 返回 JSON 缺少 executive_summary 字段，内容: {json.dumps(raw, ensure_ascii=False)[:300]}")
+        # 接受单对象或数组（批量模式）
+        if isinstance(raw, list):
+            if len(raw) == 0:
+                raise RuntimeError("Dify 返回空数组")
+            if not isinstance(raw[0], dict) or "executive_summary" not in raw[0]:
+                raise RuntimeError(f"Dify 返回数组元素缺少 executive_summary 字段: {json.dumps(raw[:2], ensure_ascii=False)[:300]}")
+        elif isinstance(raw, dict):
+            if "executive_summary" not in raw:
+                raise RuntimeError(f"Dify 返回 JSON 缺少 executive_summary 字段: {json.dumps(raw, ensure_ascii=False)[:300]}")
+        else:
+            raise RuntimeError(f"Dify 返回格式错误，期望Object或Array: {str(raw)[:200]}")
         return raw
 
     def call_service_agent(
