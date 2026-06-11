@@ -37,7 +37,7 @@ def test_admin_generate_complaint_weekly_draft(db_session):
     draft = service.generate_draft(build_request(), CurrentUser(id=1, role="admin"))
 
     assert draft["status"] == "pending_confirm"
-    assert draft["content_json"]["title"] == "投诉处理周报"
+    assert draft["content_json"]["title"].startswith("投诉处理周报")
 
 
 def test_report_related_models_have_update_time_and_soft_delete_defaults(db_session):
@@ -77,7 +77,62 @@ def test_employee_generate_customer_operation_draft(db_session):
     )
 
     assert draft["status"] == "pending_confirm"
-    assert draft["content_json"]["title"] == "客户经营分析报"
+    assert draft["content_json"]["title"].startswith("全域客户经营分析报告")
+
+
+@pytest.mark.parametrize(
+    "report_type",
+    [
+        ReportType.EMPLOYEE_DAILY_SUMMARY,
+        ReportType.EMPLOYEE_WEEKLY_SUMMARY,
+        ReportType.STUDENT_PSYCH_WEEKLY,
+    ],
+)
+def test_admin_generate_new_report_type_draft(db_session, report_type):
+    service = ReportService(db_session)
+
+    draft = service.generate_draft(build_request(report_type), CurrentUser(id=1, role="admin"))
+
+    assert draft["status"] == "pending_confirm"
+    assert draft["content_json"]["report_type"] == report_type
+    assert draft["content_json"]["source_data"]["report_type"] == report_type
+    assert draft["content_json"]["sections"]
+
+
+@pytest.mark.parametrize(
+    "report_type",
+    [
+        ReportType.EMPLOYEE_DAILY_SUMMARY,
+        ReportType.EMPLOYEE_WEEKLY_SUMMARY,
+        ReportType.STUDENT_PSYCH_WEEKLY,
+    ],
+)
+def test_employee_generate_new_report_type_draft(db_session, report_type):
+    service = ReportService(db_session)
+
+    draft = service.generate_draft(build_request(report_type), CurrentUser(id=2, role="employee"))
+
+    assert draft["status"] == "pending_confirm"
+    assert draft["content_json"]["report_type"] == report_type
+
+
+@pytest.mark.parametrize(
+    "report_type",
+    [
+        ReportType.EMPLOYEE_DAILY_SUMMARY,
+        ReportType.EMPLOYEE_WEEKLY_SUMMARY,
+        ReportType.STUDENT_PSYCH_WEEKLY,
+    ],
+)
+def test_admin_confirm_new_report_type_draft_creates_ai_report(db_session, report_type):
+    service = ReportService(db_session)
+    draft = service.generate_draft(build_request(report_type), CurrentUser(id=1, role="admin"))
+
+    report = service.confirm_draft(draft["id"], CurrentUser(id=1, role="admin"))
+
+    assert report["report_type"] == report_type
+    assert report["status"] == "confirmed"
+    assert report["source_draft_id"] == draft["id"]
 
 
 def test_employee_cannot_publish_report(db_session):
@@ -97,7 +152,7 @@ def test_admin_confirm_draft_creates_ai_report(db_session):
 
     report = service.confirm_draft(draft["id"], CurrentUser(id=1, role="admin"))
 
-    assert report["title"] == "投诉处理周报"
+    assert report["title"].startswith("投诉处理周报")
     assert report["status"] == "confirmed"
     assert report["source_draft_id"] == draft["id"]
 
@@ -128,13 +183,18 @@ def test_export_word_creates_file_and_record(db_session):
     assert Path(export["file_path"]).exists()
 
 
-def test_export_pdf_failure_writes_record_and_audit_log(db_session):
+def test_export_failure_writes_record_and_audit_log(db_session, monkeypatch):
     export_dir = Path("storage/test_reports") / uuid4().hex
     settings = Settings(report_export_dir=str(export_dir), report_pdf_converter_path="", dify_mock_enabled=True)
     service = ReportService(db_session, settings=settings)
     draft = service.generate_draft(build_request(), CurrentUser(id=1, role="admin"))
     report = service.confirm_draft(draft["id"], CurrentUser(id=1, role="admin"))
     service.publish_report(report["id"], CurrentUser(id=1, role="admin"))
+    monkeypatch.setattr(
+        service.export_service,
+        "export",
+        lambda report, export_type: (_ for _ in ()).throw(RuntimeError("模板导出失败")),
+    )
 
     with pytest.raises(HTTPException) as exc_info:
         service.export_report(report["id"], ExportType.PDF, CurrentUser(id=1, role="admin"))
@@ -142,5 +202,5 @@ def test_export_pdf_failure_writes_record_and_audit_log(db_session):
     assert exc_info.value.status_code == 500
     failed_record = db_session.query(ReportExportRecord).filter(ReportExportRecord.status == "fail").one()
     failed_log = db_session.query(AuditLog).filter(AuditLog.action_type == "export", AuditLog.result == "fail").one()
-    assert "PDF 转换器" in failed_record.error_message
-    assert "PDF 转换器" in failed_log.error_message
+    assert "模板导出失败" in failed_record.error_message
+    assert "模板导出失败" in failed_log.error_message

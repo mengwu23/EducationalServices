@@ -1,4 +1,5 @@
 from datetime import date, datetime
+from pathlib import Path
 from typing import Any
 from uuid import uuid4
 
@@ -260,6 +261,60 @@ class ReportService:
         self._get_visible_report(report_id, user)
         return [self._export_to_dict(record) for record in self.dao.list_export_records(report_id)]
 
+    def prepare_export_download(self, export_id: int, user: CurrentUser) -> dict[str, Any]:
+        require_roles(user, {"admin", "employee"})
+        record = self.dao.get_export_record(export_id)
+        if not record:
+            raise NotFoundError("导出记录不存在")
+        report = self._get_visible_report(record.report_id, user)
+        if record.status != ExportStatus.SUCCESS:
+            raise BusinessError("只有导出成功的文件可以下载")
+
+        try:
+            file_path = self._resolve_export_file_path(record.file_path)
+            if not file_path.is_file():
+                self.audit_service.record(
+                    user,
+                    action_type="download_export",
+                    biz_object_type="ai_report",
+                    biz_object_id=report.id,
+                    draft_id=report.source_draft_id,
+                    result="fail",
+                    error_message="导出文件不存在",
+                    after_json={"export_id": record.id, "file_name": record.file_name},
+                )
+                self.db.commit()
+                raise NotFoundError("导出文件不存在")
+        except HTTPException as exc:
+            if not isinstance(exc, NotFoundError):
+                self.audit_service.record(
+                    user,
+                    action_type="download_export",
+                    biz_object_type="ai_report",
+                    biz_object_id=report.id,
+                    draft_id=report.source_draft_id,
+                    result="fail",
+                    error_message=str(exc.detail),
+                    after_json={"export_id": record.id, "file_name": record.file_name},
+                )
+                self.db.commit()
+            raise
+
+        self.audit_service.record(
+            user,
+            action_type="download_export",
+            biz_object_type="ai_report",
+            biz_object_id=report.id,
+            draft_id=report.source_draft_id,
+            after_json={"export_id": record.id, "file_name": record.file_name},
+        )
+        self.db.commit()
+        return {
+            "file_path": file_path,
+            "file_name": record.file_name,
+            "media_type": self._download_media_type(record.export_type),
+        }
+
     def query_source_data_for_tool(
         self,
         report_type: str,
@@ -359,3 +414,22 @@ class ReportService:
 
     def _export_extension(self, export_type: str) -> str:
         return "pdf" if export_type == ExportType.PDF else "docx"
+
+    def _resolve_export_file_path(self, file_path: str) -> Path:
+        export_root = self.settings.export_dir_path.resolve()
+        resolved_file_path = Path(file_path).resolve()
+        try:
+            resolved_file_path.relative_to(export_root)
+        except ValueError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="导出文件路径非法",
+            ) from exc
+        return resolved_file_path
+
+    def _download_media_type(self, export_type: str) -> str:
+        if export_type == ExportType.PDF:
+            return "application/pdf"
+        if export_type == ExportType.WORD:
+            return "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        return "application/octet-stream"

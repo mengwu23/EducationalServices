@@ -1,0 +1,457 @@
+app:
+  description: 教育服务系统智能报告生成工作流。每次生成报告前必须调用 FastAPI AI Tool 查询受控聚合数据。
+  icon: 📊
+  icon_background: '#E0F2FE'
+  mode: workflow
+  name: education-service-report-workflow
+  use_icon_as_answer_icon: false
+dependencies: []
+kind: app
+version: 0.3.1
+workflow:
+  conversation_variables: []
+  environment_variables:
+  - name: AI_TOOLS_BASE_URL
+    value: http://host.docker.internal:8000
+    value_type: string
+    description: FastAPI 后端基础地址，不包含 /api/v1。Dify 容器访问宿主机时建议使用 host.docker.internal。
+  - name: AI_TOOLS_SECRET
+    value: ''
+    value_type: string
+    description: FastAPI AI Tools 调用密钥。后端配置 AI_TOOLS_SECRET 后，Dify HTTP Tool 必须通过 X-AI-Tools-Secret 传入同值。
+  features:
+    file_upload:
+      enabled: false
+    opening_statement: ''
+    retriever_resource:
+      enabled: false
+    sensitive_word_avoidance:
+      enabled: false
+    speech_to_text:
+      enabled: false
+    suggested_questions: []
+    suggested_questions_after_answer:
+      enabled: false
+    text_to_speech:
+      enabled: false
+  graph:
+    edges:
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: start
+        targetType: code
+      id: start-to-parse-report-filters
+      source: start_node
+      sourceHandle: source
+      target: parse_report_filters
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: code
+        targetType: http-request
+      id: parse-report-filters-to-query-report-source-data
+      source: parse_report_filters
+      sourceHandle: source
+      target: http_query_source_data
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: http-request
+        targetType: llm
+      id: query-report-source-data-to-generate-report-json
+      source: http_query_source_data
+      sourceHandle: source
+      target: llm_generate_report_json
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: llm
+        targetType: end
+      id: generate-report-json-to-output
+      source: llm_generate_report_json
+      sourceHandle: source
+      target: end_node
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    nodes:
+    - data:
+        desc: 接收 FastAPI 报告生成参数。后端传入 report_type、source_data、filters、trace_id。
+        selected: false
+        title: Start
+        type: start
+        variables:
+        - label: report_type
+          max_length: 80
+          options:
+          - complaint_weekly
+          - customer_operation
+          - employee_daily_summary
+          - employee_weekly_summary
+          - student_psych_weekly
+          required: true
+          type: select
+          variable: report_type
+        - label: source_data
+          max_length: null
+          options: []
+          required: true
+          type: paragraph
+          variable: source_data
+        - label: filters
+          max_length: null
+          options: []
+          required: true
+          type: paragraph
+          variable: filters
+        - label: trace_id
+          max_length: 100
+          options: []
+          required: false
+          type: text-input
+          variable: trace_id
+      height: 190
+      id: start_node
+      position:
+        x: 30
+        y: 227
+      positionAbsolute:
+        x: 30
+        y: 227
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        code: |-
+          import json
+
+          def _optional_int(value):
+              if value in (None, "", "null"):
+                  return None
+              return int(value)
+
+          def _json_number_or_null(value):
+              parsed = _optional_int(value)
+              if parsed is None:
+                  return "null"
+              return str(parsed)
+
+          def main(filters) -> dict:
+              if isinstance(filters, dict):
+                  data = filters
+              else:
+                  data = json.loads(filters or "{}")
+
+              return {
+                  "date_start": data.get("date_start", ""),
+                  "date_end": data.get("date_end", ""),
+                  "department_id": _optional_int(data.get("department_id")),
+                  "owner_user_id": _optional_int(data.get("owner_user_id")),
+                  "department_id_json": _json_number_or_null(data.get("department_id")),
+                  "owner_user_id_json": _json_number_or_null(data.get("owner_user_id")),
+              }
+        code_language: python3
+        desc: 将后端传入的 filters JSON 拆成 AI Tool 需要的顶层筛选字段。
+        outputs:
+          date_start:
+            children: null
+            type: string
+          date_end:
+            children: null
+            type: string
+          department_id:
+            children: null
+            type: number
+          owner_user_id:
+            children: null
+            type: number
+          department_id_json:
+            children: null
+            type: string
+          owner_user_id_json:
+            children: null
+            type: string
+        selected: false
+        title: Parse Report Filters
+        type: code
+        variables:
+        - value_selector:
+          - start_node
+          - filters
+          value_type: string
+          variable: filters
+      height: 100
+      id: parse_report_filters
+      position:
+        x: 334
+        y: 227
+      positionAbsolute:
+        x: 334
+        y: 227
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        authorization:
+          type: no-auth
+        body:
+          data: |-
+            {
+              "report_type": "{{#start_node.report_type#}}",
+              "date_start": "{{#parse_report_filters.date_start#}}",
+              "date_end": "{{#parse_report_filters.date_end#}}",
+              "department_id": {{#parse_report_filters.department_id_json#}},
+              "owner_user_id": {{#parse_report_filters.owner_user_id_json#}},
+              "caller": "dify",
+              "conversation_id": "{{#sys.conversation_id#}}",
+              "trace_id": "{{#start_node.trace_id#}}"
+            }
+          type: json
+        desc: 每次报告生成必须先调用该工具。Dify 不能直连数据库，也不能执行任意 SQL。
+        headers: |-
+          Content-Type:application/json
+          X-AI-Tools-Secret:{{#env.AI_TOOLS_SECRET#}}
+        method: POST
+        params: ''
+        retry_config:
+          enabled: false
+          exponential_backoff:
+            enabled: false
+            max_interval: 10000
+            multiplier: 2
+          max_retries: 1
+          retry_interval: 1000
+        selected: false
+        timeout:
+          connect: 10
+          read: 60
+          write: 30
+        title: Query Report Source Data
+        type: http-request
+        url: '{{#env.AI_TOOLS_BASE_URL#}}/api/v1/ai-tools/query_report_source_data'
+      height: 130
+      id: http_query_source_data
+      position:
+        x: 638
+        y: 227
+      positionAbsolute:
+        x: 638
+        y: 227
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        context:
+          enabled: false
+          variable_selector: []
+        desc: 根据 AI Tool 返回的受控聚合数据生成结构化报告草稿。
+        memory:
+          enabled: false
+          window:
+            enabled: false
+            size: 50
+        model:
+          completion_params:
+            max_tokens: 2400
+            reasoning_effort: high
+            temperature: 0.2
+            thinking_mode: high
+          mode: chat
+          name: deepseek-v4-flash
+          provider: langgenius/deepseek/deepseek
+        prompt_template:
+        - role: system
+          text: |-
+            你是教育服务系统的智能报告生成助手。
+
+            你只能基于 FastAPI AI Tool 返回的受控聚合数据生成报告草稿。
+            你不能直接连接数据库，不能输出 SQL，不能发布报告，不能写入任何业务表。
+            你不能编造指标。无法从工具数据判断的信息，必须写入 risks 或 recommendations。
+
+            # 投诉处理周报 (complaint_weekly)
+            你必须生成一份业务分析报告，涵盖投诉处理的全流程：
+            1. 整体概况：统计投诉总量，标注较前序周期对比趋势（如有参考数据）；区分新增投诉和存量结转。
+            2. 处理进展：按待处理/处理中/已解决分布，计算解决率、在途率；分析是否存在积压风险。
+            3. 时效与薄弱环节：如工具返回了处理时长或分类数据，识别最长未处理工单、最慢处理环节。
+            4. 风险预警：标注超 48 小时无更新的工单；对同一客户/同一类别反复投诉提出关注。
+            5. 改善建议：针对薄弱环节提出可执行改进措施。
+
+            # 全域客户经营分析报告 (customer_operation)
+            你必须覆盖意向、成交、流失三大客群维度：
+            1. 意向客户分析：基于 lead_source_breakdown 分析各渠道线索数量和质量趋势；基于 lead_status_breakdown 判读线索阶段分布。
+            2. 研判转化漏斗：基于 analysis_result_breakdown 分析研判等级分布和高意向客户识别；计算线索→研判→成交的转化漏斗。
+            3. 成交客户复盘：统计已成交客户数量，分析成交客户共性特征（渠道来源、研判等级）。
+            4. 活动转化跟踪：基于 event_registration_breakdown 分析活动报名到实际转化的转化率。
+            5. 流失归因预警：统计已流失/废弃线索数量，分析流失占比，给出流失归因建议。
+            6. 客群画像提炼：基于渠道分布和研判等级分布，概述本周期主要客群特征。
+            7. 全链路经营建议：针对获客、转化、留存全链路给出可执行的改善建议。
+
+            # 员工日报汇总-日 (employee_daily_summary)
+            1. 提交情况：总日报数、提交率、未提交/草稿/归档分布。
+            2. 工作进展提炼：基于风险摘要数量和明日计划数量，判断团队执行节奏。
+            3. 风险识别：标注含风险摘要的日报，分析风险类型集中趋势。
+            4. 管理建议：对提交率低的团队或个人，对高频风险类型提出应对措施。
+
+            # 员工日报汇总-周 (employee_weekly_summary)
+            1. 周度提交趋势：逐日提交量变化，识别波峰波谷和工作日规律。
+            2. 团队覆盖率：本周提交员工数，对比部门总人数计算覆盖率。
+            3. 工作质量观察：风险摘要占比、明日计划填报率，判断日报质量。
+            4. 周度对比：如有上周数据可做环比分析。
+            5. 管理建议：针对提交率波动和工作质量给出改进建议。
+
+            # 学生心理健康周报 (student_psych_weekly)
+            你必须结合留学场景进行深度分析：
+            1. 整体心理态势：本周心理画像数量、平均情绪分，对比正常区间判断整体健康度。
+            2. 风险分层分析：高风险/中风险/低风险学生分布，逐一描述高风险学生的核心问题。
+            3. 情绪标签分布：焦虑、孤独、适应困难等情绪标签的分布，结合留学周期（考试季、假期）解读趋势。
+            4. 预警处理进展：心理预警的处理闭环率，未处理预警的紧迫性判断。
+            5. 个性化关怀建议：针对高风险学生群体，推荐关怀方案和社群支持策略。
+
+            你必须只输出一个 JSON 对象，不要输出 Markdown，不要输出代码块，不要输出解释性前后缀，不要输出 <think> 或任何思考过程。
+            JSON 对象必须符合以下结构：
+            {
+              "tool_call_success": true,
+              "tool_status_code": 200,
+              "tool_error": "",
+              "title": "报告标题",
+              "summary": "报告摘要",
+              "sections": [
+                {
+                  "heading": "章节标题",
+                  "content": "章节正文",
+                  "metrics": [
+                    {"name": "指标名", "value": "指标值"}
+                  ]
+                }
+              ],
+              "risks": ["风险提示"],
+              "recommendations": ["建议事项"],
+              "source_refs": ["数据来源或口径说明"]
+            }
+
+            字段要求：
+            - title 必须是中文标题。
+            - summary 用 2 到 4 句话概括本周期核心发现，包含关键数据点和初步判断。
+            - sections 至少 4 个章节，每个章节必须有 business meaning 的 heading（禁止用 raw key 如 "status_counts" 作标题）。
+            - content 每个段落不少于 80 字，必须包含数据解读而非只列数字。
+            - metrics 必须来自工具返回 data.result，不允许创造不存在的数值。
+            - metrics 中 name 必须使用中文业务名称（如"待处理工单"而非 "pending"），value 必须是工具返回的实际数值。
+            - risks 数组必须至少包含 1 条与数据直接相关的风险，禁止空数组或泛泛的"请复核"。
+            - recommendations 数组必须至少包含 1 条具体、可执行的建议，禁止空数组或"请结合业务负责人反馈"。
+            - source_refs 写入 query_report_source_data 和使用的数据表名或口径说明。
+            - tool_call_success 表示 FastAPI AI Tool 是否调用成功。
+            - tool_status_code 必须等于 FastAPI AI Tool 返回状态码。
+            - tool_error 成功时为空字符串，失败时写入工具返回的错误摘要。
+            - 如果 FastAPI AI Tool 返回状态码不是 200，不要生成业务分析内容，只返回 tool_call_success=false、tool_status_code、tool_error，并在 title/summary 中说明数据获取失败。
+            - 如果 FastAPI AI Tool 返回状态码是 200，必须设置 tool_call_success=true、tool_status_code=200、tool_error=""，并且只围绕 body.data.result 中已有的业务指标写报告。
+            - 如果 FastAPI AI Tool 返回状态码是 200，owner_user_id 为 null 只表示不按负责人筛选，不是错误；不得把正常空筛选条件、空负责人筛选或空 trace_id 描述成工具调用失败。
+            - 如果 FastAPI AI Tool 返回状态码是 200，不要写任何接口失败、参数错误、数据获取失败、无法获取数据的描述。
+        - role: user
+          text: |-
+            后端初始报告类型：
+            {{#start_node.report_type#}}
+
+            后端初始 source_data：
+            {{#start_node.source_data#}}
+
+            后端筛选条件 filters：
+            {{#start_node.filters#}}
+
+            FastAPI AI Tool 返回状态码：
+            {{#http_query_source_data.status_code#}}
+
+            FastAPI AI Tool 返回 body：
+            {{#http_query_source_data.body#}}
+
+            请以 FastAPI AI Tool 返回 body.data.result 为准，生成报告 JSON。
+        retry_config:
+          enabled: false
+          exponential_backoff:
+            enabled: false
+            max_interval: 10000
+            multiplier: 2
+          max_retries: 1
+          retry_interval: 1000
+        selected: false
+        structured_output:
+          enabled: false
+        title: Generate Report JSON
+        type: llm
+        vision:
+          configs:
+            variable_selector: []
+          enabled: false
+      height: 120
+      id: llm_generate_report_json
+      position:
+        x: 942
+        y: 227
+      positionAbsolute:
+        x: 942
+        y: 227
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        desc: 后端 DifyClient 会读取 outputs.report。该值必须是 JSON 对象字符串，并包含 title。
+        outputs:
+        - value_selector:
+          - llm_generate_report_json
+          - text
+          value_type: string
+          variable: report
+        selected: false
+        title: End
+        type: end
+      height: 90
+      id: end_node
+      position:
+        x: 1246
+        y: 227
+      positionAbsolute:
+        x: 1246
+        y: 227
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    viewport:
+      x: 0
+      y: 0
+      zoom: 0.7
+
+  acceptance:
+    tool_call_policy: query_report_source_data_must_be_called_every_run
+    backend_output_contract:
+      output_name: report
+      required_fields:
+      - title
+      - summary
+      - sections
+      - risks
+      - recommendations
+      - source_refs
+    forbidden_actions:
+    - direct_database_connection
+    - arbitrary_sql
+    - report_publish
+    - business_table_write

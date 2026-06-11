@@ -4,11 +4,12 @@ from sqlalchemy.orm import Session
 from backend.app.ai_tools.registry import invoke_ai_tool
 from backend.app.ai_tools.report_tools import query_report_source_data
 from backend.app.common.responses import ApiResponse, success_response
+from backend.app.core.security import verify_ai_tools_secret
 from backend.app.database import get_db
 from backend.app.schemas.ai_tool_schema import AiToolInvokeRequest
 from backend.app.schemas.report_schema import AiToolReportSourceDataRequest
 
-router = APIRouter(prefix="/ai-tools", tags=["AI 工具"])
+router = APIRouter(prefix="/ai-tools", tags=["AI 工具"], dependencies=[Depends(verify_ai_tools_secret)])
 
 
 @router.get("", response_model=ApiResponse, summary="查询 AI 工具列表")
