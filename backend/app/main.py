@@ -56,6 +56,65 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+@app.exception_handler(AppException)
+async def app_exception_handler(request: Request, exc: AppException):
+    return JSONResponse(
+        status_code=exc.status_code,
+        content=error_response(code=exc.code, message=exc.message).model_dump(),
+    )
+
+
+@app.exception_handler(StarletteHTTPException)
+async def http_exception_handler(request: Request, exc: StarletteHTTPException):
+    message = exc.detail if isinstance(exc.detail, str) else str(exc.detail)
+    return JSONResponse(
+        status_code=exc.status_code,
+        content=error_response(code=exc.status_code, message=message).model_dump(),
+    )
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    return JSONResponse(
+        status_code=422,
+        content=error_response(
+            code=422,
+            message="参数校验失败",
+            data=jsonable_encoder(exc.errors()),
+        ).model_dump(),
+    )
+
+
+@app.get("/health", tags=["系统"], response_model=ApiResponse)
+async def health_check():
+    from datetime import datetime
+
+    return success_response(
+        data={
+            "status": "ok",
+            "service": "education-service",
+            "version": "0.1.0",
+            "timestamp": datetime.now().isoformat(),
+        }
+    )
+
+
+app.include_router(student_leave_router)
+app.include_router(student_psych_router)
+app.include_router(student_assistant_router)
+app.include_router(enterprise_assistant_router)
+app.include_router(enterprise_nl2sql_router)
+app.include_router(report_router)
+app.include_router(academic_event_router, prefix="/api")
+app.include_router(application_progress_router)
+app.include_router(student_feedback_ticket_router, prefix="/api")
+app.include_router(ai_tool_router, prefix="/api")
+app.include_router(ai_tool_router, prefix="/api/v1")
+
+
+def create_app() -> FastAPI:
+    return app
+
 # 挂载企业管理查询助手路由，保证服务启动后即可访问该模块接口。
 app.include_router(enterprise_assistant_router, prefix="/enterprise", tags=["企业智能助手模块"])
 # 挂载企业业务办理助手路由。

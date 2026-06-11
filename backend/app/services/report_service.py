@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 from backend.app.common.enums import DraftStatus, ExportStatus, ExportType, ReportStatus
 from backend.app.common.exceptions import BusinessError, NotFoundError, ReportGenerationError
 from backend.app.core.config import Settings, get_settings
-from backend.app.core.security import CurrentUser, require_roles
+from backend.app.core.security import CurrentUser
 from backend.app.daos.report_dao import ReportDAO
 from backend.app.integrations.dify_client import DifyClient
 from backend.app.models.report import AiReport, ReportExportRecord
@@ -35,7 +35,6 @@ class ReportService:
         self.export_service = ReportExportService(self.settings)
 
     def generate_draft(self, request: ReportGenerateDraftRequest, user: CurrentUser) -> dict[str, Any]:
-        require_roles(user, {"admin", "employee"})
         trace_id = request.trace_id or f"report-{uuid4().hex}"
         filters = {
             "date_start": request.date_start.isoformat(),
@@ -102,19 +101,16 @@ class ReportService:
             raise ReportGenerationError(f"报告草稿生成失败：{exc}") from exc
 
     def list_drafts(self, user: CurrentUser) -> list[dict[str, Any]]:
-        require_roles(user, {"admin", "employee"})
         drafts = self.draft_service.list_report_drafts()
         if user.role == "employee":
             drafts = [draft for draft in drafts if draft.created_by == user.id]
         return [self._draft_to_dict(draft) for draft in drafts]
 
     def get_draft(self, draft_id: int, user: CurrentUser) -> dict[str, Any]:
-        require_roles(user, {"admin", "employee"})
         draft = self._get_visible_draft(draft_id, user)
         return self._draft_to_dict(draft)
 
     def reject_draft(self, draft_id: int, reason: str, user: CurrentUser) -> dict[str, Any]:
-        require_roles(user, {"admin"})
         draft = self._get_visible_draft(draft_id, user)
         if draft.status != DraftStatus.PENDING_CONFIRM:
             raise BusinessError("只有待确认报告草稿可以驳回")
@@ -133,7 +129,6 @@ class ReportService:
         return self._draft_to_dict(draft)
 
     def confirm_draft(self, draft_id: int, user: CurrentUser) -> dict[str, Any]:
-        require_roles(user, {"admin"})
         draft = self._get_visible_draft(draft_id, user)
         if draft.status != DraftStatus.PENDING_CONFIRM:
             raise BusinessError("只有待确认报告草稿可以确认")
@@ -168,19 +163,16 @@ class ReportService:
         return self._report_to_dict(report)
 
     def list_reports(self, user: CurrentUser) -> list[dict[str, Any]]:
-        require_roles(user, {"admin", "employee"})
         reports = self.dao.list_reports()
         if user.role == "employee":
             reports = [report for report in reports if report.created_by == user.id]
         return [self._report_to_dict(report) for report in reports]
 
     def get_report(self, report_id: int, user: CurrentUser) -> dict[str, Any]:
-        require_roles(user, {"admin", "employee"})
         report = self._get_visible_report(report_id, user)
         return self._report_to_dict(report)
 
     def publish_report(self, report_id: int, user: CurrentUser) -> dict[str, Any]:
-        require_roles(user, {"admin"})
         report = self._get_visible_report(report_id, user)
         if report.status == ReportStatus.PUBLISHED:
             return self._report_to_dict(report)
@@ -200,7 +192,6 @@ class ReportService:
         return self._report_to_dict(report)
 
     def export_report(self, report_id: int, export_type: str, user: CurrentUser) -> dict[str, Any]:
-        require_roles(user, {"admin"})
         report = self._get_visible_report(report_id, user)
         if report.status != ReportStatus.PUBLISHED:
             raise BusinessError("只有已发布报告可以导出")
@@ -257,12 +248,10 @@ class ReportService:
             ) from exc
 
     def list_export_records(self, report_id: int, user: CurrentUser) -> list[dict[str, Any]]:
-        require_roles(user, {"admin", "employee"})
         self._get_visible_report(report_id, user)
         return [self._export_to_dict(record) for record in self.dao.list_export_records(report_id)]
 
     def prepare_export_download(self, export_id: int, user: CurrentUser) -> dict[str, Any]:
-        require_roles(user, {"admin", "employee"})
         record = self.dao.get_export_record(export_id)
         if not record:
             raise NotFoundError("导出记录不存在")
