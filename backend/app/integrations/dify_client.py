@@ -111,6 +111,16 @@ class DifyClient:
             event_reg = source_data.get("event_registration_breakdown", {})
             date_start = source_data.get("date_start", "")
             date_end = source_data.get("date_end", "")
+            prev = source_data.get("prev_period", {})
+            lead_trend = source_data.get("lead_trend", {})
+            churn_source = source_data.get("churn_source_breakdown", {})
+            top_churn_source = max(churn_source, key=churn_source.get) if churn_source else "未归类"
+            prev_leads = prev.get("leads", 0)
+            delta_pct = lead_trend.get("delta_pct", 0)
+            trend_label = lead_trend.get("label", "持平")
+            prev_analysis = prev.get("analysis", 0)
+            prev_events = prev.get("events", 0)
+
             source_text = "、".join(f"{k}({v}条)" for k, v in lead_source.items()) if lead_source else "暂无渠道数据"
             status_text = "、".join(f"{k}({v}条)" for k, v in lead_status.items()) if lead_status else "暂无阶段数据"
             result_text = "、".join(f"{k}({v}条)" for k, v in analysis_result.items()) if analysis_result else "暂无研判等级数据"
