@@ -1,4 +1,4 @@
-"""教育服务系统 API 入口。"""
+"""FastAPI application entrypoint."""
 
 import os
 import uvicorn
@@ -118,6 +118,19 @@ app.include_router(enterprise_assistant_router, prefix="/enterprise", tags=["企
 # 挂载企业业务办理助手路由。
 app.include_router(operation_router, prefix="/enterprise", tags=["企业业务办理助手"])
 app.include_router(enterprise_nl2sql_router, prefix="/enterprise", tags=["企业智能助手NL2SQL模块"])
+app.include_router(operation_router, prefix="/enterprise", tags=["企业业务办理助手"])
+app.include_router(enterprise_nl2sql_router, prefix="/enterprise", tags=["企业智能助手NL2SQL模块"])
+
+# 报告模块
+app.include_router(report_router)
+
+# Feature-cs 新增模块
+app.include_router(service_agent_router, prefix="/api/v1/service-agent", tags=["客服 Agent 模块"])
+app.include_router(customer_judgement_router, tags=["客户研判助手模块"])
+
+
+def create_app() -> FastAPI:
+    return app
 
 
 if __name__ == "__main__":
