@@ -374,6 +374,8 @@ class EnterpriseAssistantService:
             metadata=dify_result.get("metadata") or {},
         )
 
+    # ── 私有辅助方法 ──
+
     def _lead_item(self, lead: Any, owner_name: Optional[str]) -> LeadItem:
         """将客户线索 ORM 行转换为接口返回对象。"""
         return LeadItem(

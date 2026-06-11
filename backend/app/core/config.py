@@ -13,6 +13,7 @@ class Settings(BaseSettings):
     dify_api_base_url: str = Field(default="http://127.0.0.1:5001", alias="DIFY_API_BASE_URL")
     dify_api_key: str = Field(default="", alias="DIFY_API_KEY")
     dify_mock_enabled: bool = Field(default=True, alias="DIFY_MOCK_ENABLED")
+    ai_tools_secret: str = Field(default="", alias="AI_TOOLS_SECRET")
     dify_onboarding_api_base_url: str = Field(default="http://localhost/v1", alias="DIFY_ONBOARDING_API_BASE_URL")
     dify_onboarding_api_key: str = Field(default="", alias="DIFY_ONBOARDING_API_KEY")
     nl2sql_llm_api_key: str = Field(
@@ -33,6 +34,13 @@ class Settings(BaseSettings):
     deepseek_model: str = Field(default="deepseek-chat", alias="DEEPSEEK_MODEL")
     report_export_dir: str = Field(default="storage/reports", alias="REPORT_EXPORT_DIR")
     report_pdf_converter_path: str = Field(default="", alias="REPORT_PDF_CONVERTER_PATH")
+
+    # 学生助手 — Dify + DeepSeek
+    dify_api_url: str = Field(default="http://localhost/v1/chat-messages", alias="DIFY_API_URL")
+    dify_life_key: str = Field(default="", alias="DIFY_LIFE_KEY")
+    dify_policy_key: str = Field(default="", alias="DIFY_POLICY_KEY")
+    deepseek_api_url: str = Field(default="https://api.deepseek.com/chat/completions", alias="DEEPSEEK_API_URL")
+    deepseek_api_key: str = Field(default="", alias="DEEPSEEK_API_KEY")
 
     model_config = SettingsConfigDict(
         env_file=PROJECT_ROOT / ".env",

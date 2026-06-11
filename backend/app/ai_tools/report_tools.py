@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
 
-from app.services.report_service import ReportService
+from backend.app.services.report_service import ReportService
 
 
 def query_report_source_data(

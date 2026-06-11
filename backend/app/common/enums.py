@@ -1,6 +1,72 @@
 from enum import Enum
 
 
+class AcademicEventType(str, Enum):
+    PAPER_DEADLINE = "paper_deadline"
+    EXAM = "exam"
+    COURSE_DEADLINE = "course_deadline"
+    OTHER = "other"
+
+
+class AcademicEventStatus(str, Enum):
+    ACTIVE = "active"
+    COMPLETED = "completed"
+    CANCELLED = "cancelled"
+
+
+class FeedbackTicketType(str, Enum):
+    COMPLAINT = "complaint"
+    SUGGESTION = "suggestion"
+    CONSULT = "consult"
+
+
+class FeedbackPriorityLevel(str, Enum):
+    NORMAL = "normal"
+    URGENT = "urgent"
+    SEVERE = "severe"
+
+
+class FeedbackTicketStatus(str, Enum):
+    PENDING = "pending"
+    PROCESSING = "processing"
+    RESOLVED = "resolved"
+    CLOSED = "closed"
+
+
+class LeaveType(str, Enum):
+    SICK = "sick"
+    PERSONAL = "personal"
+    OTHER = "other"
+
+
+class LeaveStatus(str, Enum):
+    PENDING = "pending"
+    APPROVED = "approved"
+    REJECTED = "rejected"
+    CANCELLED = "cancelled"
+
+
+class UserType(str, Enum):
+    EMPLOYEE = "employee"
+    STUDENT = "student"
+    CUSTOMER = "customer"
+    ADMIN = "admin"
+
+
+class PsychRiskLevel(str, Enum):
+    LOW = "low"
+    MEDIUM = "medium"
+    HIGH = "high"
+    CRITICAL = "critical"
+
+
+class PsychAlertStatus(str, Enum):
+    PENDING = "pending"
+    PROCESSING = "processing"
+    RESOLVED = "resolved"
+    CLOSED = "closed"
+
+
 class Role(str, Enum):
     ADMIN = "admin"
     EMPLOYEE = "employee"
@@ -11,6 +77,9 @@ class Role(str, Enum):
 class ReportType(str, Enum):
     COMPLAINT_WEEKLY = "complaint_weekly"
     CUSTOMER_OPERATION = "customer_operation"
+    EMPLOYEE_DAILY_SUMMARY = "employee_daily_summary"
+    EMPLOYEE_WEEKLY_SUMMARY = "employee_weekly_summary"
+    STUDENT_PSYCH_WEEKLY = "student_psych_weekly"
 
 
 class DraftStatus(str, Enum):

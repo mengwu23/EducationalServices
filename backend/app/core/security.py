@@ -1,7 +1,10 @@
 """权限模块（前期统一返回默认用户，权限上线后启用 Header 鉴权）。"""
 from dataclasses import dataclass
+from secrets import compare_digest
 
 from fastapi import Depends
+
+from backend.app.core.config import get_settings
 
 
 @dataclass(frozen=True)
