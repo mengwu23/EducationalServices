@@ -51,6 +51,20 @@ def db_session() -> Generator[Session, None, None]:
         Base.metadata.drop_all(bind=engine)
 
 
+@pytest.fixture(autouse=True)
+def _force_dify_mock(monkeypatch) -> Generator[None, None, None]:
+    """测试期间强制启用 Dify Mock，使测试与 .env 的真实 Dify 配置解耦。
+
+    避免本地 .env 设为 DIFY_MOCK_ENABLED=false 时，集成测试误打真实 Dify 导致超时挂起。
+    """
+    from backend.app.core.config import get_settings
+
+    monkeypatch.setenv("DIFY_MOCK_ENABLED", "true")
+    get_settings.cache_clear()
+    yield
+    get_settings.cache_clear()
+
+
 @pytest.fixture()
 def client(db_session: Session) -> Generator[TestClient, None, None]:
     app = create_app()
