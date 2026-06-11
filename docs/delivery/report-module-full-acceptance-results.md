@@ -15,7 +15,7 @@
 
 ## mock 阶段
 
-- 执行时间：`2026-06-10 22:39:32`
+- 执行时间：`2026-06-11 09:27:46`
 - 后端地址：`http://127.0.0.1:18000`
 - 数据库：`mysql+pymysql://127.0.0.1:3306/education_service_ai_test`
 - AI Tools Secret：`已配置`
@@ -108,8 +108,8 @@
     "code": 0,
     "message": "success",
     "data": {
-      "id": 133,
-      "draft_no": "DR-20260610223932-4100817c",
+      "id": 143,
+      "draft_no": "DR-20260611092747-d8a9d758",
       "status": "pending_confirm",
       "content_json": {
         "risks": [],
@@ -174,7 +174,7 @@
 ```json
 {
   "method": "POST",
-  "url": "/api/v1/reports/drafts/133/confirm",
+  "url": "/api/v1/reports/drafts/143/confirm",
   "headers": {
     "X-User-Id": "101",
     "X-User-Role": "admin",
@@ -195,8 +195,8 @@
     "code": 0,
     "message": "success",
     "data": {
-      "id": 78,
-      "report_no": "RP-20260610223932-410073b1",
+      "id": 88,
+      "report_no": "RP-20260611092747-8c4270f2",
       "report_type": "complaint_weekly",
       "title": "投诉处理周报",
       "status": "confirmed",
@@ -250,7 +250,7 @@
           "请结合业务负责人反馈复核 AI 报告草稿。"
         ]
       },
-      "source_draft_id": 133,
+      "source_draft_id": 143,
       "date_start": "2026-06-01",
       "date_end": "2026-06-07",
       "department_id": 10,
@@ -269,7 +269,7 @@
 ```json
 {
   "method": "POST",
-  "url": "/api/v1/reports/78/publish",
+  "url": "/api/v1/reports/88/publish",
   "headers": {
     "X-User-Id": "101",
     "X-User-Role": "admin",
@@ -290,8 +290,8 @@
     "code": 0,
     "message": "success",
     "data": {
-      "id": 78,
-      "report_no": "RP-20260610223932-410073b1",
+      "id": 88,
+      "report_no": "RP-20260611092747-8c4270f2",
       "report_type": "complaint_weekly",
       "title": "投诉处理周报",
       "status": "published",
@@ -345,13 +345,13 @@
           "请结合业务负责人反馈复核 AI 报告草稿。"
         ]
       },
-      "source_draft_id": 133,
+      "source_draft_id": 143,
       "date_start": "2026-06-01",
       "date_end": "2026-06-07",
       "department_id": 10,
       "created_by": 101,
       "published_by": 101,
-      "published_time": "2026-06-10T22:39:33"
+      "published_time": "2026-06-11T09:27:47"
     },
     "trace_id": null
   }
@@ -364,7 +364,7 @@
 ```json
 {
   "method": "POST",
-  "url": "/api/v1/reports/78/exports",
+  "url": "/api/v1/reports/88/exports",
   "headers": {
     "X-User-Id": "101",
     "X-User-Role": "admin",
@@ -387,11 +387,11 @@
     "code": 0,
     "message": "success",
     "data": {
-      "id": 153,
-      "report_id": 78,
+      "id": 173,
+      "report_id": 88,
       "export_type": "word",
-      "file_name": "RP-20260610223932-410073b1.docx",
-      "file_path": "storage\\reports\\RP-20260610223932-410073b1.docx",
+      "file_name": "RP-20260611092747-8c4270f2.docx",
+      "file_path": "storage\\reports\\RP-20260611092747-8c4270f2.docx",
       "status": "success",
       "error_message": null
     },
@@ -406,7 +406,7 @@
 ```json
 {
   "method": "GET",
-  "url": "/api/v1/reports/exports/153/download",
+  "url": "/api/v1/reports/exports/173/download",
   "headers": {
     "X-User-Id": "101",
     "X-User-Role": "admin",
@@ -420,14 +420,14 @@
 {
   "status_code": 200,
   "headers": {
-    "content-type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-    "content-disposition": "attachment; filename=\"RP-20260610223932-410073b1.docx\"",
-    "content-length": "36909"
+    "content-length": "36909",
+    "content-disposition": "attachment; filename=\"RP-20260611092747-8c4270f2.docx\"",
+    "content-type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
   },
   "binary": {
     "size_bytes": 36909,
-    "sha256": "3daeecf96eb51d40da0234acddbcf7f6f25e288e511346a82e917eef0697df72",
-    "first_16_bytes_hex": "504b0304140000000800f0b4ca5cad52"
+    "sha256": "6d542348e49b0e20f4b0ae3bc19ce745dd47eecb302532a6072cbbca22fcb136",
+    "first_16_bytes_hex": "504b0304140000000800774bcb5cad52"
   }
 }
 ```
@@ -438,7 +438,7 @@
 ```json
 {
   "method": "POST",
-  "url": "/api/v1/reports/78/exports",
+  "url": "/api/v1/reports/88/exports",
   "headers": {
     "X-User-Id": "101",
     "X-User-Role": "admin",
@@ -461,11 +461,11 @@
     "code": 0,
     "message": "success",
     "data": {
-      "id": 154,
-      "report_id": 78,
+      "id": 174,
+      "report_id": 88,
       "export_type": "pdf",
-      "file_name": "RP-20260610223932-410073b1.pdf",
-      "file_path": "storage\\reports\\RP-20260610223932-410073b1.pdf",
+      "file_name": "RP-20260611092747-8c4270f2.pdf",
+      "file_path": "storage\\reports\\RP-20260611092747-8c4270f2.pdf",
       "status": "success",
       "error_message": null
     },
@@ -480,7 +480,7 @@
 ```json
 {
   "method": "GET",
-  "url": "/api/v1/reports/exports/154/download",
+  "url": "/api/v1/reports/exports/174/download",
   "headers": {
     "X-User-Id": "101",
     "X-User-Role": "admin",
@@ -494,13 +494,13 @@
 {
   "status_code": 200,
   "headers": {
-    "content-type": "application/pdf",
-    "content-disposition": "attachment; filename=\"RP-20260610223932-410073b1.pdf\"",
-    "content-length": "3480"
+    "content-length": "3480",
+    "content-disposition": "attachment; filename=\"RP-20260611092747-8c4270f2.pdf\"",
+    "content-type": "application/pdf"
   },
   "binary": {
     "size_bytes": 3480,
-    "sha256": "d8e7a3bef91c97c442f88a1900b9ad47a2789cb0dcfda63a2159279c26d27ff4",
+    "sha256": "71b4288342650e69491c555c08fffdf7e884f08ebc2beff33befc021fc729fa9",
     "first_16_bytes_hex": "255044462d312e340a25938c8b9e2052"
   }
 }
@@ -593,8 +593,8 @@
     "code": 0,
     "message": "success",
     "data": {
-      "id": 134,
-      "draft_no": "DR-20260610223932-a81a61e9",
+      "id": 144,
+      "draft_no": "DR-20260611092747-c16b6e28",
       "status": "pending_confirm",
       "content_json": {
         "risks": [],
@@ -657,7 +657,7 @@
 ```json
 {
   "method": "POST",
-  "url": "/api/v1/reports/drafts/134/confirm",
+  "url": "/api/v1/reports/drafts/144/confirm",
   "headers": {
     "X-User-Id": "101",
     "X-User-Role": "admin",
@@ -678,8 +678,8 @@
     "code": 0,
     "message": "success",
     "data": {
-      "id": 79,
-      "report_no": "RP-20260610223933-e7a15b3d",
+      "id": 89,
+      "report_no": "RP-20260611092747-770d97a6",
       "report_type": "customer_operation",
       "title": "客户经营分析报",
       "status": "confirmed",
@@ -731,7 +731,7 @@
           "请结合业务负责人反馈复核 AI 报告草稿。"
         ]
       },
-      "source_draft_id": 134,
+      "source_draft_id": 144,
       "date_start": "2026-06-01",
       "date_end": "2026-06-07",
       "department_id": 10,
@@ -750,7 +750,7 @@
 ```json
 {
   "method": "POST",
-  "url": "/api/v1/reports/79/publish",
+  "url": "/api/v1/reports/89/publish",
   "headers": {
     "X-User-Id": "101",
     "X-User-Role": "admin",
@@ -771,8 +771,8 @@
     "code": 0,
     "message": "success",
     "data": {
-      "id": 79,
-      "report_no": "RP-20260610223933-e7a15b3d",
+      "id": 89,
+      "report_no": "RP-20260611092747-770d97a6",
       "report_type": "customer_operation",
       "title": "客户经营分析报",
       "status": "published",
@@ -824,13 +824,13 @@
           "请结合业务负责人反馈复核 AI 报告草稿。"
         ]
       },
-      "source_draft_id": 134,
+      "source_draft_id": 144,
       "date_start": "2026-06-01",
       "date_end": "2026-06-07",
       "department_id": 10,
       "created_by": 101,
       "published_by": 101,
-      "published_time": "2026-06-10T22:39:33"
+      "published_time": "2026-06-11T09:27:48"
     },
     "trace_id": null
   }
@@ -843,7 +843,7 @@
 ```json
 {
   "method": "POST",
-  "url": "/api/v1/reports/79/exports",
+  "url": "/api/v1/reports/89/exports",
   "headers": {
     "X-User-Id": "101",
     "X-User-Role": "admin",
@@ -866,11 +866,11 @@
     "code": 0,
     "message": "success",
     "data": {
-      "id": 155,
-      "report_id": 79,
+      "id": 175,
+      "report_id": 89,
       "export_type": "word",
-      "file_name": "RP-20260610223933-e7a15b3d.docx",
-      "file_path": "storage\\reports\\RP-20260610223933-e7a15b3d.docx",
+      "file_name": "RP-20260611092747-770d97a6.docx",
+      "file_path": "storage\\reports\\RP-20260611092747-770d97a6.docx",
       "status": "success",
       "error_message": null
     },
@@ -885,7 +885,7 @@
 ```json
 {
   "method": "GET",
-  "url": "/api/v1/reports/exports/155/download",
+  "url": "/api/v1/reports/exports/175/download",
   "headers": {
     "X-User-Id": "101",
     "X-User-Role": "admin",
@@ -899,14 +899,14 @@
 {
   "status_code": 200,
   "headers": {
-    "content-type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-    "content-disposition": "attachment; filename=\"RP-20260610223933-e7a15b3d.docx\"",
-    "content-length": "36951"
+    "content-length": "36951",
+    "content-disposition": "attachment; filename=\"RP-20260611092747-770d97a6.docx\"",
+    "content-type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
   },
   "binary": {
     "size_bytes": 36951,
-    "sha256": "c87d5b382e78dda7cad4db894c14fc7dbcb673b28baf4b8ff341396dc5754115",
-    "first_16_bytes_hex": "504b0304140000000800f0b4ca5cad52"
+    "sha256": "8bf9ec1430a278ee905c1ef28e17a989d04f6cff7db0170a6df493bc4bfa37f0",
+    "first_16_bytes_hex": "504b0304140000000800784bcb5cad52"
   }
 }
 ```
@@ -917,7 +917,7 @@
 ```json
 {
   "method": "POST",
-  "url": "/api/v1/reports/79/exports",
+  "url": "/api/v1/reports/89/exports",
   "headers": {
     "X-User-Id": "101",
     "X-User-Role": "admin",
@@ -940,11 +940,11 @@
     "code": 0,
     "message": "success",
     "data": {
-      "id": 156,
-      "report_id": 79,
+      "id": 176,
+      "report_id": 89,
       "export_type": "pdf",
-      "file_name": "RP-20260610223933-e7a15b3d.pdf",
-      "file_path": "storage\\reports\\RP-20260610223933-e7a15b3d.pdf",
+      "file_name": "RP-20260611092747-770d97a6.pdf",
+      "file_path": "storage\\reports\\RP-20260611092747-770d97a6.pdf",
       "status": "success",
       "error_message": null
     },
@@ -959,7 +959,7 @@
 ```json
 {
   "method": "GET",
-  "url": "/api/v1/reports/exports/156/download",
+  "url": "/api/v1/reports/exports/176/download",
   "headers": {
     "X-User-Id": "101",
     "X-User-Role": "admin",
@@ -973,13 +973,13 @@
 {
   "status_code": 200,
   "headers": {
-    "content-type": "application/pdf",
-    "content-disposition": "attachment; filename=\"RP-20260610223933-e7a15b3d.pdf\"",
-    "content-length": "3509"
+    "content-length": "3509",
+    "content-disposition": "attachment; filename=\"RP-20260611092747-770d97a6.pdf\"",
+    "content-type": "application/pdf"
   },
   "binary": {
     "size_bytes": 3509,
-    "sha256": "203675b0ad234dbcfa26d6bd408743932b38681591d2442dfb2ee605a222ebeb",
+    "sha256": "e8ddd6642cdd2ee9d0666354f91c6029bfe9dfb71308bfadc79990aafc01b2ce",
     "first_16_bytes_hex": "255044462d312e340a25938c8b9e2052"
   }
 }
@@ -1076,8 +1076,8 @@
     "code": 0,
     "message": "success",
     "data": {
-      "id": 135,
-      "draft_no": "DR-20260610223933-8f3abc83",
+      "id": 145,
+      "draft_no": "DR-20260611092748-2a4d4ff8",
       "status": "pending_confirm",
       "content_json": {
         "risks": [],
@@ -1158,7 +1158,7 @@
 ```json
 {
   "method": "POST",
-  "url": "/api/v1/reports/drafts/135/confirm",
+  "url": "/api/v1/reports/drafts/145/confirm",
   "headers": {
     "X-User-Id": "101",
     "X-User-Role": "admin",
@@ -1179,8 +1179,8 @@
     "code": 0,
     "message": "success",
     "data": {
-      "id": 80,
-      "report_no": "RP-20260610223933-ce2d2867",
+      "id": 90,
+      "report_no": "RP-20260611092748-5843eae0",
       "report_type": "employee_daily_summary",
       "title": "员工日报汇总报告（日）",
       "status": "confirmed",
@@ -1250,7 +1250,7 @@
           "请结合业务负责人反馈复核 AI 报告草稿。"
         ]
       },
-      "source_draft_id": 135,
+      "source_draft_id": 145,
       "date_start": "2026-06-02",
       "date_end": "2026-06-02",
       "department_id": 10,
@@ -1269,7 +1269,7 @@
 ```json
 {
   "method": "POST",
-  "url": "/api/v1/reports/80/publish",
+  "url": "/api/v1/reports/90/publish",
   "headers": {
     "X-User-Id": "101",
     "X-User-Role": "admin",
@@ -1290,8 +1290,8 @@
     "code": 0,
     "message": "success",
     "data": {
-      "id": 80,
-      "report_no": "RP-20260610223933-ce2d2867",
+      "id": 90,
+      "report_no": "RP-20260611092748-5843eae0",
       "report_type": "employee_daily_summary",
       "title": "员工日报汇总报告（日）",
       "status": "published",
@@ -1361,13 +1361,13 @@
           "请结合业务负责人反馈复核 AI 报告草稿。"
         ]
       },
-      "source_draft_id": 135,
+      "source_draft_id": 145,
       "date_start": "2026-06-02",
       "date_end": "2026-06-02",
       "department_id": 10,
       "created_by": 101,
       "published_by": 101,
-      "published_time": "2026-06-10T22:39:33"
+      "published_time": "2026-06-11T09:27:48"
     },
     "trace_id": null
   }
@@ -1380,7 +1380,7 @@
 ```json
 {
   "method": "POST",
-  "url": "/api/v1/reports/80/exports",
+  "url": "/api/v1/reports/90/exports",
   "headers": {
     "X-User-Id": "101",
     "X-User-Role": "admin",
@@ -1403,11 +1403,11 @@
     "code": 0,
     "message": "success",
     "data": {
-      "id": 157,
-      "report_id": 80,
+      "id": 177,
+      "report_id": 90,
       "export_type": "word",
-      "file_name": "RP-20260610223933-ce2d2867.docx",
-      "file_path": "storage\\reports\\RP-20260610223933-ce2d2867.docx",
+      "file_name": "RP-20260611092748-5843eae0.docx",
+      "file_path": "storage\\reports\\RP-20260611092748-5843eae0.docx",
       "status": "success",
       "error_message": null
     },
@@ -1422,7 +1422,7 @@
 ```json
 {
   "method": "GET",
-  "url": "/api/v1/reports/exports/157/download",
+  "url": "/api/v1/reports/exports/177/download",
   "headers": {
     "X-User-Id": "101",
     "X-User-Role": "admin",
@@ -1436,14 +1436,14 @@
 {
   "status_code": 200,
   "headers": {
-    "content-type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-    "content-disposition": "attachment; filename=\"RP-20260610223933-ce2d2867.docx\"",
-    "content-length": "36966"
+    "content-length": "36966",
+    "content-disposition": "attachment; filename=\"RP-20260611092748-5843eae0.docx\"",
+    "content-type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
   },
   "binary": {
     "size_bytes": 36966,
-    "sha256": "4d15a80e7c51987e2b3557dbd9c0283b43f08ab32655a3bb74e1fe805bc4ea34",
-    "first_16_bytes_hex": "504b0304140000000800f0b4ca5cad52"
+    "sha256": "cad7133700a70b9b28d24661bec555f6e4b01c00a2440309aec47adc1c0617c6",
+    "first_16_bytes_hex": "504b0304140000000800784bcb5cad52"
   }
 }
 ```
@@ -1454,7 +1454,7 @@
 ```json
 {
   "method": "POST",
-  "url": "/api/v1/reports/80/exports",
+  "url": "/api/v1/reports/90/exports",
   "headers": {
     "X-User-Id": "101",
     "X-User-Role": "admin",
@@ -1477,11 +1477,11 @@
     "code": 0,
     "message": "success",
     "data": {
-      "id": 158,
-      "report_id": 80,
+      "id": 178,
+      "report_id": 90,
       "export_type": "pdf",
-      "file_name": "RP-20260610223933-ce2d2867.pdf",
-      "file_path": "storage\\reports\\RP-20260610223933-ce2d2867.pdf",
+      "file_name": "RP-20260611092748-5843eae0.pdf",
+      "file_path": "storage\\reports\\RP-20260611092748-5843eae0.pdf",
       "status": "success",
       "error_message": null
     },
@@ -1496,7 +1496,7 @@
 ```json
 {
   "method": "GET",
-  "url": "/api/v1/reports/exports/158/download",
+  "url": "/api/v1/reports/exports/178/download",
   "headers": {
     "X-User-Id": "101",
     "X-User-Role": "admin",
@@ -1510,13 +1510,13 @@
 {
   "status_code": 200,
   "headers": {
-    "content-type": "application/pdf",
-    "content-disposition": "attachment; filename=\"RP-20260610223933-ce2d2867.pdf\"",
-    "content-length": "3711"
+    "content-length": "3711",
+    "content-disposition": "attachment; filename=\"RP-20260611092748-5843eae0.pdf\"",
+    "content-type": "application/pdf"
   },
   "binary": {
     "size_bytes": 3711,
-    "sha256": "8e457e9f6505c09f10d63f6dbab7334e6c8863efdc0b6c5f6399c1f9e08f99bf",
+    "sha256": "fd1c379aee942f4288dceac06977008ecdd0daaf8357b39ee07b302bb2cb48b2",
     "first_16_bytes_hex": "255044462d312e340a25938c8b9e2052"
   }
 }
@@ -1615,8 +1615,8 @@
     "code": 0,
     "message": "success",
     "data": {
-      "id": 136,
-      "draft_no": "DR-20260610223933-57f8ad19",
+      "id": 146,
+      "draft_no": "DR-20260611092748-6c30d6f4",
       "status": "pending_confirm",
       "content_json": {
         "risks": [],
@@ -1701,7 +1701,7 @@
 ```json
 {
   "method": "POST",
-  "url": "/api/v1/reports/drafts/136/confirm",
+  "url": "/api/v1/reports/drafts/146/confirm",
   "headers": {
     "X-User-Id": "101",
     "X-User-Role": "admin",
@@ -1722,8 +1722,8 @@
     "code": 0,
     "message": "success",
     "data": {
-      "id": 81,
-      "report_no": "RP-20260610223933-ad3841d6",
+      "id": 91,
+      "report_no": "RP-20260611092748-43e8e368",
       "report_type": "employee_weekly_summary",
       "title": "员工日报汇总报告（周）",
       "status": "confirmed",
@@ -1797,7 +1797,7 @@
           "请结合业务负责人反馈复核 AI 报告草稿。"
         ]
       },
-      "source_draft_id": 136,
+      "source_draft_id": 146,
       "date_start": "2026-06-01",
       "date_end": "2026-06-07",
       "department_id": 10,
@@ -1816,7 +1816,7 @@
 ```json
 {
   "method": "POST",
-  "url": "/api/v1/reports/81/publish",
+  "url": "/api/v1/reports/91/publish",
   "headers": {
     "X-User-Id": "101",
     "X-User-Role": "admin",
@@ -1837,8 +1837,8 @@
     "code": 0,
     "message": "success",
     "data": {
-      "id": 81,
-      "report_no": "RP-20260610223933-ad3841d6",
+      "id": 91,
+      "report_no": "RP-20260611092748-43e8e368",
       "report_type": "employee_weekly_summary",
       "title": "员工日报汇总报告（周）",
       "status": "published",
@@ -1912,13 +1912,13 @@
           "请结合业务负责人反馈复核 AI 报告草稿。"
         ]
       },
-      "source_draft_id": 136,
+      "source_draft_id": 146,
       "date_start": "2026-06-01",
       "date_end": "2026-06-07",
       "department_id": 10,
       "created_by": 101,
       "published_by": 101,
-      "published_time": "2026-06-10T22:39:34"
+      "published_time": "2026-06-11T09:27:49"
     },
     "trace_id": null
   }
@@ -1931,7 +1931,7 @@
 ```json
 {
   "method": "POST",
-  "url": "/api/v1/reports/81/exports",
+  "url": "/api/v1/reports/91/exports",
   "headers": {
     "X-User-Id": "101",
     "X-User-Role": "admin",
@@ -1954,11 +1954,11 @@
     "code": 0,
     "message": "success",
     "data": {
-      "id": 159,
-      "report_id": 81,
+      "id": 179,
+      "report_id": 91,
       "export_type": "word",
-      "file_name": "RP-20260610223933-ad3841d6.docx",
-      "file_path": "storage\\reports\\RP-20260610223933-ad3841d6.docx",
+      "file_name": "RP-20260611092748-43e8e368.docx",
+      "file_path": "storage\\reports\\RP-20260611092748-43e8e368.docx",
       "status": "success",
       "error_message": null
     },
@@ -1973,7 +1973,7 @@
 ```json
 {
   "method": "GET",
-  "url": "/api/v1/reports/exports/159/download",
+  "url": "/api/v1/reports/exports/179/download",
   "headers": {
     "X-User-Id": "101",
     "X-User-Role": "admin",
@@ -1987,14 +1987,14 @@
 {
   "status_code": 200,
   "headers": {
-    "content-type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-    "content-disposition": "attachment; filename=\"RP-20260610223933-ad3841d6.docx\"",
-    "content-length": "37001"
+    "content-length": "37001",
+    "content-disposition": "attachment; filename=\"RP-20260611092748-43e8e368.docx\"",
+    "content-type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
   },
   "binary": {
     "size_bytes": 37001,
-    "sha256": "b95a80b4e47b09062f600b3eb695c187467151768f7aae8869b1709e8155c1b9",
-    "first_16_bytes_hex": "504b0304140000000800f0b4ca5cad52"
+    "sha256": "82e55f0f7118a788d69e6396c505227dce1ad42451f0d9f50982c8c0f1ebf7ca",
+    "first_16_bytes_hex": "504b0304140000000800784bcb5cad52"
   }
 }
 ```
@@ -2005,7 +2005,7 @@
 ```json
 {
   "method": "POST",
-  "url": "/api/v1/reports/81/exports",
+  "url": "/api/v1/reports/91/exports",
   "headers": {
     "X-User-Id": "101",
     "X-User-Role": "admin",
@@ -2028,11 +2028,11 @@
     "code": 0,
     "message": "success",
     "data": {
-      "id": 160,
-      "report_id": 81,
+      "id": 180,
+      "report_id": 91,
       "export_type": "pdf",
-      "file_name": "RP-20260610223933-ad3841d6.pdf",
-      "file_path": "storage\\reports\\RP-20260610223933-ad3841d6.pdf",
+      "file_name": "RP-20260611092748-43e8e368.pdf",
+      "file_path": "storage\\reports\\RP-20260611092748-43e8e368.pdf",
       "status": "success",
       "error_message": null
     },
@@ -2047,7 +2047,7 @@
 ```json
 {
   "method": "GET",
-  "url": "/api/v1/reports/exports/160/download",
+  "url": "/api/v1/reports/exports/180/download",
   "headers": {
     "X-User-Id": "101",
     "X-User-Role": "admin",
@@ -2061,13 +2061,13 @@
 {
   "status_code": 200,
   "headers": {
-    "content-type": "application/pdf",
-    "content-disposition": "attachment; filename=\"RP-20260610223933-ad3841d6.pdf\"",
-    "content-length": "3784"
+    "content-length": "3784",
+    "content-disposition": "attachment; filename=\"RP-20260611092748-43e8e368.pdf\"",
+    "content-type": "application/pdf"
   },
   "binary": {
     "size_bytes": 3784,
-    "sha256": "cc9da0bfc694ff63e90c619f0685262a2904eae6e4803718a61ca8ad77145553",
+    "sha256": "48e76c06e2f738a0fcb661ce33b84ca095bd06f3b710d9bce7ecc50727047de5",
     "first_16_bytes_hex": "255044462d312e340a25938c8b9e2052"
   }
 }
@@ -2173,8 +2173,8 @@
     "code": 0,
     "message": "success",
     "data": {
-      "id": 137,
-      "draft_no": "DR-20260610223933-c75e2deb",
+      "id": 147,
+      "draft_no": "DR-20260611092749-5ee81a30",
       "status": "pending_confirm",
       "content_json": {
         "risks": [],
@@ -2270,7 +2270,7 @@
 ```json
 {
   "method": "POST",
-  "url": "/api/v1/reports/drafts/137/confirm",
+  "url": "/api/v1/reports/drafts/147/confirm",
   "headers": {
     "X-User-Id": "101",
     "X-User-Role": "admin",
@@ -2291,8 +2291,8 @@
     "code": 0,
     "message": "success",
     "data": {
-      "id": 82,
-      "report_no": "RP-20260610223934-928611a0",
+      "id": 92,
+      "report_no": "RP-20260611092749-410c73b4",
       "report_type": "student_psych_weekly",
       "title": "学生心理健康周报",
       "status": "confirmed",
@@ -2377,7 +2377,7 @@
           "请结合业务负责人反馈复核 AI 报告草稿。"
         ]
       },
-      "source_draft_id": 137,
+      "source_draft_id": 147,
       "date_start": "2026-06-01",
       "date_end": "2026-06-07",
       "department_id": 10,
@@ -2396,7 +2396,7 @@
 ```json
 {
   "method": "POST",
-  "url": "/api/v1/reports/82/publish",
+  "url": "/api/v1/reports/92/publish",
   "headers": {
     "X-User-Id": "101",
     "X-User-Role": "admin",
@@ -2417,8 +2417,8 @@
     "code": 0,
     "message": "success",
     "data": {
-      "id": 82,
-      "report_no": "RP-20260610223934-928611a0",
+      "id": 92,
+      "report_no": "RP-20260611092749-410c73b4",
       "report_type": "student_psych_weekly",
       "title": "学生心理健康周报",
       "status": "published",
@@ -2503,13 +2503,13 @@
           "请结合业务负责人反馈复核 AI 报告草稿。"
         ]
       },
-      "source_draft_id": 137,
+      "source_draft_id": 147,
       "date_start": "2026-06-01",
       "date_end": "2026-06-07",
       "department_id": 10,
       "created_by": 101,
       "published_by": 101,
-      "published_time": "2026-06-10T22:39:34"
+      "published_time": "2026-06-11T09:27:49"
     },
     "trace_id": null
   }
@@ -2522,7 +2522,7 @@
 ```json
 {
   "method": "POST",
-  "url": "/api/v1/reports/82/exports",
+  "url": "/api/v1/reports/92/exports",
   "headers": {
     "X-User-Id": "101",
     "X-User-Role": "admin",
@@ -2545,11 +2545,11 @@
     "code": 0,
     "message": "success",
     "data": {
-      "id": 161,
-      "report_id": 82,
+      "id": 181,
+      "report_id": 92,
       "export_type": "word",
-      "file_name": "RP-20260610223934-928611a0.docx",
-      "file_path": "storage\\reports\\RP-20260610223934-928611a0.docx",
+      "file_name": "RP-20260611092749-410c73b4.docx",
+      "file_path": "storage\\reports\\RP-20260611092749-410c73b4.docx",
       "status": "success",
       "error_message": null
     },
@@ -2564,7 +2564,7 @@
 ```json
 {
   "method": "GET",
-  "url": "/api/v1/reports/exports/161/download",
+  "url": "/api/v1/reports/exports/181/download",
   "headers": {
     "X-User-Id": "101",
     "X-User-Role": "admin",
@@ -2578,14 +2578,14 @@
 {
   "status_code": 200,
   "headers": {
-    "content-type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-    "content-disposition": "attachment; filename=\"RP-20260610223934-928611a0.docx\"",
-    "content-length": "37046"
+    "content-length": "37046",
+    "content-disposition": "attachment; filename=\"RP-20260611092749-410c73b4.docx\"",
+    "content-type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
   },
   "binary": {
     "size_bytes": 37046,
-    "sha256": "e954ff3ff43d460f807b601e37802a674bdd576fcde3b3de3722ee9a952a069b",
-    "first_16_bytes_hex": "504b0304140000000800f1b4ca5cad52"
+    "sha256": "9d07d755686d317b4372b536798daec278d0bf3ef8c3e06d3fde8ee79a5aba83",
+    "first_16_bytes_hex": "504b0304140000000800784bcb5cad52"
   }
 }
 ```
@@ -2596,7 +2596,7 @@
 ```json
 {
   "method": "POST",
-  "url": "/api/v1/reports/82/exports",
+  "url": "/api/v1/reports/92/exports",
   "headers": {
     "X-User-Id": "101",
     "X-User-Role": "admin",
@@ -2619,11 +2619,11 @@
     "code": 0,
     "message": "success",
     "data": {
-      "id": 162,
-      "report_id": 82,
+      "id": 182,
+      "report_id": 92,
       "export_type": "pdf",
-      "file_name": "RP-20260610223934-928611a0.pdf",
-      "file_path": "storage\\reports\\RP-20260610223934-928611a0.pdf",
+      "file_name": "RP-20260611092749-410c73b4.pdf",
+      "file_path": "storage\\reports\\RP-20260611092749-410c73b4.pdf",
       "status": "success",
       "error_message": null
     },
@@ -2638,7 +2638,7 @@
 ```json
 {
   "method": "GET",
-  "url": "/api/v1/reports/exports/162/download",
+  "url": "/api/v1/reports/exports/182/download",
   "headers": {
     "X-User-Id": "101",
     "X-User-Role": "admin",
@@ -2652,13 +2652,13 @@
 {
   "status_code": 200,
   "headers": {
-    "content-type": "application/pdf",
-    "content-disposition": "attachment; filename=\"RP-20260610223934-928611a0.pdf\"",
-    "content-length": "3864"
+    "content-length": "3864",
+    "content-disposition": "attachment; filename=\"RP-20260611092749-410c73b4.pdf\"",
+    "content-type": "application/pdf"
   },
   "binary": {
     "size_bytes": 3864,
-    "sha256": "17c29adf65cfd50104db0330da8db2044dac884ba53a762a3a1692240ab2ff58",
+    "sha256": "dd430549eaa1a17fdbcf8801a9cdbede920d5448b48707ff9fc067daa40d61a0",
     "first_16_bytes_hex": "255044462d312e340a25938c8b9e2052"
   }
 }
@@ -2769,11 +2769,11 @@
 
 ```json
 {
-  "ai_draft": 137,
-  "ai_report": 82,
-  "report_export_record": 162,
-  "audit_log": 625,
-  "ai_tool_call_log": 128
+  "ai_draft": 147,
+  "ai_report": 92,
+  "report_export_record": 182,
+  "audit_log": 695,
+  "ai_tool_call_log": 143
 }
 ```
 
@@ -2784,7 +2784,7 @@
 
 ## real-dify 阶段
 
-- 执行时间：`2026-06-10 22:39:38`
+- 执行时间：`2026-06-11 09:27:53`
 - 后端地址：`http://127.0.0.1:18000`
 - 数据库：`mysql+pymysql://127.0.0.1:3306/education_service_ai_test`
 - AI Tools Secret：`已配置`
@@ -2870,64 +2870,66 @@
 {
   "status_code": 200,
   "headers": {
-    "content-length": "1756",
+    "content-length": "1910",
     "content-type": "application/json"
   },
   "json": {
     "code": 0,
     "message": "success",
     "data": {
-      "id": 138,
-      "draft_no": "DR-20260610223950-a40056e0",
+      "id": 148,
+      "draft_no": "DR-20260611092806-2b9facad",
       "status": "pending_confirm",
       "content_json": {
-        "risks": [],
-        "title": "投诉处理周报（2026-06-01至2026-06-07）",
+        "risks": [
+          "待处理与处理中工单各占1件，需持续关注处理时效，避免转为超期工单。"
+        ],
+        "title": "投诉处理周报（部门10）",
         "filters": {
           "date_end": "2026-06-07",
           "date_start": "2026-06-01",
           "department_id": 10,
           "owner_user_id": null
         },
-        "summary": "本周（2026-06-01至2026-06-07）部门10共收到投诉工单3件，其中待处理1件、处理中1件、已解决1件。",
+        "summary": "2026年6月1日至6月7日，部门10共收到投诉工单3件，其中待处理1件、处理中1件、已解决1件，整体处理进度正常。",
         "sections": [
           {
-            "content": "本周投诉工单总计3件，各状态分布均匀。",
-            "heading": "总体概况",
+            "content": "本周部门10投诉工单总量为3件，覆盖待处理、处理中及已解决三个状态，工单流转情况清晰，暂无积压异常。",
+            "heading": "整体概况",
             "metrics": [
               {
-                "name": "总工单数",
+                "name": "投诉工单总数",
                 "value": "3"
               },
               {
-                "name": "待处理工单数",
+                "name": "待处理",
                 "value": "1"
               },
               {
-                "name": "处理中工单数",
+                "name": "处理中",
                 "value": "1"
               },
               {
-                "name": "已解决工单数",
+                "name": "已解决",
                 "value": "1"
               }
             ]
           },
           {
-            "content": "待处理、处理中、已解决各占三分之一，需关注待处理工单的及时响应与处理中工单的推进。",
+            "content": "按状态统计，待处理工单1件（占比33.3%），处理中工单1件（占比33.3%），已解决工单1件（占比33.3%），各状态分布均衡。",
             "heading": "工单状态分布",
             "metrics": [
               {
                 "name": "待处理占比",
-                "value": "33.33%"
+                "value": "33.3%"
               },
               {
                 "name": "处理中占比",
-                "value": "33.33%"
+                "value": "33.3%"
               },
               {
                 "name": "已解决占比",
-                "value": "33.33%"
+                "value": "33.3%"
               }
             ]
           }
@@ -2947,10 +2949,11 @@
           "total_tickets": 3
         },
         "source_refs": [
-          "数据来源：query_report_source_data，投诉工单表（complaint_tickets），口径说明：工单状态按系统定义（pending=待处理，processing=处理中，resolved=已解决）。"
+          "query_report_source_data",
+          "数据表：complaint_tickets，口径：按工单状态统计部门10的投诉工单数量，时间范围2026-06-01至2026-06-07"
         ],
         "recommendations": [
-          "建议优先处理待处理的1件工单，避免超时；同时跟进处理中的工单，确保按时结案。"
+          "建议优先处理待办工单，并跟进处理中工单的进展，确保本周内全部闭环。"
         ],
         "tool_status_code": 200,
         "tool_call_success": true
@@ -2968,7 +2971,7 @@
 ```json
 {
   "method": "POST",
-  "url": "/api/v1/reports/drafts/138/confirm",
+  "url": "/api/v1/reports/drafts/148/confirm",
   "headers": {
     "X-User-Id": "101",
     "X-User-Role": "admin",
@@ -2982,66 +2985,68 @@
 {
   "status_code": 200,
   "headers": {
-    "content-length": "1927",
+    "content-length": "2066",
     "content-type": "application/json"
   },
   "json": {
     "code": 0,
     "message": "success",
     "data": {
-      "id": 83,
-      "report_no": "RP-20260610223950-d9c4b6db",
+      "id": 93,
+      "report_no": "RP-20260611092806-1b9c56b3",
       "report_type": "complaint_weekly",
-      "title": "投诉处理周报（2026-06-01至2026-06-07）",
+      "title": "投诉处理周报（部门10）",
       "status": "confirmed",
       "content_json": {
-        "risks": [],
-        "title": "投诉处理周报（2026-06-01至2026-06-07）",
+        "risks": [
+          "待处理与处理中工单各占1件，需持续关注处理时效，避免转为超期工单。"
+        ],
+        "title": "投诉处理周报（部门10）",
         "filters": {
           "date_end": "2026-06-07",
           "date_start": "2026-06-01",
           "department_id": 10,
           "owner_user_id": null
         },
-        "summary": "本周（2026-06-01至2026-06-07）部门10共收到投诉工单3件，其中待处理1件、处理中1件、已解决1件。",
+        "summary": "2026年6月1日至6月7日，部门10共收到投诉工单3件，其中待处理1件、处理中1件、已解决1件，整体处理进度正常。",
         "sections": [
           {
-            "content": "本周投诉工单总计3件，各状态分布均匀。",
-            "heading": "总体概况",
+            "content": "本周部门10投诉工单总量为3件，覆盖待处理、处理中及已解决三个状态，工单流转情况清晰，暂无积压异常。",
+            "heading": "整体概况",
             "metrics": [
               {
-                "name": "总工单数",
+                "name": "投诉工单总数",
                 "value": "3"
               },
               {
-                "name": "待处理工单数",
+                "name": "待处理",
                 "value": "1"
               },
               {
-                "name": "处理中工单数",
+                "name": "处理中",
                 "value": "1"
               },
               {
-                "name": "已解决工单数",
+                "name": "已解决",
                 "value": "1"
               }
             ]
           },
           {
-            "content": "待处理、处理中、已解决各占三分之一，需关注待处理工单的及时响应与处理中工单的推进。",
+            "content": "按状态统计，待处理工单1件（占比33.3%），处理中工单1件（占比33.3%），已解决工单1件（占比33.3%），各状态分布均衡。",
             "heading": "工单状态分布",
             "metrics": [
               {
                 "name": "待处理占比",
-                "value": "33.33%"
+                "value": "33.3%"
               },
               {
                 "name": "处理中占比",
-                "value": "33.33%"
+                "value": "33.3%"
               },
               {
                 "name": "已解决占比",
-                "value": "33.33%"
+                "value": "33.3%"
               }
             ]
           }
@@ -3061,15 +3066,16 @@
           "total_tickets": 3
         },
         "source_refs": [
-          "数据来源：query_report_source_data，投诉工单表（complaint_tickets），口径说明：工单状态按系统定义（pending=待处理，processing=处理中，resolved=已解决）。"
+          "query_report_source_data",
+          "数据表：complaint_tickets，口径：按工单状态统计部门10的投诉工单数量，时间范围2026-06-01至2026-06-07"
         ],
         "recommendations": [
-          "建议优先处理待处理的1件工单，避免超时；同时跟进处理中的工单，确保按时结案。"
+          "建议优先处理待办工单，并跟进处理中工单的进展，确保本周内全部闭环。"
         ],
         "tool_status_code": 200,
         "tool_call_success": true
       },
-      "source_draft_id": 138,
+      "source_draft_id": 148,
       "date_start": "2026-06-01",
       "date_end": "2026-06-07",
       "department_id": 10,
@@ -3088,7 +3094,7 @@
 ```json
 {
   "method": "POST",
-  "url": "/api/v1/reports/83/publish",
+  "url": "/api/v1/reports/93/publish",
   "headers": {
     "X-User-Id": "101",
     "X-User-Role": "admin",
@@ -3102,66 +3108,68 @@
 {
   "status_code": 200,
   "headers": {
-    "content-length": "1943",
+    "content-length": "2082",
     "content-type": "application/json"
   },
   "json": {
     "code": 0,
     "message": "success",
     "data": {
-      "id": 83,
-      "report_no": "RP-20260610223950-d9c4b6db",
+      "id": 93,
+      "report_no": "RP-20260611092806-1b9c56b3",
       "report_type": "complaint_weekly",
-      "title": "投诉处理周报（2026-06-01至2026-06-07）",
+      "title": "投诉处理周报（部门10）",
       "status": "published",
       "content_json": {
-        "risks": [],
-        "title": "投诉处理周报（2026-06-01至2026-06-07）",
+        "risks": [
+          "待处理与处理中工单各占1件，需持续关注处理时效，避免转为超期工单。"
+        ],
+        "title": "投诉处理周报（部门10）",
         "filters": {
           "date_end": "2026-06-07",
           "date_start": "2026-06-01",
           "department_id": 10,
           "owner_user_id": null
         },
-        "summary": "本周（2026-06-01至2026-06-07）部门10共收到投诉工单3件，其中待处理1件、处理中1件、已解决1件。",
+        "summary": "2026年6月1日至6月7日，部门10共收到投诉工单3件，其中待处理1件、处理中1件、已解决1件，整体处理进度正常。",
         "sections": [
           {
-            "content": "本周投诉工单总计3件，各状态分布均匀。",
-            "heading": "总体概况",
+            "content": "本周部门10投诉工单总量为3件，覆盖待处理、处理中及已解决三个状态，工单流转情况清晰，暂无积压异常。",
+            "heading": "整体概况",
             "metrics": [
               {
-                "name": "总工单数",
+                "name": "投诉工单总数",
                 "value": "3"
               },
               {
-                "name": "待处理工单数",
+                "name": "待处理",
                 "value": "1"
               },
               {
-                "name": "处理中工单数",
+                "name": "处理中",
                 "value": "1"
               },
               {
-                "name": "已解决工单数",
+                "name": "已解决",
                 "value": "1"
               }
             ]
           },
           {
-            "content": "待处理、处理中、已解决各占三分之一，需关注待处理工单的及时响应与处理中工单的推进。",
+            "content": "按状态统计，待处理工单1件（占比33.3%），处理中工单1件（占比33.3%），已解决工单1件（占比33.3%），各状态分布均衡。",
             "heading": "工单状态分布",
             "metrics": [
               {
                 "name": "待处理占比",
-                "value": "33.33%"
+                "value": "33.3%"
               },
               {
                 "name": "处理中占比",
-                "value": "33.33%"
+                "value": "33.3%"
               },
               {
                 "name": "已解决占比",
-                "value": "33.33%"
+                "value": "33.3%"
               }
             ]
           }
@@ -3181,21 +3189,22 @@
           "total_tickets": 3
         },
         "source_refs": [
-          "数据来源：query_report_source_data，投诉工单表（complaint_tickets），口径说明：工单状态按系统定义（pending=待处理，processing=处理中，resolved=已解决）。"
+          "query_report_source_data",
+          "数据表：complaint_tickets，口径：按工单状态统计部门10的投诉工单数量，时间范围2026-06-01至2026-06-07"
         ],
         "recommendations": [
-          "建议优先处理待处理的1件工单，避免超时；同时跟进处理中的工单，确保按时结案。"
+          "建议优先处理待办工单，并跟进处理中工单的进展，确保本周内全部闭环。"
         ],
         "tool_status_code": 200,
         "tool_call_success": true
       },
-      "source_draft_id": 138,
+      "source_draft_id": 148,
       "date_start": "2026-06-01",
       "date_end": "2026-06-07",
       "department_id": 10,
       "created_by": 101,
       "published_by": 101,
-      "published_time": "2026-06-10T22:39:51"
+      "published_time": "2026-06-11T09:28:07"
     },
     "trace_id": null
   }
@@ -3208,7 +3217,7 @@
 ```json
 {
   "method": "POST",
-  "url": "/api/v1/reports/83/exports",
+  "url": "/api/v1/reports/93/exports",
   "headers": {
     "X-User-Id": "101",
     "X-User-Role": "admin",
@@ -3231,11 +3240,11 @@
     "code": 0,
     "message": "success",
     "data": {
-      "id": 163,
-      "report_id": 83,
+      "id": 183,
+      "report_id": 93,
       "export_type": "word",
-      "file_name": "RP-20260610223950-d9c4b6db.docx",
-      "file_path": "storage\\reports\\RP-20260610223950-d9c4b6db.docx",
+      "file_name": "RP-20260611092806-1b9c56b3.docx",
+      "file_path": "storage\\reports\\RP-20260611092806-1b9c56b3.docx",
       "status": "success",
       "error_message": null
     },
@@ -3250,7 +3259,7 @@
 ```json
 {
   "method": "GET",
-  "url": "/api/v1/reports/exports/163/download",
+  "url": "/api/v1/reports/exports/183/download",
   "headers": {
     "X-User-Id": "101",
     "X-User-Role": "admin",
@@ -3264,14 +3273,14 @@
 {
   "status_code": 200,
   "headers": {
-    "content-type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-    "content-disposition": "attachment; filename=\"RP-20260610223950-d9c4b6db.docx\"",
-    "content-length": "37181"
+    "content-length": "37293",
+    "content-disposition": "attachment; filename=\"RP-20260611092806-1b9c56b3.docx\"",
+    "content-type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
   },
   "binary": {
-    "size_bytes": 37181,
-    "sha256": "eedaef407d9cccccc951750e9999e3b62a04c4ff8a6c3b8753dc8d5d1f6b413b",
-    "first_16_bytes_hex": "504b0304140000000800f9b4ca5cad52"
+    "size_bytes": 37293,
+    "sha256": "8eeaa94899d9f60caaecaa6faa6d8a631456fdb41778c251df4ee865185a1d6d",
+    "first_16_bytes_hex": "504b0304140000000800834bcb5cad52"
   }
 }
 ```
@@ -3282,7 +3291,7 @@
 ```json
 {
   "method": "POST",
-  "url": "/api/v1/reports/83/exports",
+  "url": "/api/v1/reports/93/exports",
   "headers": {
     "X-User-Id": "101",
     "X-User-Role": "admin",
@@ -3305,11 +3314,11 @@
     "code": 0,
     "message": "success",
     "data": {
-      "id": 164,
-      "report_id": 83,
+      "id": 184,
+      "report_id": 93,
       "export_type": "pdf",
-      "file_name": "RP-20260610223950-d9c4b6db.pdf",
-      "file_path": "storage\\reports\\RP-20260610223950-d9c4b6db.pdf",
+      "file_name": "RP-20260611092806-1b9c56b3.pdf",
+      "file_path": "storage\\reports\\RP-20260611092806-1b9c56b3.pdf",
       "status": "success",
       "error_message": null
     },
@@ -3324,7 +3333,7 @@
 ```json
 {
   "method": "GET",
-  "url": "/api/v1/reports/exports/164/download",
+  "url": "/api/v1/reports/exports/184/download",
   "headers": {
     "X-User-Id": "101",
     "X-User-Role": "admin",
@@ -3338,13 +3347,13 @@
 {
   "status_code": 200,
   "headers": {
-    "content-type": "application/pdf",
-    "content-disposition": "attachment; filename=\"RP-20260610223950-d9c4b6db.pdf\"",
-    "content-length": "4030"
+    "content-length": "4129",
+    "content-disposition": "attachment; filename=\"RP-20260611092806-1b9c56b3.pdf\"",
+    "content-type": "application/pdf"
   },
   "binary": {
-    "size_bytes": 4030,
-    "sha256": "825b57b1d3a916347f41d2170e4fd3ef1d5aa9c9700caa197d8c156de709dd8c",
+    "size_bytes": 4129,
+    "sha256": "914fc21610d2f8412ff022074d58c038574b78192db7458bae7d105ba7689d2c",
     "first_16_bytes_hex": "255044462d312e340a25938c8b9e2052"
   }
 }
@@ -3430,47 +3439,47 @@
 {
   "status_code": 200,
   "headers": {
-    "content-length": "1798",
+    "content-length": "1711",
     "content-type": "application/json"
   },
   "json": {
     "code": 0,
     "message": "success",
     "data": {
-      "id": 139,
-      "draft_no": "DR-20260610224000-39d7b7a1",
+      "id": 149,
+      "draft_no": "DR-20260611092813-ef94c69b",
       "status": "pending_confirm",
       "content_json": {
         "risks": [],
-        "title": "全域客户经营分析报告（2026-06-01 ~ 2026-06-07）",
+        "title": "全域客户经营分析报告（2026-06-01 至 2026-06-07）",
         "filters": {
           "date_end": "2026-06-07",
           "date_start": "2026-06-01",
           "department_id": 10,
           "owner_user_id": 102
         },
-        "summary": "本周期部门10负责人102共新增线索2条，完成客户分析2次，活动报名2次。整体运营指标偏低，需加强各环节推进。",
+        "summary": "本周新线索2条，客户分析记录2条，活动报名2次，整体运营数据规模较小，需关注增长策略。",
         "sections": [
           {
-            "content": "本周期新增线索2条，客户分析记录2次，表明对现有客户进行了跟进分析，但线索量有限，转化效率待提升。",
-            "heading": "客户获取与转化",
+            "content": "本周共获取新线索2条，主要集中在部门10，由负责人102跟进。线索量偏低，需加强多渠道引流。",
+            "heading": "新线索获取情况",
             "metrics": [
               {
-                "name": "新增线索",
-                "value": "2"
-              },
-              {
-                "name": "客户分析记录",
+                "name": "new_leads",
                 "value": "2"
               }
             ]
           },
           {
-            "content": "本周期活动报名2次，参与度较低，需加强活动推广力度和吸引力。",
-            "heading": "活动运营",
+            "content": "本周完成客户分析记录2条，客户分析工作持续推进；同时活动报名2次，线下/线上活动参与度尚需提升。",
+            "heading": "客户分析与活动参与",
             "metrics": [
               {
-                "name": "活动报名次数",
+                "name": "analysis_records",
+                "value": "2"
+              },
+              {
+                "name": "event_registrations",
                 "value": "2"
               }
             ]
@@ -3489,13 +3498,11 @@
           "event_registrations": 2
         },
         "source_refs": [
-          "数据来源：query_report_source_data 接口",
-          "口径说明：新增线索来自 customer_leads 表，客户分析来自 customer_analysis 表，活动报名来自 event_registrations 表，统计周期2026-06-01至2026-06-07，部门ID=10，负责人ID=102"
+          "数据来源：query_report_source_data，口径说明：customer_operation 数据表（部门10，负责人102，日期2026-06-01至2026-06-07）"
         ],
         "recommendations": [
-          "建议加大线索获取投入，拓展获客渠道",
-          "提高客户分析频率，深入挖掘客户需求",
-          "策划更多高吸引力活动，提升报名参与率"
+          "建议加大线索获取投入，拓展推广渠道（如社交媒体、合作方推荐）",
+          "针对当前线索量不足，可考虑优化客户画像，提升转化率"
         ],
         "tool_status_code": 200,
         "tool_call_success": true
@@ -3513,7 +3520,7 @@
 ```json
 {
   "method": "POST",
-  "url": "/api/v1/reports/drafts/139/confirm",
+  "url": "/api/v1/reports/drafts/149/confirm",
   "headers": {
     "X-User-Id": "101",
     "X-User-Role": "admin",
@@ -3527,49 +3534,49 @@
 {
   "status_code": 200,
   "headers": {
-    "content-length": "1979",
+    "content-length": "1894",
     "content-type": "application/json"
   },
   "json": {
     "code": 0,
     "message": "success",
     "data": {
-      "id": 84,
-      "report_no": "RP-20260610224000-a9d5fb85",
+      "id": 94,
+      "report_no": "RP-20260611092813-d3003e5f",
       "report_type": "customer_operation",
-      "title": "全域客户经营分析报告（2026-06-01 ~ 2026-06-07）",
+      "title": "全域客户经营分析报告（2026-06-01 至 2026-06-07）",
       "status": "confirmed",
       "content_json": {
         "risks": [],
-        "title": "全域客户经营分析报告（2026-06-01 ~ 2026-06-07）",
+        "title": "全域客户经营分析报告（2026-06-01 至 2026-06-07）",
         "filters": {
           "date_end": "2026-06-07",
           "date_start": "2026-06-01",
           "department_id": 10,
           "owner_user_id": 102
         },
-        "summary": "本周期部门10负责人102共新增线索2条，完成客户分析2次，活动报名2次。整体运营指标偏低，需加强各环节推进。",
+        "summary": "本周新线索2条，客户分析记录2条，活动报名2次，整体运营数据规模较小，需关注增长策略。",
         "sections": [
           {
-            "content": "本周期新增线索2条，客户分析记录2次，表明对现有客户进行了跟进分析，但线索量有限，转化效率待提升。",
-            "heading": "客户获取与转化",
+            "content": "本周共获取新线索2条，主要集中在部门10，由负责人102跟进。线索量偏低，需加强多渠道引流。",
+            "heading": "新线索获取情况",
             "metrics": [
               {
-                "name": "新增线索",
-                "value": "2"
-              },
-              {
-                "name": "客户分析记录",
+                "name": "new_leads",
                 "value": "2"
               }
             ]
           },
           {
-            "content": "本周期活动报名2次，参与度较低，需加强活动推广力度和吸引力。",
-            "heading": "活动运营",
+            "content": "本周完成客户分析记录2条，客户分析工作持续推进；同时活动报名2次，线下/线上活动参与度尚需提升。",
+            "heading": "客户分析与活动参与",
             "metrics": [
               {
-                "name": "活动报名次数",
+                "name": "analysis_records",
+                "value": "2"
+              },
+              {
+                "name": "event_registrations",
                 "value": "2"
               }
             ]
@@ -3588,18 +3595,16 @@
           "event_registrations": 2
         },
         "source_refs": [
-          "数据来源：query_report_source_data 接口",
-          "口径说明：新增线索来自 customer_leads 表，客户分析来自 customer_analysis 表，活动报名来自 event_registrations 表，统计周期2026-06-01至2026-06-07，部门ID=10，负责人ID=102"
+          "数据来源：query_report_source_data，口径说明：customer_operation 数据表（部门10，负责人102，日期2026-06-01至2026-06-07）"
         ],
         "recommendations": [
-          "建议加大线索获取投入，拓展获客渠道",
-          "提高客户分析频率，深入挖掘客户需求",
-          "策划更多高吸引力活动，提升报名参与率"
+          "建议加大线索获取投入，拓展推广渠道（如社交媒体、合作方推荐）",
+          "针对当前线索量不足，可考虑优化客户画像，提升转化率"
         ],
         "tool_status_code": 200,
         "tool_call_success": true
       },
-      "source_draft_id": 139,
+      "source_draft_id": 149,
       "date_start": "2026-06-01",
       "date_end": "2026-06-07",
       "department_id": 10,
@@ -3618,7 +3623,7 @@
 ```json
 {
   "method": "POST",
-  "url": "/api/v1/reports/84/publish",
+  "url": "/api/v1/reports/94/publish",
   "headers": {
     "X-User-Id": "101",
     "X-User-Role": "admin",
@@ -3632,49 +3637,49 @@
 {
   "status_code": 200,
   "headers": {
-    "content-length": "1995",
+    "content-length": "1910",
     "content-type": "application/json"
   },
   "json": {
     "code": 0,
     "message": "success",
     "data": {
-      "id": 84,
-      "report_no": "RP-20260610224000-a9d5fb85",
+      "id": 94,
+      "report_no": "RP-20260611092813-d3003e5f",
       "report_type": "customer_operation",
-      "title": "全域客户经营分析报告（2026-06-01 ~ 2026-06-07）",
+      "title": "全域客户经营分析报告（2026-06-01 至 2026-06-07）",
       "status": "published",
       "content_json": {
         "risks": [],
-        "title": "全域客户经营分析报告（2026-06-01 ~ 2026-06-07）",
+        "title": "全域客户经营分析报告（2026-06-01 至 2026-06-07）",
         "filters": {
           "date_end": "2026-06-07",
           "date_start": "2026-06-01",
           "department_id": 10,
           "owner_user_id": 102
         },
-        "summary": "本周期部门10负责人102共新增线索2条，完成客户分析2次，活动报名2次。整体运营指标偏低，需加强各环节推进。",
+        "summary": "本周新线索2条，客户分析记录2条，活动报名2次，整体运营数据规模较小，需关注增长策略。",
         "sections": [
           {
-            "content": "本周期新增线索2条，客户分析记录2次，表明对现有客户进行了跟进分析，但线索量有限，转化效率待提升。",
-            "heading": "客户获取与转化",
+            "content": "本周共获取新线索2条，主要集中在部门10，由负责人102跟进。线索量偏低，需加强多渠道引流。",
+            "heading": "新线索获取情况",
             "metrics": [
               {
-                "name": "新增线索",
-                "value": "2"
-              },
-              {
-                "name": "客户分析记录",
+                "name": "new_leads",
                 "value": "2"
               }
             ]
           },
           {
-            "content": "本周期活动报名2次，参与度较低，需加强活动推广力度和吸引力。",
-            "heading": "活动运营",
+            "content": "本周完成客户分析记录2条，客户分析工作持续推进；同时活动报名2次，线下/线上活动参与度尚需提升。",
+            "heading": "客户分析与活动参与",
             "metrics": [
               {
-                "name": "活动报名次数",
+                "name": "analysis_records",
+                "value": "2"
+              },
+              {
+                "name": "event_registrations",
                 "value": "2"
               }
             ]
@@ -3693,24 +3698,22 @@
           "event_registrations": 2
         },
         "source_refs": [
-          "数据来源：query_report_source_data 接口",
-          "口径说明：新增线索来自 customer_leads 表，客户分析来自 customer_analysis 表，活动报名来自 event_registrations 表，统计周期2026-06-01至2026-06-07，部门ID=10，负责人ID=102"
+          "数据来源：query_report_source_data，口径说明：customer_operation 数据表（部门10，负责人102，日期2026-06-01至2026-06-07）"
         ],
         "recommendations": [
-          "建议加大线索获取投入，拓展获客渠道",
-          "提高客户分析频率，深入挖掘客户需求",
-          "策划更多高吸引力活动，提升报名参与率"
+          "建议加大线索获取投入，拓展推广渠道（如社交媒体、合作方推荐）",
+          "针对当前线索量不足，可考虑优化客户画像，提升转化率"
         ],
         "tool_status_code": 200,
         "tool_call_success": true
       },
-      "source_draft_id": 139,
+      "source_draft_id": 149,
       "date_start": "2026-06-01",
       "date_end": "2026-06-07",
       "department_id": 10,
       "created_by": 101,
       "published_by": 101,
-      "published_time": "2026-06-10T22:40:01"
+      "published_time": "2026-06-11T09:28:14"
     },
     "trace_id": null
   }
@@ -3723,7 +3726,7 @@
 ```json
 {
   "method": "POST",
-  "url": "/api/v1/reports/84/exports",
+  "url": "/api/v1/reports/94/exports",
   "headers": {
     "X-User-Id": "101",
     "X-User-Role": "admin",
@@ -3746,11 +3749,11 @@
     "code": 0,
     "message": "success",
     "data": {
-      "id": 165,
-      "report_id": 84,
+      "id": 185,
+      "report_id": 94,
       "export_type": "word",
-      "file_name": "RP-20260610224000-a9d5fb85.docx",
-      "file_path": "storage\\reports\\RP-20260610224000-a9d5fb85.docx",
+      "file_name": "RP-20260611092813-d3003e5f.docx",
+      "file_path": "storage\\reports\\RP-20260611092813-d3003e5f.docx",
       "status": "success",
       "error_message": null
     },
@@ -3765,7 +3768,7 @@
 ```json
 {
   "method": "GET",
-  "url": "/api/v1/reports/exports/165/download",
+  "url": "/api/v1/reports/exports/185/download",
   "headers": {
     "X-User-Id": "101",
     "X-User-Role": "admin",
@@ -3779,14 +3782,14 @@
 {
   "status_code": 200,
   "headers": {
-    "content-type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-    "content-disposition": "attachment; filename=\"RP-20260610224000-a9d5fb85.docx\"",
-    "content-length": "37289"
+    "content-length": "37285",
+    "content-disposition": "attachment; filename=\"RP-20260611092813-d3003e5f.docx\"",
+    "content-type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
   },
   "binary": {
-    "size_bytes": 37289,
-    "sha256": "770b2151b060c5a5d2ccd54ab662381f6a27c70a2c2e50b8996578753f84d69e",
-    "first_16_bytes_hex": "504b030414000000080000b5ca5cad52"
+    "size_bytes": 37285,
+    "sha256": "6aa9fddebdeb204599db84e3667f9e093aa6f705f5fd5e9e25254b305c25e48f",
+    "first_16_bytes_hex": "504b0304140000000800864bcb5cad52"
   }
 }
 ```
@@ -3797,7 +3800,7 @@
 ```json
 {
   "method": "POST",
-  "url": "/api/v1/reports/84/exports",
+  "url": "/api/v1/reports/94/exports",
   "headers": {
     "X-User-Id": "101",
     "X-User-Role": "admin",
@@ -3820,11 +3823,11 @@
     "code": 0,
     "message": "success",
     "data": {
-      "id": 166,
-      "report_id": 84,
+      "id": 186,
+      "report_id": 94,
       "export_type": "pdf",
-      "file_name": "RP-20260610224000-a9d5fb85.pdf",
-      "file_path": "storage\\reports\\RP-20260610224000-a9d5fb85.pdf",
+      "file_name": "RP-20260611092813-d3003e5f.pdf",
+      "file_path": "storage\\reports\\RP-20260611092813-d3003e5f.pdf",
       "status": "success",
       "error_message": null
     },
@@ -3839,7 +3842,7 @@
 ```json
 {
   "method": "GET",
-  "url": "/api/v1/reports/exports/166/download",
+  "url": "/api/v1/reports/exports/186/download",
   "headers": {
     "X-User-Id": "101",
     "X-User-Role": "admin",
@@ -3853,13 +3856,13 @@
 {
   "status_code": 200,
   "headers": {
-    "content-type": "application/pdf",
-    "content-disposition": "attachment; filename=\"RP-20260610224000-a9d5fb85.pdf\"",
-    "content-length": "3959"
+    "content-length": "3983",
+    "content-disposition": "attachment; filename=\"RP-20260611092813-d3003e5f.pdf\"",
+    "content-type": "application/pdf"
   },
   "binary": {
-    "size_bytes": 3959,
-    "sha256": "95fe0d26546dd589f412c5b03f05de73959aa4911504b98b1c0fb4f33deaa993",
+    "size_bytes": 3983,
+    "sha256": "4eac7d879b41ecce46cab94451e0866aa1dcc0270e2321702056a25865bc170e",
     "first_16_bytes_hex": "255044462d312e340a25938c8b9e2052"
   }
 }
@@ -3949,19 +3952,19 @@
 {
   "status_code": 200,
   "headers": {
-    "content-length": "1922",
+    "content-length": "1902",
     "content-type": "application/json"
   },
   "json": {
     "code": 0,
     "message": "success",
     "data": {
-      "id": 140,
-      "draft_no": "DR-20260610224007-fbb3e6d9",
+      "id": 150,
+      "draft_no": "DR-20260611092822-71ffd10e",
       "status": "pending_confirm",
       "content_json": {
         "risks": [
-          "存在1份含风险提示的日报，需进一步确认具体内容及应对措施。"
+          "存在1份风险报告，需及时关注和处理。"
         ],
         "title": "员工日报汇总报告（2026-06-02）",
         "filters": {
@@ -3970,40 +3973,40 @@
           "department_id": 10,
           "owner_user_id": null
         },
-        "summary": "2026年6月2日，部门10共提交2份员工日报，其中草稿1份，归档1份。存在1份含风险提示的日报，并有1份包含明日计划。",
+        "summary": "本周期（2026-06-02）部门10共提交2份日报，其中已归档1份，草稿1份。包含1份风险报告，1份明日计划报告。",
         "sections": [
           {
-            "content": "截至当日，部门10共收到2份员工日报。已提交0份，草稿1份，归档1份。提交率为0%。",
-            "heading": "日报提交概览",
+            "content": "截至2026年6月2日，部门10共有2份日报记录，其中已归档1份，草稿状态1份，无已提交报告。草稿报告需尽快完成提交。",
+            "heading": "总体情况",
             "metrics": [
               {
-                "name": "总日报数",
+                "name": "总报告数",
                 "value": "2"
               },
               {
-                "name": "已提交日报",
+                "name": "已提交报告数",
                 "value": "0"
               },
               {
-                "name": "草稿日报",
+                "name": "草稿报告数",
                 "value": "1"
               },
               {
-                "name": "归档日报",
+                "name": "已归档报告数",
                 "value": "1"
               }
             ]
           },
           {
-            "content": "所有日报中，有1份标记了风险内容，1份包含明日工作计划。建议关注风险日报的后续处理。",
-            "heading": "风险与计划情况",
+            "content": "本期包含1份风险报告和1份明日计划报告，表明员工已识别潜在问题并有明日工作安排，但需关注风险报告的具体跟进与落实。",
+            "heading": "风险与明日计划",
             "metrics": [
               {
-                "name": "含风险日报数",
+                "name": "风险报告数",
                 "value": "1"
               },
               {
-                "name": "含明日计划日报数",
+                "name": "明日计划报告数",
                 "value": "1"
               }
             ]
@@ -4028,11 +4031,12 @@
           "tomorrow_plan_reports": 1
         },
         "source_refs": [
-          "query_report_source_data 表：employee_daily_summary，口径：统计当日部门10所有状态日报，不含删除数据。"
+          "query_report_source_data",
+          "员工日报表（employee_daily_summary）"
         ],
         "recommendations": [
-          "建议部门负责人审阅风险日报并跟进处理方案。",
-          "鼓励员工提前提交日报以避免草稿滞留。"
+          "督促草稿报告尽快提交归档。",
+          "对风险报告内容进行确认，必要时启动风险应对措施。"
         ],
         "tool_status_code": 200,
         "tool_call_success": true
@@ -4050,7 +4054,7 @@
 ```json
 {
   "method": "POST",
-  "url": "/api/v1/reports/drafts/140/confirm",
+  "url": "/api/v1/reports/drafts/150/confirm",
   "headers": {
     "X-User-Id": "101",
     "X-User-Role": "admin",
@@ -4064,21 +4068,21 @@
 {
   "status_code": 200,
   "headers": {
-    "content-length": "2080",
+    "content-length": "2060",
     "content-type": "application/json"
   },
   "json": {
     "code": 0,
     "message": "success",
     "data": {
-      "id": 85,
-      "report_no": "RP-20260610224007-71f9db43",
+      "id": 95,
+      "report_no": "RP-20260611092822-13276a5c",
       "report_type": "employee_daily_summary",
       "title": "员工日报汇总报告（2026-06-02）",
       "status": "confirmed",
       "content_json": {
         "risks": [
-          "存在1份含风险提示的日报，需进一步确认具体内容及应对措施。"
+          "存在1份风险报告，需及时关注和处理。"
         ],
         "title": "员工日报汇总报告（2026-06-02）",
         "filters": {
@@ -4087,40 +4091,40 @@
           "department_id": 10,
           "owner_user_id": null
         },
-        "summary": "2026年6月2日，部门10共提交2份员工日报，其中草稿1份，归档1份。存在1份含风险提示的日报，并有1份包含明日计划。",
+        "summary": "本周期（2026-06-02）部门10共提交2份日报，其中已归档1份，草稿1份。包含1份风险报告，1份明日计划报告。",
         "sections": [
           {
-            "content": "截至当日，部门10共收到2份员工日报。已提交0份，草稿1份，归档1份。提交率为0%。",
-            "heading": "日报提交概览",
+            "content": "截至2026年6月2日，部门10共有2份日报记录，其中已归档1份，草稿状态1份，无已提交报告。草稿报告需尽快完成提交。",
+            "heading": "总体情况",
             "metrics": [
               {
-                "name": "总日报数",
+                "name": "总报告数",
                 "value": "2"
               },
               {
-                "name": "已提交日报",
+                "name": "已提交报告数",
                 "value": "0"
               },
               {
-                "name": "草稿日报",
+                "name": "草稿报告数",
                 "value": "1"
               },
               {
-                "name": "归档日报",
+                "name": "已归档报告数",
                 "value": "1"
               }
             ]
           },
           {
-            "content": "所有日报中，有1份标记了风险内容，1份包含明日工作计划。建议关注风险日报的后续处理。",
-            "heading": "风险与计划情况",
+            "content": "本期包含1份风险报告和1份明日计划报告，表明员工已识别潜在问题并有明日工作安排，但需关注风险报告的具体跟进与落实。",
+            "heading": "风险与明日计划",
             "metrics": [
               {
-                "name": "含风险日报数",
+                "name": "风险报告数",
                 "value": "1"
               },
               {
-                "name": "含明日计划日报数",
+                "name": "明日计划报告数",
                 "value": "1"
               }
             ]
@@ -4145,16 +4149,17 @@
           "tomorrow_plan_reports": 1
         },
         "source_refs": [
-          "query_report_source_data 表：employee_daily_summary，口径：统计当日部门10所有状态日报，不含删除数据。"
+          "query_report_source_data",
+          "员工日报表（employee_daily_summary）"
         ],
         "recommendations": [
-          "建议部门负责人审阅风险日报并跟进处理方案。",
-          "鼓励员工提前提交日报以避免草稿滞留。"
+          "督促草稿报告尽快提交归档。",
+          "对风险报告内容进行确认，必要时启动风险应对措施。"
         ],
         "tool_status_code": 200,
         "tool_call_success": true
       },
-      "source_draft_id": 140,
+      "source_draft_id": 150,
       "date_start": "2026-06-02",
       "date_end": "2026-06-02",
       "department_id": 10,
@@ -4173,7 +4178,7 @@
 ```json
 {
   "method": "POST",
-  "url": "/api/v1/reports/85/publish",
+  "url": "/api/v1/reports/95/publish",
   "headers": {
     "X-User-Id": "101",
     "X-User-Role": "admin",
@@ -4187,21 +4192,21 @@
 {
   "status_code": 200,
   "headers": {
-    "content-length": "2096",
+    "content-length": "2076",
     "content-type": "application/json"
   },
   "json": {
     "code": 0,
     "message": "success",
     "data": {
-      "id": 85,
-      "report_no": "RP-20260610224007-71f9db43",
+      "id": 95,
+      "report_no": "RP-20260611092822-13276a5c",
       "report_type": "employee_daily_summary",
       "title": "员工日报汇总报告（2026-06-02）",
       "status": "published",
       "content_json": {
         "risks": [
-          "存在1份含风险提示的日报，需进一步确认具体内容及应对措施。"
+          "存在1份风险报告，需及时关注和处理。"
         ],
         "title": "员工日报汇总报告（2026-06-02）",
         "filters": {
@@ -4210,40 +4215,40 @@
           "department_id": 10,
           "owner_user_id": null
         },
-        "summary": "2026年6月2日，部门10共提交2份员工日报，其中草稿1份，归档1份。存在1份含风险提示的日报，并有1份包含明日计划。",
+        "summary": "本周期（2026-06-02）部门10共提交2份日报，其中已归档1份，草稿1份。包含1份风险报告，1份明日计划报告。",
         "sections": [
           {
-            "content": "截至当日，部门10共收到2份员工日报。已提交0份，草稿1份，归档1份。提交率为0%。",
-            "heading": "日报提交概览",
+            "content": "截至2026年6月2日，部门10共有2份日报记录，其中已归档1份，草稿状态1份，无已提交报告。草稿报告需尽快完成提交。",
+            "heading": "总体情况",
             "metrics": [
               {
-                "name": "总日报数",
+                "name": "总报告数",
                 "value": "2"
               },
               {
-                "name": "已提交日报",
+                "name": "已提交报告数",
                 "value": "0"
               },
               {
-                "name": "草稿日报",
+                "name": "草稿报告数",
                 "value": "1"
               },
               {
-                "name": "归档日报",
+                "name": "已归档报告数",
                 "value": "1"
               }
             ]
           },
           {
-            "content": "所有日报中，有1份标记了风险内容，1份包含明日工作计划。建议关注风险日报的后续处理。",
-            "heading": "风险与计划情况",
+            "content": "本期包含1份风险报告和1份明日计划报告，表明员工已识别潜在问题并有明日工作安排，但需关注风险报告的具体跟进与落实。",
+            "heading": "风险与明日计划",
             "metrics": [
               {
-                "name": "含风险日报数",
+                "name": "风险报告数",
                 "value": "1"
               },
               {
-                "name": "含明日计划日报数",
+                "name": "明日计划报告数",
                 "value": "1"
               }
             ]
@@ -4268,22 +4273,23 @@
           "tomorrow_plan_reports": 1
         },
         "source_refs": [
-          "query_report_source_data 表：employee_daily_summary，口径：统计当日部门10所有状态日报，不含删除数据。"
+          "query_report_source_data",
+          "员工日报表（employee_daily_summary）"
         ],
         "recommendations": [
-          "建议部门负责人审阅风险日报并跟进处理方案。",
-          "鼓励员工提前提交日报以避免草稿滞留。"
+          "督促草稿报告尽快提交归档。",
+          "对风险报告内容进行确认，必要时启动风险应对措施。"
         ],
         "tool_status_code": 200,
         "tool_call_success": true
       },
-      "source_draft_id": 140,
+      "source_draft_id": 150,
       "date_start": "2026-06-02",
       "date_end": "2026-06-02",
       "department_id": 10,
       "created_by": 101,
       "published_by": 101,
-      "published_time": "2026-06-10T22:40:07"
+      "published_time": "2026-06-11T09:28:23"
     },
     "trace_id": null
   }
@@ -4296,7 +4302,7 @@
 ```json
 {
   "method": "POST",
-  "url": "/api/v1/reports/85/exports",
+  "url": "/api/v1/reports/95/exports",
   "headers": {
     "X-User-Id": "101",
     "X-User-Role": "admin",
@@ -4319,11 +4325,11 @@
     "code": 0,
     "message": "success",
     "data": {
-      "id": 167,
-      "report_id": 85,
+      "id": 187,
+      "report_id": 95,
       "export_type": "word",
-      "file_name": "RP-20260610224007-71f9db43.docx",
-      "file_path": "storage\\reports\\RP-20260610224007-71f9db43.docx",
+      "file_name": "RP-20260611092822-13276a5c.docx",
+      "file_path": "storage\\reports\\RP-20260611092822-13276a5c.docx",
       "status": "success",
       "error_message": null
     },
@@ -4338,7 +4344,7 @@
 ```json
 {
   "method": "GET",
-  "url": "/api/v1/reports/exports/167/download",
+  "url": "/api/v1/reports/exports/187/download",
   "headers": {
     "X-User-Id": "101",
     "X-User-Role": "admin",
@@ -4352,14 +4358,14 @@
 {
   "status_code": 200,
   "headers": {
-    "content-type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-    "content-disposition": "attachment; filename=\"RP-20260610224007-71f9db43.docx\"",
-    "content-length": "37269"
+    "content-length": "37229",
+    "content-disposition": "attachment; filename=\"RP-20260611092822-13276a5c.docx\"",
+    "content-type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
   },
   "binary": {
-    "size_bytes": 37269,
-    "sha256": "7ef045e1c5251728684ca762b54de2fafe3c4e6a896b9d5b9e46f9a43a797720",
-    "first_16_bytes_hex": "504b030414000000080003b5ca5cad52"
+    "size_bytes": 37229,
+    "sha256": "cdb86fbef51eb25e1e93585eae8bcc8bc754454614291f95efed2260ee80372f",
+    "first_16_bytes_hex": "504b03041400000008008b4bcb5cad52"
   }
 }
 ```
@@ -4370,7 +4376,7 @@
 ```json
 {
   "method": "POST",
-  "url": "/api/v1/reports/85/exports",
+  "url": "/api/v1/reports/95/exports",
   "headers": {
     "X-User-Id": "101",
     "X-User-Role": "admin",
@@ -4393,11 +4399,11 @@
     "code": 0,
     "message": "success",
     "data": {
-      "id": 168,
-      "report_id": 85,
+      "id": 188,
+      "report_id": 95,
       "export_type": "pdf",
-      "file_name": "RP-20260610224007-71f9db43.pdf",
-      "file_path": "storage\\reports\\RP-20260610224007-71f9db43.pdf",
+      "file_name": "RP-20260611092822-13276a5c.pdf",
+      "file_path": "storage\\reports\\RP-20260611092822-13276a5c.pdf",
       "status": "success",
       "error_message": null
     },
@@ -4412,7 +4418,7 @@
 ```json
 {
   "method": "GET",
-  "url": "/api/v1/reports/exports/168/download",
+  "url": "/api/v1/reports/exports/188/download",
   "headers": {
     "X-User-Id": "101",
     "X-User-Role": "admin",
@@ -4426,13 +4432,13 @@
 {
   "status_code": 200,
   "headers": {
-    "content-type": "application/pdf",
-    "content-disposition": "attachment; filename=\"RP-20260610224007-71f9db43.pdf\"",
-    "content-length": "4165"
+    "content-length": "4126",
+    "content-disposition": "attachment; filename=\"RP-20260611092822-13276a5c.pdf\"",
+    "content-type": "application/pdf"
   },
   "binary": {
-    "size_bytes": 4165,
-    "sha256": "89108613f1e8ab775d1ba89b1b3be7750d1167e6bdc287d4898c7d5c9f550ab6",
+    "size_bytes": 4126,
+    "sha256": "38093d7e240df047748cc38fc0c04c5a7ba824cd3bf800152ab53edabcaba93b",
     "first_16_bytes_hex": "255044462d312e340a25938c8b9e2052"
   }
 }
@@ -4524,47 +4530,41 @@
 {
   "status_code": 200,
   "headers": {
-    "content-length": "2672",
+    "content-length": "2165",
     "content-type": "application/json"
   },
   "json": {
     "code": 0,
     "message": "success",
     "data": {
-      "id": 141,
-      "draft_no": "DR-20260610224020-746aad22",
+      "id": 151,
+      "draft_no": "DR-20260611092832-bc5d681c",
       "status": "pending_confirm",
       "content_json": {
         "risks": [
-          "本周共有2份风险报告，占比50%，需重点关注并跟进处理。"
+          "本周存在2份风险报告，占总提交数的50%，需及时跟进处理。"
         ],
-        "title": "员工日报汇总报告（周报）- 2026-06-01至2026-06-07",
+        "title": "员工日报周报（2026-06-01至2026-06-07）",
         "filters": {
           "date_end": "2026-06-07",
           "date_start": "2026-06-01",
           "department_id": 10,
           "owner_user_id": null
         },
-        "summary": "本周共收集员工日报4份，由2名员工提交。其中已提交2份，已归档1份，草稿1份。风险报告2份。",
+        "summary": "本周（2026-06-01至2026-06-07）共收到4份员工日报，涉及2名员工。其中2份已提交、1份归档、1份草稿。风险报告2份，需重点关注。",
         "sections": [
           {
-            "content": "本周（2026-06-01至2026-06-07）部门ID=10共有2名员工提交了4份日报，总提交率为2/2（全员提交）。",
-            "heading": "总体情况",
+            "content": "本周期内部门ID为10的员工共提交了4份日报，参与员工2人。日报状态分布为：已提交2份、已归档1份、草稿1份。每日提交趋势显示6月1日和6月2日各有2份日报提交。",
+            "heading": "总体概况",
             "metrics": [
               {
-                "name": "总报告数",
+                "name": "总提交数",
                 "value": "4"
               },
               {
                 "name": "提交员工数",
                 "value": "2"
-              }
-            ]
-          },
-          {
-            "content": "在4份日报中，已提交状态2份，已归档状态1份，草稿状态1份。其中已提交和已归档的合计3份，代表了已完成填报的报告。",
-            "heading": "报告提交状态",
-            "metrics": [
+              },
               {
                 "name": "已提交",
                 "value": "2"
@@ -4580,25 +4580,19 @@
             ]
           },
           {
-            "content": "本周仅有2026-06-01和2026-06-02两日有提交记录，各提交2份。后续日期未出现提交行为，请关注员工是否按规定每日填报。",
-            "heading": "每日提交趋势",
+            "content": "本周存在2份风险报告，占提交总量的50%。每日提交量集中在周一（6月1日）和周二（6月2日），后续无新增提交。建议关注风险报告的后续处理。",
+            "heading": "风险报告与趋势",
             "metrics": [
+              {
+                "name": "风险报告数",
+                "value": "2"
+              },
               {
                 "name": "2026-06-01提交数",
                 "value": "2"
               },
               {
                 "name": "2026-06-02提交数",
-                "value": "2"
-              }
-            ]
-          },
-          {
-            "content": "本周共有2份日报被标记为风险报告，占报告总数的50%。请相关部门及时处理风险事项。",
-            "heading": "风险报告情况",
-            "metrics": [
-              {
-                "name": "风险报告数",
                 "value": "2"
               }
             ]
@@ -4625,14 +4619,11 @@
           "distinct_employees": 2
         },
         "source_refs": [
-          "数据来源：query_report_source_data 工具，数据表为员工日报汇总表（department_id=10）。",
-          "统计口径：报告周期2026-06-01至2026-06-07，不含未提交日期的默认值。",
-          "状态计数基于最终提交状态，不含临时保存记录。"
+          "query_report_source_data：employee_daily_reports 表，筛选部门ID=10，日期范围2026-06-01至2026-06-07，不按负责人筛选。"
         ],
         "recommendations": [
-          "建议督促员工在每日规定时间内完成日报填报，避免集中某几天提交。",
-          "对于草稿状态的1份报告，提醒员工尽快提交或归档。",
-          "针对风险报告中的具体事项，建议相关责任人限期反馈处理进展。"
+          "建议对风险报告逐条复盘，记录解决方案。",
+          "鼓励未提交日报的员工按时完成提交。"
         ],
         "tool_status_code": 200,
         "tool_call_success": true
@@ -4650,7 +4641,7 @@
 ```json
 {
   "method": "POST",
-  "url": "/api/v1/reports/drafts/141/confirm",
+  "url": "/api/v1/reports/drafts/151/confirm",
   "headers": {
     "X-User-Id": "101",
     "X-User-Role": "admin",
@@ -4664,49 +4655,43 @@
 {
   "status_code": 200,
   "headers": {
-    "content-length": "2850",
+    "content-length": "2329",
     "content-type": "application/json"
   },
   "json": {
     "code": 0,
     "message": "success",
     "data": {
-      "id": 86,
-      "report_no": "RP-20260610224020-e262de8d",
+      "id": 96,
+      "report_no": "RP-20260611092832-5fe7d66f",
       "report_type": "employee_weekly_summary",
-      "title": "员工日报汇总报告（周报）- 2026-06-01至2026-06-07",
+      "title": "员工日报周报（2026-06-01至2026-06-07）",
       "status": "confirmed",
       "content_json": {
         "risks": [
-          "本周共有2份风险报告，占比50%，需重点关注并跟进处理。"
+          "本周存在2份风险报告，占总提交数的50%，需及时跟进处理。"
         ],
-        "title": "员工日报汇总报告（周报）- 2026-06-01至2026-06-07",
+        "title": "员工日报周报（2026-06-01至2026-06-07）",
         "filters": {
           "date_end": "2026-06-07",
           "date_start": "2026-06-01",
           "department_id": 10,
           "owner_user_id": null
         },
-        "summary": "本周共收集员工日报4份，由2名员工提交。其中已提交2份，已归档1份，草稿1份。风险报告2份。",
+        "summary": "本周（2026-06-01至2026-06-07）共收到4份员工日报，涉及2名员工。其中2份已提交、1份归档、1份草稿。风险报告2份，需重点关注。",
         "sections": [
           {
-            "content": "本周（2026-06-01至2026-06-07）部门ID=10共有2名员工提交了4份日报，总提交率为2/2（全员提交）。",
-            "heading": "总体情况",
+            "content": "本周期内部门ID为10的员工共提交了4份日报，参与员工2人。日报状态分布为：已提交2份、已归档1份、草稿1份。每日提交趋势显示6月1日和6月2日各有2份日报提交。",
+            "heading": "总体概况",
             "metrics": [
               {
-                "name": "总报告数",
+                "name": "总提交数",
                 "value": "4"
               },
               {
                 "name": "提交员工数",
                 "value": "2"
-              }
-            ]
-          },
-          {
-            "content": "在4份日报中，已提交状态2份，已归档状态1份，草稿状态1份。其中已提交和已归档的合计3份，代表了已完成填报的报告。",
-            "heading": "报告提交状态",
-            "metrics": [
+              },
               {
                 "name": "已提交",
                 "value": "2"
@@ -4722,25 +4707,19 @@
             ]
           },
           {
-            "content": "本周仅有2026-06-01和2026-06-02两日有提交记录，各提交2份。后续日期未出现提交行为，请关注员工是否按规定每日填报。",
-            "heading": "每日提交趋势",
+            "content": "本周存在2份风险报告，占提交总量的50%。每日提交量集中在周一（6月1日）和周二（6月2日），后续无新增提交。建议关注风险报告的后续处理。",
+            "heading": "风险报告与趋势",
             "metrics": [
+              {
+                "name": "风险报告数",
+                "value": "2"
+              },
               {
                 "name": "2026-06-01提交数",
                 "value": "2"
               },
               {
                 "name": "2026-06-02提交数",
-                "value": "2"
-              }
-            ]
-          },
-          {
-            "content": "本周共有2份日报被标记为风险报告，占报告总数的50%。请相关部门及时处理风险事项。",
-            "heading": "风险报告情况",
-            "metrics": [
-              {
-                "name": "风险报告数",
                 "value": "2"
               }
             ]
@@ -4767,19 +4746,16 @@
           "distinct_employees": 2
         },
         "source_refs": [
-          "数据来源：query_report_source_data 工具，数据表为员工日报汇总表（department_id=10）。",
-          "统计口径：报告周期2026-06-01至2026-06-07，不含未提交日期的默认值。",
-          "状态计数基于最终提交状态，不含临时保存记录。"
+          "query_report_source_data：employee_daily_reports 表，筛选部门ID=10，日期范围2026-06-01至2026-06-07，不按负责人筛选。"
         ],
         "recommendations": [
-          "建议督促员工在每日规定时间内完成日报填报，避免集中某几天提交。",
-          "对于草稿状态的1份报告，提醒员工尽快提交或归档。",
-          "针对风险报告中的具体事项，建议相关责任人限期反馈处理进展。"
+          "建议对风险报告逐条复盘，记录解决方案。",
+          "鼓励未提交日报的员工按时完成提交。"
         ],
         "tool_status_code": 200,
         "tool_call_success": true
       },
-      "source_draft_id": 141,
+      "source_draft_id": 151,
       "date_start": "2026-06-01",
       "date_end": "2026-06-07",
       "department_id": 10,
@@ -4798,7 +4774,7 @@
 ```json
 {
   "method": "POST",
-  "url": "/api/v1/reports/86/publish",
+  "url": "/api/v1/reports/96/publish",
   "headers": {
     "X-User-Id": "101",
     "X-User-Role": "admin",
@@ -4812,49 +4788,43 @@
 {
   "status_code": 200,
   "headers": {
-    "content-length": "2866",
+    "content-length": "2345",
     "content-type": "application/json"
   },
   "json": {
     "code": 0,
     "message": "success",
     "data": {
-      "id": 86,
-      "report_no": "RP-20260610224020-e262de8d",
+      "id": 96,
+      "report_no": "RP-20260611092832-5fe7d66f",
       "report_type": "employee_weekly_summary",
-      "title": "员工日报汇总报告（周报）- 2026-06-01至2026-06-07",
+      "title": "员工日报周报（2026-06-01至2026-06-07）",
       "status": "published",
       "content_json": {
         "risks": [
-          "本周共有2份风险报告，占比50%，需重点关注并跟进处理。"
+          "本周存在2份风险报告，占总提交数的50%，需及时跟进处理。"
         ],
-        "title": "员工日报汇总报告（周报）- 2026-06-01至2026-06-07",
+        "title": "员工日报周报（2026-06-01至2026-06-07）",
         "filters": {
           "date_end": "2026-06-07",
           "date_start": "2026-06-01",
           "department_id": 10,
           "owner_user_id": null
         },
-        "summary": "本周共收集员工日报4份，由2名员工提交。其中已提交2份，已归档1份，草稿1份。风险报告2份。",
+        "summary": "本周（2026-06-01至2026-06-07）共收到4份员工日报，涉及2名员工。其中2份已提交、1份归档、1份草稿。风险报告2份，需重点关注。",
         "sections": [
           {
-            "content": "本周（2026-06-01至2026-06-07）部门ID=10共有2名员工提交了4份日报，总提交率为2/2（全员提交）。",
-            "heading": "总体情况",
+            "content": "本周期内部门ID为10的员工共提交了4份日报，参与员工2人。日报状态分布为：已提交2份、已归档1份、草稿1份。每日提交趋势显示6月1日和6月2日各有2份日报提交。",
+            "heading": "总体概况",
             "metrics": [
               {
-                "name": "总报告数",
+                "name": "总提交数",
                 "value": "4"
               },
               {
                 "name": "提交员工数",
                 "value": "2"
-              }
-            ]
-          },
-          {
-            "content": "在4份日报中，已提交状态2份，已归档状态1份，草稿状态1份。其中已提交和已归档的合计3份，代表了已完成填报的报告。",
-            "heading": "报告提交状态",
-            "metrics": [
+              },
               {
                 "name": "已提交",
                 "value": "2"
@@ -4870,25 +4840,19 @@
             ]
           },
           {
-            "content": "本周仅有2026-06-01和2026-06-02两日有提交记录，各提交2份。后续日期未出现提交行为，请关注员工是否按规定每日填报。",
-            "heading": "每日提交趋势",
+            "content": "本周存在2份风险报告，占提交总量的50%。每日提交量集中在周一（6月1日）和周二（6月2日），后续无新增提交。建议关注风险报告的后续处理。",
+            "heading": "风险报告与趋势",
             "metrics": [
+              {
+                "name": "风险报告数",
+                "value": "2"
+              },
               {
                 "name": "2026-06-01提交数",
                 "value": "2"
               },
               {
                 "name": "2026-06-02提交数",
-                "value": "2"
-              }
-            ]
-          },
-          {
-            "content": "本周共有2份日报被标记为风险报告，占报告总数的50%。请相关部门及时处理风险事项。",
-            "heading": "风险报告情况",
-            "metrics": [
-              {
-                "name": "风险报告数",
                 "value": "2"
               }
             ]
@@ -4915,25 +4879,22 @@
           "distinct_employees": 2
         },
         "source_refs": [
-          "数据来源：query_report_source_data 工具，数据表为员工日报汇总表（department_id=10）。",
-          "统计口径：报告周期2026-06-01至2026-06-07，不含未提交日期的默认值。",
-          "状态计数基于最终提交状态，不含临时保存记录。"
+          "query_report_source_data：employee_daily_reports 表，筛选部门ID=10，日期范围2026-06-01至2026-06-07，不按负责人筛选。"
         ],
         "recommendations": [
-          "建议督促员工在每日规定时间内完成日报填报，避免集中某几天提交。",
-          "对于草稿状态的1份报告，提醒员工尽快提交或归档。",
-          "针对风险报告中的具体事项，建议相关责任人限期反馈处理进展。"
+          "建议对风险报告逐条复盘，记录解决方案。",
+          "鼓励未提交日报的员工按时完成提交。"
         ],
         "tool_status_code": 200,
         "tool_call_success": true
       },
-      "source_draft_id": 141,
+      "source_draft_id": 151,
       "date_start": "2026-06-01",
       "date_end": "2026-06-07",
       "department_id": 10,
       "created_by": 101,
       "published_by": 101,
-      "published_time": "2026-06-10T22:40:20"
+      "published_time": "2026-06-11T09:28:33"
     },
     "trace_id": null
   }
@@ -4946,7 +4907,7 @@
 ```json
 {
   "method": "POST",
-  "url": "/api/v1/reports/86/exports",
+  "url": "/api/v1/reports/96/exports",
   "headers": {
     "X-User-Id": "101",
     "X-User-Role": "admin",
@@ -4969,11 +4930,11 @@
     "code": 0,
     "message": "success",
     "data": {
-      "id": 169,
-      "report_id": 86,
+      "id": 189,
+      "report_id": 96,
       "export_type": "word",
-      "file_name": "RP-20260610224020-e262de8d.docx",
-      "file_path": "storage\\reports\\RP-20260610224020-e262de8d.docx",
+      "file_name": "RP-20260611092832-5fe7d66f.docx",
+      "file_path": "storage\\reports\\RP-20260611092832-5fe7d66f.docx",
       "status": "success",
       "error_message": null
     },
@@ -4988,7 +4949,7 @@
 ```json
 {
   "method": "GET",
-  "url": "/api/v1/reports/exports/169/download",
+  "url": "/api/v1/reports/exports/189/download",
   "headers": {
     "X-User-Id": "101",
     "X-User-Role": "admin",
@@ -5002,14 +4963,14 @@
 {
   "status_code": 200,
   "headers": {
-    "content-type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-    "content-disposition": "attachment; filename=\"RP-20260610224020-e262de8d.docx\"",
-    "content-length": "37556"
+    "content-length": "37350",
+    "content-disposition": "attachment; filename=\"RP-20260611092832-5fe7d66f.docx\"",
+    "content-type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
   },
   "binary": {
-    "size_bytes": 37556,
-    "sha256": "d8102daf905110540c79935056b7cb07c997b5b69303fb0bc29c5380c65d3f81",
-    "first_16_bytes_hex": "504b03041400000008000ab5ca5cad52"
+    "size_bytes": 37350,
+    "sha256": "b9719aa3b35aa2a144f3c1348d986ab1cd83a785b6663d4536aa9ca709526df6",
+    "first_16_bytes_hex": "504b0304140000000800904bcb5cad52"
   }
 }
 ```
@@ -5020,7 +4981,7 @@
 ```json
 {
   "method": "POST",
-  "url": "/api/v1/reports/86/exports",
+  "url": "/api/v1/reports/96/exports",
   "headers": {
     "X-User-Id": "101",
     "X-User-Role": "admin",
@@ -5043,11 +5004,11 @@
     "code": 0,
     "message": "success",
     "data": {
-      "id": 170,
-      "report_id": 86,
+      "id": 190,
+      "report_id": 96,
       "export_type": "pdf",
-      "file_name": "RP-20260610224020-e262de8d.pdf",
-      "file_path": "storage\\reports\\RP-20260610224020-e262de8d.pdf",
+      "file_name": "RP-20260611092832-5fe7d66f.pdf",
+      "file_path": "storage\\reports\\RP-20260611092832-5fe7d66f.pdf",
       "status": "success",
       "error_message": null
     },
@@ -5062,7 +5023,7 @@
 ```json
 {
   "method": "GET",
-  "url": "/api/v1/reports/exports/170/download",
+  "url": "/api/v1/reports/exports/190/download",
   "headers": {
     "X-User-Id": "101",
     "X-User-Role": "admin",
@@ -5076,13 +5037,13 @@
 {
   "status_code": 200,
   "headers": {
-    "content-type": "application/pdf",
-    "content-disposition": "attachment; filename=\"RP-20260610224020-e262de8d.pdf\"",
-    "content-length": "5495"
+    "content-length": "4883",
+    "content-disposition": "attachment; filename=\"RP-20260611092832-5fe7d66f.pdf\"",
+    "content-type": "application/pdf"
   },
   "binary": {
-    "size_bytes": 5495,
-    "sha256": "014b9b64bd062519711e7aa8359bc3e2ae72682d018249a6e69d2c5c178e0613",
+    "size_bytes": 4883,
+    "sha256": "4cc041547c1d5c359def9c6a36b3dc8c3dfc9bd19307ffdb92dd9d8289eae0e7",
     "first_16_bytes_hex": "255044462d312e340a25938c8b9e2052"
   }
 }
@@ -5181,37 +5142,41 @@
 {
   "status_code": 200,
   "headers": {
-    "content-length": "2686",
+    "content-length": "2578",
     "content-type": "application/json"
   },
   "json": {
     "code": 0,
     "message": "success",
     "data": {
-      "id": 142,
-      "draft_no": "DR-20260610224032-15702d9f",
+      "id": 152,
+      "draft_no": "DR-20260611092841-06eac985",
       "status": "pending_confirm",
       "content_json": {
         "risks": [
-          "存在1条高风险的待处理预警，可能涉及学生心理危机，需立即关注。",
-          "平均情绪评分59.0分，低于正常区间，整体学生心理状态需引起重视。"
+          "平均情绪得分59.0偏低，可能存在普遍情绪困扰",
+          "1条高风险预警尚未处理，需尽快安排心理干预"
         ],
-        "title": "学生心理健康周报 (2026-06-01 至 2026-06-07)",
+        "title": "学生心理健康周报（2026-06-01 至 2026-06-07）",
         "filters": {
           "date_end": "2026-06-07",
           "date_start": "2026-06-01",
           "department_id": 10,
           "owner_user_id": null
         },
-        "summary": "本周期共有2份学生心理档案，其中高风险1人、低风险1人；平均情绪评分59.0分，整体情绪偏低；共产生2条预警，其中1条待处理、1条已解决。",
+        "summary": "本周共采集2份学生心理档案，平均情绪得分为59.0，整体情绪状态偏低。共产生2条预警，其中高风险预警1条，中风险1条，待处理预警1条，需重点关注。",
         "sections": [
           {
-            "content": "本周期共覆盖2份学生心理档案，风险等级分布为高风险1人、低风险1人；情绪标签分布为焦虑1人、稳定1人；平均情绪评分为59.0分，处于较低水平，需关注学生整体情绪状态。",
+            "content": "本周部门10共有2份学生心理档案，风险等级分布为高风险1人、低风险1人。情绪标签分布为焦虑1人、稳定1人。平均情绪得分为59.0，处于偏低水平，需持续关注学生情绪状态。",
             "heading": "心理档案概况",
             "metrics": [
               {
                 "name": "总档案数",
                 "value": "2"
+              },
+              {
+                "name": "平均情绪得分",
+                "value": "59.0"
               },
               {
                 "name": "高风险人数",
@@ -5228,16 +5193,12 @@
               {
                 "name": "稳定标签人数",
                 "value": "1"
-              },
-              {
-                "name": "平均情绪评分",
-                "value": "59.0"
               }
             ]
           },
           {
-            "content": "本周期共产生2条预警，按状态统计：待处理1条、已解决1条；按风险等级统计：高风险1条、中风险1条。目前仍有待处理的预警，需及时跟进。",
-            "heading": "预警与处理情况",
+            "content": "本周共产生2条预警，其中1条为高风险，1条为中风险。预警状态方面，1条待处理，1条已解决。待处理高风险预警需尽快跟进干预，避免风险升级。",
+            "heading": "预警分析",
             "metrics": [
               {
                 "name": "总预警数",
@@ -5290,13 +5251,14 @@
           }
         },
         "source_refs": [
-          "数据来源：query_report_source_data（学生心理档案表、预警表）",
-          "统计口径：部门ID=10，时间范围2026-06-01至2026-06-07"
+          "数据来源：query_report_source_data",
+          "数据表：学生心理档案表、预警表",
+          "口径说明：风险等级、情绪标签、预警统计均基于所选时段和部门"
         ],
         "recommendations": [
-          "立即安排心理辅导老师或班主任对接高风险预警学生，启动干预流程。",
-          "对低风险学生也应进行日常关怀，防止情绪恶化。",
-          "建议下周期继续跟踪预警处理进展，并关注情绪评分变化趋势。"
+          "对高风险学生安排一对一心理辅导",
+          "开展情绪管理团体活动，提升整体情绪水平",
+          "定期追踪待处理预警状态，确保闭环"
         ],
         "tool_status_code": 200,
         "tool_call_success": true
@@ -5314,7 +5276,7 @@
 ```json
 {
   "method": "POST",
-  "url": "/api/v1/reports/drafts/142/confirm",
+  "url": "/api/v1/reports/drafts/152/confirm",
   "headers": {
     "X-User-Id": "101",
     "X-User-Role": "admin",
@@ -5328,39 +5290,43 @@
 {
   "status_code": 200,
   "headers": {
-    "content-length": "2858",
+    "content-length": "2753",
     "content-type": "application/json"
   },
   "json": {
     "code": 0,
     "message": "success",
     "data": {
-      "id": 87,
-      "report_no": "RP-20260610224032-789df1e9",
+      "id": 97,
+      "report_no": "RP-20260611092841-540a0fc6",
       "report_type": "student_psych_weekly",
-      "title": "学生心理健康周报 (2026-06-01 至 2026-06-07)",
+      "title": "学生心理健康周报（2026-06-01 至 2026-06-07）",
       "status": "confirmed",
       "content_json": {
         "risks": [
-          "存在1条高风险的待处理预警，可能涉及学生心理危机，需立即关注。",
-          "平均情绪评分59.0分，低于正常区间，整体学生心理状态需引起重视。"
+          "平均情绪得分59.0偏低，可能存在普遍情绪困扰",
+          "1条高风险预警尚未处理，需尽快安排心理干预"
         ],
-        "title": "学生心理健康周报 (2026-06-01 至 2026-06-07)",
+        "title": "学生心理健康周报（2026-06-01 至 2026-06-07）",
         "filters": {
           "date_end": "2026-06-07",
           "date_start": "2026-06-01",
           "department_id": 10,
           "owner_user_id": null
         },
-        "summary": "本周期共有2份学生心理档案，其中高风险1人、低风险1人；平均情绪评分59.0分，整体情绪偏低；共产生2条预警，其中1条待处理、1条已解决。",
+        "summary": "本周共采集2份学生心理档案，平均情绪得分为59.0，整体情绪状态偏低。共产生2条预警，其中高风险预警1条，中风险1条，待处理预警1条，需重点关注。",
         "sections": [
           {
-            "content": "本周期共覆盖2份学生心理档案，风险等级分布为高风险1人、低风险1人；情绪标签分布为焦虑1人、稳定1人；平均情绪评分为59.0分，处于较低水平，需关注学生整体情绪状态。",
+            "content": "本周部门10共有2份学生心理档案，风险等级分布为高风险1人、低风险1人。情绪标签分布为焦虑1人、稳定1人。平均情绪得分为59.0，处于偏低水平，需持续关注学生情绪状态。",
             "heading": "心理档案概况",
             "metrics": [
               {
                 "name": "总档案数",
                 "value": "2"
+              },
+              {
+                "name": "平均情绪得分",
+                "value": "59.0"
               },
               {
                 "name": "高风险人数",
@@ -5377,16 +5343,12 @@
               {
                 "name": "稳定标签人数",
                 "value": "1"
-              },
-              {
-                "name": "平均情绪评分",
-                "value": "59.0"
               }
             ]
           },
           {
-            "content": "本周期共产生2条预警，按状态统计：待处理1条、已解决1条；按风险等级统计：高风险1条、中风险1条。目前仍有待处理的预警，需及时跟进。",
-            "heading": "预警与处理情况",
+            "content": "本周共产生2条预警，其中1条为高风险，1条为中风险。预警状态方面，1条待处理，1条已解决。待处理高风险预警需尽快跟进干预，避免风险升级。",
+            "heading": "预警分析",
             "metrics": [
               {
                 "name": "总预警数",
@@ -5439,18 +5401,19 @@
           }
         },
         "source_refs": [
-          "数据来源：query_report_source_data（学生心理档案表、预警表）",
-          "统计口径：部门ID=10，时间范围2026-06-01至2026-06-07"
+          "数据来源：query_report_source_data",
+          "数据表：学生心理档案表、预警表",
+          "口径说明：风险等级、情绪标签、预警统计均基于所选时段和部门"
         ],
         "recommendations": [
-          "立即安排心理辅导老师或班主任对接高风险预警学生，启动干预流程。",
-          "对低风险学生也应进行日常关怀，防止情绪恶化。",
-          "建议下周期继续跟踪预警处理进展，并关注情绪评分变化趋势。"
+          "对高风险学生安排一对一心理辅导",
+          "开展情绪管理团体活动，提升整体情绪水平",
+          "定期追踪待处理预警状态，确保闭环"
         ],
         "tool_status_code": 200,
         "tool_call_success": true
       },
-      "source_draft_id": 142,
+      "source_draft_id": 152,
       "date_start": "2026-06-01",
       "date_end": "2026-06-07",
       "department_id": 10,
@@ -5469,7 +5432,7 @@
 ```json
 {
   "method": "POST",
-  "url": "/api/v1/reports/87/publish",
+  "url": "/api/v1/reports/97/publish",
   "headers": {
     "X-User-Id": "101",
     "X-User-Role": "admin",
@@ -5483,39 +5446,43 @@
 {
   "status_code": 200,
   "headers": {
-    "content-length": "2874",
+    "content-length": "2769",
     "content-type": "application/json"
   },
   "json": {
     "code": 0,
     "message": "success",
     "data": {
-      "id": 87,
-      "report_no": "RP-20260610224032-789df1e9",
+      "id": 97,
+      "report_no": "RP-20260611092841-540a0fc6",
       "report_type": "student_psych_weekly",
-      "title": "学生心理健康周报 (2026-06-01 至 2026-06-07)",
+      "title": "学生心理健康周报（2026-06-01 至 2026-06-07）",
       "status": "published",
       "content_json": {
         "risks": [
-          "存在1条高风险的待处理预警，可能涉及学生心理危机，需立即关注。",
-          "平均情绪评分59.0分，低于正常区间，整体学生心理状态需引起重视。"
+          "平均情绪得分59.0偏低，可能存在普遍情绪困扰",
+          "1条高风险预警尚未处理，需尽快安排心理干预"
         ],
-        "title": "学生心理健康周报 (2026-06-01 至 2026-06-07)",
+        "title": "学生心理健康周报（2026-06-01 至 2026-06-07）",
         "filters": {
           "date_end": "2026-06-07",
           "date_start": "2026-06-01",
           "department_id": 10,
           "owner_user_id": null
         },
-        "summary": "本周期共有2份学生心理档案，其中高风险1人、低风险1人；平均情绪评分59.0分，整体情绪偏低；共产生2条预警，其中1条待处理、1条已解决。",
+        "summary": "本周共采集2份学生心理档案，平均情绪得分为59.0，整体情绪状态偏低。共产生2条预警，其中高风险预警1条，中风险1条，待处理预警1条，需重点关注。",
         "sections": [
           {
-            "content": "本周期共覆盖2份学生心理档案，风险等级分布为高风险1人、低风险1人；情绪标签分布为焦虑1人、稳定1人；平均情绪评分为59.0分，处于较低水平，需关注学生整体情绪状态。",
+            "content": "本周部门10共有2份学生心理档案，风险等级分布为高风险1人、低风险1人。情绪标签分布为焦虑1人、稳定1人。平均情绪得分为59.0，处于偏低水平，需持续关注学生情绪状态。",
             "heading": "心理档案概况",
             "metrics": [
               {
                 "name": "总档案数",
                 "value": "2"
+              },
+              {
+                "name": "平均情绪得分",
+                "value": "59.0"
               },
               {
                 "name": "高风险人数",
@@ -5532,16 +5499,12 @@
               {
                 "name": "稳定标签人数",
                 "value": "1"
-              },
-              {
-                "name": "平均情绪评分",
-                "value": "59.0"
               }
             ]
           },
           {
-            "content": "本周期共产生2条预警，按状态统计：待处理1条、已解决1条；按风险等级统计：高风险1条、中风险1条。目前仍有待处理的预警，需及时跟进。",
-            "heading": "预警与处理情况",
+            "content": "本周共产生2条预警，其中1条为高风险，1条为中风险。预警状态方面，1条待处理，1条已解决。待处理高风险预警需尽快跟进干预，避免风险升级。",
+            "heading": "预警分析",
             "metrics": [
               {
                 "name": "总预警数",
@@ -5594,24 +5557,25 @@
           }
         },
         "source_refs": [
-          "数据来源：query_report_source_data（学生心理档案表、预警表）",
-          "统计口径：部门ID=10，时间范围2026-06-01至2026-06-07"
+          "数据来源：query_report_source_data",
+          "数据表：学生心理档案表、预警表",
+          "口径说明：风险等级、情绪标签、预警统计均基于所选时段和部门"
         ],
         "recommendations": [
-          "立即安排心理辅导老师或班主任对接高风险预警学生，启动干预流程。",
-          "对低风险学生也应进行日常关怀，防止情绪恶化。",
-          "建议下周期继续跟踪预警处理进展，并关注情绪评分变化趋势。"
+          "对高风险学生安排一对一心理辅导",
+          "开展情绪管理团体活动，提升整体情绪水平",
+          "定期追踪待处理预警状态，确保闭环"
         ],
         "tool_status_code": 200,
         "tool_call_success": true
       },
-      "source_draft_id": 142,
+      "source_draft_id": 152,
       "date_start": "2026-06-01",
       "date_end": "2026-06-07",
       "department_id": 10,
       "created_by": 101,
       "published_by": 101,
-      "published_time": "2026-06-10T22:40:32"
+      "published_time": "2026-06-11T09:28:42"
     },
     "trace_id": null
   }
@@ -5624,7 +5588,7 @@
 ```json
 {
   "method": "POST",
-  "url": "/api/v1/reports/87/exports",
+  "url": "/api/v1/reports/97/exports",
   "headers": {
     "X-User-Id": "101",
     "X-User-Role": "admin",
@@ -5647,11 +5611,11 @@
     "code": 0,
     "message": "success",
     "data": {
-      "id": 171,
-      "report_id": 87,
+      "id": 191,
+      "report_id": 97,
       "export_type": "word",
-      "file_name": "RP-20260610224032-789df1e9.docx",
-      "file_path": "storage\\reports\\RP-20260610224032-789df1e9.docx",
+      "file_name": "RP-20260611092841-540a0fc6.docx",
+      "file_path": "storage\\reports\\RP-20260611092841-540a0fc6.docx",
       "status": "success",
       "error_message": null
     },
@@ -5666,7 +5630,7 @@
 ```json
 {
   "method": "GET",
-  "url": "/api/v1/reports/exports/171/download",
+  "url": "/api/v1/reports/exports/191/download",
   "headers": {
     "X-User-Id": "101",
     "X-User-Role": "admin",
@@ -5680,14 +5644,14 @@
 {
   "status_code": 200,
   "headers": {
-    "content-type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-    "content-disposition": "attachment; filename=\"RP-20260610224032-789df1e9.docx\"",
-    "content-length": "37508"
+    "content-length": "37454",
+    "content-disposition": "attachment; filename=\"RP-20260611092841-540a0fc6.docx\"",
+    "content-type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
   },
   "binary": {
-    "size_bytes": 37508,
-    "sha256": "829f98c5548a8ed78f9d69a4c03c5a19c568e0f4e5916aac18176625c9926e57",
-    "first_16_bytes_hex": "504b030414000000080010b5ca5cad52"
+    "size_bytes": 37454,
+    "sha256": "2bd7a7f6f0fd0778886576103a5e26105bf43b395f761853b3c056257b17826a",
+    "first_16_bytes_hex": "504b0304140000000800944bcb5cad52"
   }
 }
 ```
@@ -5698,7 +5662,7 @@
 ```json
 {
   "method": "POST",
-  "url": "/api/v1/reports/87/exports",
+  "url": "/api/v1/reports/97/exports",
   "headers": {
     "X-User-Id": "101",
     "X-User-Role": "admin",
@@ -5721,11 +5685,11 @@
     "code": 0,
     "message": "success",
     "data": {
-      "id": 172,
-      "report_id": 87,
+      "id": 192,
+      "report_id": 97,
       "export_type": "pdf",
-      "file_name": "RP-20260610224032-789df1e9.pdf",
-      "file_path": "storage\\reports\\RP-20260610224032-789df1e9.pdf",
+      "file_name": "RP-20260611092841-540a0fc6.pdf",
+      "file_path": "storage\\reports\\RP-20260611092841-540a0fc6.pdf",
       "status": "success",
       "error_message": null
     },
@@ -5740,7 +5704,7 @@
 ```json
 {
   "method": "GET",
-  "url": "/api/v1/reports/exports/172/download",
+  "url": "/api/v1/reports/exports/192/download",
   "headers": {
     "X-User-Id": "101",
     "X-User-Role": "admin",
@@ -5754,13 +5718,13 @@
 {
   "status_code": 200,
   "headers": {
-    "content-type": "application/pdf",
-    "content-disposition": "attachment; filename=\"RP-20260610224032-789df1e9.pdf\"",
-    "content-length": "5031"
+    "content-length": "4988",
+    "content-disposition": "attachment; filename=\"RP-20260611092841-540a0fc6.pdf\"",
+    "content-type": "application/pdf"
   },
   "binary": {
-    "size_bytes": 5031,
-    "sha256": "4b65d95f3496940c55b4d729d57c2ec324725df4239a31555987bd86b2738453",
+    "size_bytes": 4988,
+    "sha256": "2e907e804898d72262edd0cf8ad379990aad392c1c5fd1fec6d41f10a5a6050f",
     "first_16_bytes_hex": "255044462d312e340a25938c8b9e2052"
   }
 }
@@ -5871,11 +5835,11 @@
 
 ```json
 {
-  "ai_draft": 142,
-  "ai_report": 87,
-  "report_export_record": 172,
-  "audit_log": 660,
-  "ai_tool_call_log": 138
+  "ai_draft": 152,
+  "ai_report": 97,
+  "report_export_record": 192,
+  "audit_log": 730,
+  "ai_tool_call_log": 153
 }
 ```
 
