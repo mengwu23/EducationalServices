@@ -15,7 +15,7 @@ from app.schemas.customer_judgement_schema import (
 )
 from app.services.customer_judgement_service import CustomerJudgementService
 
-router = APIRouter(prefix="/api/v1/customer-judgement", tags=["Customer Judgement"])
+router = APIRouter(prefix="/api/v1/customer-judgement")
 
 
 @router.post("/analyze", summary="Submit customer info for judgement")

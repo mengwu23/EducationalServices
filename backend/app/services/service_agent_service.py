@@ -30,27 +30,14 @@ class ServiceAgentService:
         self.dify_client = dify_client or DifyClient(self.settings)
 
     def handle_visitor_message(self, request: ServiceAgentMessageRequest) -> dict[str, Any]:
-        trace_id = request.trace_id or f"service-agent-{uuid4().hex}"
-        visitor_id = request.visitor_id or f"visitor-{uuid4().hex[:12]}"
+        """转发访客消息到 Dify 客服 Agent，直接返回 Agent 的回复。"""
+        trace_id = f"sa-{uuid4().hex[:12]}"
+        visitor_id = request.conversation_id or f"visitor-{uuid4().hex[:12]}"
         try:
-            context = {
-                "visitor_id": visitor_id,
-                "visitor_profile": request.visitor_profile,
-                "faq_examples": self.search_faq(
-                    ServiceAgentFaqSearchRequest(keyword=request.message, limit=3, trace_id=trace_id, caller="other")
-                ),
-                "projects": self.search_projects(
-                    ServiceAgentProjectSearchRequest(keyword=request.message, limit=3, trace_id=trace_id, caller="other")
-                ),
-                "events": self.list_events(
-                    ServiceAgentEventSearchRequest(keyword=request.message, limit=3, trace_id=trace_id, caller="other")
-                ),
-            }
             ai_result = self.dify_client.call_service_agent(
                 query=request.message,
                 conversation_id=request.conversation_id,
                 visitor_id=visitor_id,
-                context=context,
                 trace_id=trace_id,
             )
             return {
@@ -58,9 +45,7 @@ class ServiceAgentService:
                 "conversation_id": ai_result.get("conversation_id") or request.conversation_id,
                 "visitor_message": request.message,
                 "reply_text": ai_result.get("answer", ""),
-                "intent": ai_result.get("intent"),
-                "suggested_actions": ai_result.get("suggested_actions", []),
-                "references": ai_result.get("references", []),
+                "suggested_questions": ai_result.get("suggested_questions", []),
                 "trace_id": trace_id,
             }
         except Exception as exc:

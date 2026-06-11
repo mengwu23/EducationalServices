@@ -108,12 +108,11 @@ class DifyClient:
         query: str,
         conversation_id: str | None = None,
         visitor_id: str | None = None,
-        context: dict[str, Any] | None = None,
         trace_id: str | None = None,
     ) -> dict[str, Any]:
-        """Call the Dify Chatflow that powers the public service agent."""
+        """调用 Dify 客服 Agent，直接返回回复。知识检索由 Agent 内部完成。"""
         if self.settings.dify_mock_enabled:
-            return _mock_service_agent_result(query, conversation_id, context)
+            return _mock_service_agent_result(query, conversation_id)
         api_key = self.settings.dify_service_agent_api_key or self.settings.dify_api_key
         if not api_key:
             raise RuntimeError("未配置 Dify 客服 Agent API Key")
@@ -122,7 +121,6 @@ class DifyClient:
             "inputs": {
                 "visitor_id": visitor_id,
                 "trace_id": trace_id,
-                "context": context or {},
             },
             "query": query,
             "response_mode": "blocking",
@@ -357,32 +355,13 @@ def _mock_customer_judgement_result() -> dict[str, Any]:
 def _mock_service_agent_result(
     query: str,
     conversation_id: str | None,
-    context: dict[str, Any] | None,
 ) -> dict[str, Any]:
-    faq_items = (context or {}).get("faq_examples") or []
-    projects = (context or {}).get("projects") or []
-    events = (context or {}).get("events") or []
-    references: list[dict[str, Any]] = []
-    if faq_items:
-        references.append({"type": "faq", "id": faq_items[0].get("id"), "title": faq_items[0].get("question")})
-        answer = faq_items[0].get("answer") or "我已根据 FAQ 找到相关答案，建议客服确认后发送。"
-        intent = "faq"
-    elif "活动" in query or "讲座" in query or events:
-        references.extend({"type": "event", "id": item.get("id"), "title": item.get("event_name")} for item in events[:3])
-        answer = "目前有可报名活动，我已整理活动信息。若访客提供姓名和手机号，可以继续生成报名草稿。"
-        intent = "event_consult"
-    elif "课程" in query or "项目" in query or projects:
-        references.extend({"type": "project", "id": item.get("id"), "title": item.get("project_name")} for item in projects[:3])
-        answer = "我已根据访客意向匹配课程项目，建议客服确认推荐话术后发送。"
-        intent = "project_recommendation"
-    else:
-        answer = "您好，已收到您的咨询。客服会结合公司业务资料确认后回复您。"
-        intent = "general_consult"
     return {
-        "answer": answer,
-        "conversation_id": conversation_id or f"mock-service-agent-{uuid4().hex[:12]}",
-        "intent": intent,
-        "suggested_actions": [],
-        "references": references,
-        "raw": {"mock": True},
+        "answer": f"您好！我是粤教服务留学小助手~\n\n关于「{query[:30]}...」的问题，我来为您解答：\n\n根据我们最新的留学政策，建议您先确定意向国家（新加坡或德国），然后根据学历背景选择合适的项目。\n\n如果您方便的话，可以留一下您的姓名和手机号，我让专业顾问给您做详细方案~",
+        "conversation_id": conversation_id or "mock-conv-001",
+        "suggested_questions": [
+            "新加坡本科申请需要什么条件？",
+            "德国双元制培训怎么报名？",
+            "帮我推荐适合我的留学方案",
+        ],
     }

@@ -5,11 +5,8 @@ from pydantic import BaseModel, Field
 
 
 class ServiceAgentMessageRequest(BaseModel):
-    message: str = Field(min_length=1, max_length=2000)
-    visitor_id: str | None = Field(default=None, max_length=100)
-    conversation_id: str | None = Field(default=None, max_length=100)
-    trace_id: str | None = Field(default=None, max_length=100)
-    visitor_profile: dict[str, Any] = Field(default_factory=dict)
+    message: str = Field(min_length=1, max_length=2000, description="访客消息")
+    conversation_id: str | None = Field(default=None, max_length=100, description="会话ID（用于多轮对话，首次为空）")
 
 
 class ServiceAgentMessageResponse(BaseModel):
