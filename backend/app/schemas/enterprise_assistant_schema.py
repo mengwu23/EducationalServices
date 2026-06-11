@@ -232,9 +232,15 @@ class StatisticsSummaryResult(BaseModel):
 
 
 class OnboardingGuideResult(BaseModel):
-    """新人入职指引预留接口返回结构。"""
+    """新人入职指引返回结构。"""
 
     status: str
     message: str
     question: str
     category: Optional[str] = None
+    answer: Optional[str] = None
+    conversation_id: Optional[str] = None
+    message_id: Optional[str] = None
+    metadata: Dict[str, Any] = Field(default_factory=dict)
+
+

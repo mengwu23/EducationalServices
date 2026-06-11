@@ -1,11 +1,12 @@
 from fastapi import APIRouter, Depends
+from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 
-from app.common.responses import success
-from app.core.security import CurrentUser, get_current_user
-from app.db.session import get_db
-from app.schemas.report_schema import ReportExportRequest, ReportGenerateDraftRequest, ReportRejectRequest
-from app.services.report_service import ReportService
+from backend.app.common.responses import success
+from backend.app.core.security import CurrentUser, get_current_user
+from backend.app.db.session import get_db
+from backend.app.schemas.report_schema import ReportExportRequest, ReportGenerateDraftRequest, ReportRejectRequest
+from backend.app.services.report_service import ReportService
 
 router = APIRouter(prefix="/api/v1/reports", tags=["reports"])
 
@@ -48,6 +49,20 @@ def reject_draft(
 @router.get("")
 def list_reports(db: Session = Depends(get_db), user: CurrentUser = Depends(get_current_user)):
     return success(ReportService(db).list_reports(user))
+
+
+@router.get("/exports/{export_id}/download")
+def download_export_file(
+    export_id: int,
+    db: Session = Depends(get_db),
+    user: CurrentUser = Depends(get_current_user),
+):
+    download = ReportService(db).prepare_export_download(export_id, user)
+    return FileResponse(
+        path=download["file_path"],
+        media_type=download["media_type"],
+        filename=download["file_name"],
+    )
 
 
 @router.get("/{report_id}")
