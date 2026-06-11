@@ -38,7 +38,9 @@ from backend.app.daos.student_psych_dao import StudentPsychDao
 from backend.app.models.employee_profile import EmployeeProfile
 from backend.app.models.student_profile import StudentProfile
 from backend.app.models.sys_user import SysUser
+from backend.app.models.student_psych_profile import StudentPsychProfile
 from backend.app.schemas.student_psych_schema import (
+    AIEmotionAnalysisRequest,
     EmotionUpdateRequest,
     PsychAlertCreateRequest,
     PsychAlertResponse,
@@ -395,6 +397,86 @@ class StudentPsychService:
         # 重新查询获取更新后的数据
         profile = self.dao.get_profile_by_student_id(student_id)
         return self._build_profile_response(profile, student_name=student.student_name)
+
+    def analyze_emotion(
+        self,
+        current_user_id: int,
+        current_user_type: str,
+        data: "AIEmotionAnalysisRequest",
+    ) -> dict:
+        """AI 情绪分析 — 更新画像并视风险自动创建预警
+
+        供 Dify 聊天后自动调用：
+        1. 更新学生心理画像（情绪标签、分数、风险等级、摘要）
+        2. 若风险等级为 high 或 critical，自动创建预警
+        3. 返回包含画像和预警（如有）的完整结果
+
+        Args:
+            current_user_id: 调用方用户 ID（AI 调用时为系统用户 ID）
+            current_user_type: 调用方类型（AI 调用时可传 admin）
+            data: AI 情绪分析请求体
+
+        Returns:
+            {"profile": PsychProfileResponse, "alert": PsychAlertResponse | None, "message": str}
+        """
+        # 1. 更新心理画像
+        student = self.db.query(StudentProfile).filter(
+            StudentProfile.id == data.student_id,
+        ).first()
+        if student is None:
+            raise NotFoundException("学生不存在", code=40401)
+
+        # 查找或创建心理画像
+        profile = self.dao.get_profile_by_student_id(data.student_id)
+        if profile is None:
+            profile = StudentPsychProfile(
+                student_id=data.student_id,
+                risk_level=data.risk_level.value,
+            )
+            self.db.add(profile)
+            self.db.flush()
+
+        # 更新画像字段
+        update_kwargs = {}
+        if data.emotion_tag is not None:
+            update_kwargs["latest_emotion_tag"] = data.emotion_tag
+        if data.emotion_score is not None:
+            update_kwargs["emotion_score"] = data.emotion_score
+        update_kwargs["risk_level"] = data.risk_level.value
+        if data.summary is not None:
+            update_kwargs["emotion_summary"] = data.summary
+        update_kwargs["last_interaction_time"] = datetime.now()
+
+        self.dao.update_profile(student_id=data.student_id, **update_kwargs)
+        profile = self.dao.get_profile_by_student_id(data.student_id)
+        profile_response = self._build_profile_response(profile, student_name=student.student_name)
+
+        # 2. 高风险时自动创建预警
+        alert_response = None
+        if data.risk_level in (PsychRiskLevel.HIGH, PsychRiskLevel.CRITICAL):
+            alert_no = self._generate_alert_no()
+            alert = self.dao.create_alert(
+                alert_no=alert_no,
+                student_id=data.student_id,
+                trigger_reason=data.trigger_reason or f"AI情绪分析检测到{data.risk_level.value}风险（情绪分数：{data.emotion_score}）",
+                risk_level=data.risk_level.value,
+                status=PsychAlertStatus.PENDING.value,
+            )
+            alert_response = self._build_alert_response(
+                alert, student_name=student.student_name,
+            )
+
+        self.db.commit()
+
+        return {
+            "profile": profile_response,
+            "alert": alert_response,
+            "alert_created": alert_response is not None,
+            "message": (
+                f"情绪分析完成：风险等级 {data.risk_level.value}"
+                + ("，已自动创建预警" if alert_response else "，无需创建预警")
+            ),
+        }
 
     def process_alert(
         self,

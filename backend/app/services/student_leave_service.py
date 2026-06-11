@@ -102,7 +102,10 @@ class StudentLeaveService:
         # --- 第 3 步：生成请求单号 ---
         request_no = self._generate_request_no()
 
-        # --- 第 4 步：调用 DAO 创建记录 ---
+        # --- 第 4 步：自动关联班主任（student_profile.teacher_employee_id）---
+        approver_employee_id = student.teacher_employee_id
+
+        # --- 第 5 步：调用 DAO 创建记录 ---
         leave = self.dao.create(
             request_no=request_no,
             student_id=student.id,
@@ -111,6 +114,7 @@ class StudentLeaveService:
             start_time=data.start_time,
             end_time=data.end_time,
             status=LeaveStatus.PENDING.value,
+            approver_employee_id=approver_employee_id,
         )
 
         # --- 第 5 步：提交事务 ---
