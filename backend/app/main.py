@@ -1,4 +1,12 @@
 """后端服务的 FastAPI 应用入口。"""
+import sys
+from pathlib import Path
+
+# 确保 backend/ 在 Python 路径中，使 app.* 导入可用
+_backend_dir = Path(__file__).resolve().parent.parent
+if str(_backend_dir) not in sys.path:
+    sys.path.insert(0, str(_backend_dir))
+
 from fastapi import FastAPI
 import uvicorn
 from backend.app.controllers.customer_judgement_controller import router as customer_judgement_router
