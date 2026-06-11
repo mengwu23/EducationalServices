@@ -89,4 +89,6 @@ class AcademicEventService:
         event = cls._get_or_raise(db, event_id)
         if event.status == AcademicEventStatus.COMPLETED.value:
             raise BadRequestError("Completed academic events cannot be cancelled")
+        if event.status == AcademicEventStatus.CANCELLED.value:
+            raise BadRequestError("Academic event is already cancelled")
         return AcademicEventDAO.update(db, event, {"status": AcademicEventStatus.CANCELLED.value})

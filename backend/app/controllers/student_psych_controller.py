@@ -104,8 +104,8 @@ def get_my_profile(
 
 @router.patch("/profile/emotion", response_model=ApiResponse, summary="更新情绪状态（AI预留接口）")
 def update_emotion(
+    data: EmotionUpdateRequest,
     student_id: int = Query(..., description="要更新的学生ID"),
-    data: EmotionUpdateRequest = ...,
     db: Session = Depends(get_db),
     current_user: CurrentUser = Depends(get_current_user),
 ):
