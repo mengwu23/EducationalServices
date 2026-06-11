@@ -115,3 +115,58 @@ def close_student_feedback_ticket(
 ):
     ticket = StudentFeedbackTicketService.close_ticket(db, ticket_id, payload)
     return success_response(data=StudentFeedbackTicketOut.model_validate(ticket), message="学生反馈工单已关闭")
+
+
+@router.post("/{ticket_id}/notify", response_model=ApiResponse, summary="向学生发送工单处理结果通知")
+def notify_student(
+    ticket_id: int,
+    db: Session = Depends(get_db),
+):
+    """通知学生工单已处理完毕
+
+    老师在解决工单后，调用此接口向学生同步处理结果。
+    通知内容自动生成：如"您的xxx投诉已解决"。
+    设置 is_notified=1 表示已通知学生。
+    """
+    ticket = StudentFeedbackTicketService.notify_ticket(db, ticket_id)
+    return success_response(
+        data=StudentFeedbackTicketOut.model_validate(ticket),
+        message=f"已向学生发送通知：您的「{ticket.title}」工单已处理完毕",
+    )
+
+
+@router.get("/my/notifications", response_model=ApiResponse, summary="学生查看自己的工单通知")
+def list_my_notifications(
+    student_id: int = Query(..., description="学生ID"),
+    page: int = Query(default=1, ge=1),
+    size: int = Query(default=20, ge=1, le=100),
+    db: Session = Depends(get_db),
+):
+    """学生查看自己已解决/已关闭但未读的工单通知
+
+    返回已通知（is_notified=1）且状态为 resolved/closed 的工单列表。
+    用于学生端"消息通知"模块展示。
+    """
+    items, total, page, size = StudentFeedbackTicketService.list_tickets(
+        db,
+        student_id=student_id,
+        status="resolved",
+        page=page,
+        size=size,
+    )
+    # Also include closed tickets that were notified
+    closed_items, closed_total, _, _ = StudentFeedbackTicketService.list_tickets(
+        db,
+        student_id=student_id,
+        status="closed",
+        page=page,
+        size=size,
+    )
+    all_items = items + closed_items
+    data = StudentFeedbackTicketPage(
+        items=[StudentFeedbackTicketOut.model_validate(item) for item in all_items],
+        total=total + closed_total,
+        page=page,
+        size=size,
+    )
+    return success_response(data=data)

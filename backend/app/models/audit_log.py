@@ -1,9 +1,9 @@
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, JSON, String
+from sqlalchemy import Boolean, DateTime, ForeignKey, JSON, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
-from backend.app.database import Base
+from ..database import Base
 
 
 class AuditLog(Base):
@@ -21,7 +21,7 @@ class AuditLog(Base):
     draft_id: Mapped[int | None] = mapped_column(ForeignKey("ai_draft.id"), nullable=True)
     trace_id: Mapped[str | None] = mapped_column(String(100), nullable=True)
     result: Mapped[str] = mapped_column(String(30), default="success", nullable=False)
-    error_message: Mapped[str | None] = mapped_column(String(1000), nullable=True)
+    error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
     create_time: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(), nullable=False)
     update_time: Mapped[datetime] = mapped_column(
         DateTime,
@@ -44,7 +44,7 @@ class AiToolCallLog(Base):
     result_summary: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     draft_id: Mapped[int | None] = mapped_column(ForeignKey("ai_draft.id"), nullable=True)
     status: Mapped[str] = mapped_column(String(30), default="success", nullable=False)
-    error_message: Mapped[str | None] = mapped_column(String(1000), nullable=True)
+    error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
     create_time: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(), nullable=False)
     update_time: Mapped[datetime] = mapped_column(
         DateTime,

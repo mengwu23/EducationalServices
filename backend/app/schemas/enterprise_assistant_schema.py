@@ -242,3 +242,5 @@ class OnboardingGuideResult(BaseModel):
     conversation_id: Optional[str] = None
     message_id: Optional[str] = None
     metadata: Dict[str, Any] = Field(default_factory=dict)
+
+

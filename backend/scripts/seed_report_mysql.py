@@ -2,8 +2,8 @@
 
 from datetime import date, datetime
 
-from app.db.session import SessionLocal
-from app.models import (
+from backend.app.db.session import SessionLocal
+from backend.app.models import (
     CrmLead,
     CustomerAnalysisRecord,
     EmployeeDailyReport,

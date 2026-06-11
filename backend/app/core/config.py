@@ -4,14 +4,17 @@ from pathlib import Path
 from pydantic import AliasChoices, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-PROJECT_ROOT = Path(__file__).resolve().parents[3]
-
 
 class Settings(BaseSettings):
     app_env: str = Field(default="local", alias="APP_ENV")
-    database_url: str = Field(default="", alias="DATABASE_URL")
-    dify_api_base_url: str = Field(default="http://127.0.0.1:5001", alias="DIFY_API_BASE_URL")
+    database_url: str = Field(
+        default="mysql+pymysql://root:123456@localhost:3306/education_service_ai",
+        alias="DATABASE_URL",
+    )
+    dify_api_base_url: str = Field(default="http://192.168.110.171/v1", alias="DIFY_API_BASE_URL")
     dify_api_key: str = Field(default="", alias="DIFY_API_KEY")
+    dify_cj_api_key: str = Field(default="", alias="DIFY_CJ_API_KEY")
+    dify_service_agent_api_key: str = Field(default="", alias="DIFY_SERVICE_AGENT_API_KEY")
     dify_mock_enabled: bool = Field(default=True, alias="DIFY_MOCK_ENABLED")
     ai_tools_secret: str = Field(default="", alias="AI_TOOLS_SECRET")
     dify_onboarding_api_base_url: str = Field(default="http://localhost/v1", alias="DIFY_ONBOARDING_API_BASE_URL")
@@ -32,8 +35,8 @@ class Settings(BaseSettings):
     report_pdf_converter_path: str = Field(default="", alias="REPORT_PDF_CONVERTER_PATH")
 
     model_config = SettingsConfigDict(
-        env_file=PROJECT_ROOT / ".env",
-        env_file_encoding="utf-8-sig",
+        env_file=str(Path(__file__).resolve().parent.parent.parent / ".env"),
+        env_file_encoding="utf-8",
         populate_by_name=True,
         extra="ignore",
     )
