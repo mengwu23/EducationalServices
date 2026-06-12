@@ -1,15 +1,8 @@
 """FastAPI application entrypoint."""
 
-import os
 import uvicorn
 import sys
 from pathlib import Path
-
-# ── 数据库配置（在导入业务模块前设置）──
-os.environ.setdefault(
-    "DATABASE_URL",
-    "mysql+pymysql://root:123456@localhost:3306/education_service_ai",
-)
 
 if __package__ is None or __package__ == "":
     sys.path.insert(0, str(Path(__file__).resolve().parents[2]))

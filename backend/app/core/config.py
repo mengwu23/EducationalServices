@@ -7,11 +7,8 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     app_env: str = Field(default="local", alias="APP_ENV")
-    database_url: str = Field(
-        default="mysql+pymysql://root:123456@localhost:3306/education_service_ai",
-        alias="DATABASE_URL",
-    )
-    dify_api_base_url: str = Field(default="http://192.168.110.171/v1", alias="DIFY_API_BASE_URL")
+    database_url: str = Field(default="", alias="DATABASE_URL")
+    dify_api_base_url: str = Field(default="", alias="DIFY_API_BASE_URL")
     dify_api_key: str = Field(default="", alias="DIFY_API_KEY")
     dify_cj_api_key: str = Field(default="", alias="DIFY_CJ_API_KEY")
     dify_service_agent_api_key: str = Field(default="", alias="DIFY_SERVICE_AGENT_API_KEY")
