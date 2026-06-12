@@ -38,6 +38,8 @@ from backend.app.controllers.student_assistant_controller import router as stude
 from backend.app.controllers.student_feedback_ticket_controller import router as student_feedback_ticket_router
 from backend.app.controllers.student_leave_controller import router as student_leave_router
 from backend.app.controllers.student_psych_controller import router as student_psych_router
+from backend.app.controllers.customer_judgement_controller import router as customer_judgement_router
+from backend.app.controllers.service_agent_controller import router as service_agent_router
 
 # ═══════════════════════════════════════════════════════════
 app = FastAPI(
@@ -109,20 +111,12 @@ app.include_router(student_feedback_ticket_router, prefix="/api")
 app.include_router(ai_tool_router, prefix="/api")
 app.include_router(ai_tool_router, prefix="/api/v1")
 
-
-def create_app() -> FastAPI:
-    return app
-
-# 挂载企业管理查询助手路由，保证服务启动后即可访问该模块接口。
+# 挂载企业管理查询助手路由。
 app.include_router(enterprise_assistant_router, prefix="/enterprise", tags=["企业智能助手模块"])
 # 挂载企业业务办理助手路由。
 app.include_router(operation_router, prefix="/enterprise", tags=["企业业务办理助手"])
 app.include_router(enterprise_nl2sql_router, prefix="/enterprise", tags=["企业智能助手NL2SQL模块"])
-app.include_router(operation_router, prefix="/enterprise", tags=["企业业务办理助手"])
-app.include_router(enterprise_nl2sql_router, prefix="/enterprise", tags=["企业智能助手NL2SQL模块"])
 
-# 报告模块
-app.include_router(report_router)
 
 # Feature-cs 新增模块
 app.include_router(service_agent_router, prefix="/api/v1/service-agent", tags=["客服 Agent 模块"])
@@ -134,4 +128,4 @@ def create_app() -> FastAPI:
 
 
 if __name__ == "__main__":
-    uvicorn.run("backend.app.main:app", host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run("backend.app.main:app", host="0.0.0.0", port=8088, reload=True)
