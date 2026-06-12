@@ -23,6 +23,7 @@ from backend.app.common.responses import ApiResponse, error_response, success_re
 from backend.app.controllers.academic_event_controller import router as academic_event_router
 from backend.app.controllers.ai_tool_controller import router as ai_tool_router
 from backend.app.controllers.application_progress_controller import router as application_progress_router
+from backend.app.controllers.auth_controller import router as auth_router
 from backend.app.controllers.enterprise_assistant_controller import router as enterprise_assistant_router
 from backend.app.operations.router import router as operation_router
 from backend.app.controllers.enterprise_nl2sql_controller import router as enterprise_nl2sql_router
@@ -93,7 +94,7 @@ async def health_check():
         }
     )
 
-
+app.include_router(auth_router, prefix="/api")
 app.include_router(student_leave_router)
 app.include_router(student_psych_router)
 app.include_router(student_assistant_router)

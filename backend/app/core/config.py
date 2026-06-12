@@ -44,6 +44,11 @@ class Settings(BaseSettings):
     # AI Tools 密钥
     ai_tools_secret: str = Field(default="", alias="AI_TOOLS_SECRET")
 
+    jwt_secret_key: str = Field(default="education-service-dev-secret", alias="JWT_SECRET_KEY")
+    jwt_algorithm: str = Field(default="HS256", alias="JWT_ALGORITHM")
+    jwt_access_token_expire_minutes: int = Field(default=120, alias="JWT_ACCESS_TOKEN_EXPIRE_MINUTES")
+    auth_dev_header_enabled: bool = Field(default=True, alias="AUTH_DEV_HEADER_ENABLED")
+
     @field_validator("dify_api_base_url", mode="after")
     @classmethod
     def validate_dify_base_url(cls, v: str) -> str:
