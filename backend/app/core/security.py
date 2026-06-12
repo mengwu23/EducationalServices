@@ -23,6 +23,16 @@ def get_current_user() -> CurrentUser:
     return _DEFAULT_USER
 
 
+def require_roles(user: CurrentUser, allowed_roles: set[str]) -> None:
+    """校验用户角色是否在允许的角色集合中，否则抛出权限异常。"""
+    if user.role not in allowed_roles:
+        from fastapi import HTTPException, status as http_status
+        raise HTTPException(
+            status_code=http_status.HTTP_403_FORBIDDEN,
+            detail=f"角色 {user.role} 无权限执行此操作，需要以下角色之一: {allowed_roles}",
+        )
+
+
 def verify_ai_tools_secret(
     request: Request,
     x_ai_tools_secret: str = Header(default="", alias="X-AI-Tools-Secret"),
