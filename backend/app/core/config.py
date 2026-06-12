@@ -1,7 +1,7 @@
 from functools import lru_cache
 from pathlib import Path
 
-from pydantic import Field
+from pydantic import AliasChoices, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -41,8 +41,8 @@ class Settings(BaseSettings):
     ai_tools_secret: str = Field(default="", alias="AI_TOOLS_SECRET")
 
     model_config = SettingsConfigDict(
-        env_file=str(Path(__file__).resolve().parent.parent.parent / ".env"),
-        env_file_encoding="utf-8",
+        env_file=str(Path(__file__).resolve().parents[3] / ".env"),
+        env_file_encoding="utf-8-sig",
         populate_by_name=True,
         extra="ignore",
     )

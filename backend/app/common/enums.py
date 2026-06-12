@@ -18,6 +18,9 @@ class Role(StrEnum):
 class ReportType(StrEnum):
     COMPLAINT_WEEKLY = "complaint_weekly"
     CUSTOMER_OPERATION = "customer_operation"
+    EMPLOYEE_DAILY_SUMMARY = "employee_daily_summary"
+    EMPLOYEE_WEEKLY_SUMMARY = "employee_weekly_summary"
+    STUDENT_PSYCH_WEEKLY = "student_psych_weekly"
 
 
 class DraftStatus(StrEnum):

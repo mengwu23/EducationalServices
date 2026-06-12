@@ -77,6 +77,20 @@ class EmotionUpdateRequest(BaseModel):
     summary: Optional[str] = Field(default=None, max_length=1000, description="情绪摘要")
 
 
+class EmotionCheckinRequest(BaseModel):
+    """学生情绪打卡 — 请求体
+
+    学生输入一段自我描述文本，由 AI 识别情绪标签/分值/摘要后更新心理画像。
+
+    使用示例：
+        POST /psych/profile/checkin
+        {
+            "content": "最近上课全是英文跟不上，周围同学也不太熟，感觉很孤独，有点想家"
+        }
+    """
+    content: str = Field(..., min_length=1, max_length=2000, description="情绪打卡文本，学生的自我情绪描述")
+
+
 class PsychProfileListQuery(PageQuery):
     """心理画像列表查询参数
 

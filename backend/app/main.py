@@ -1,15 +1,8 @@
 """教育服务系统 API 入口。"""
 
-import os
-import uvicorn
 import sys
+import uvicorn
 from pathlib import Path
-
-# ── 数据库配置（在导入业务模块前设置）──
-os.environ.setdefault(
-    "DATABASE_URL",
-    "mysql+pymysql://root:123456@localhost:3306/education_service_ai",
-)
 
 if __package__ is None or __package__ == "":
     sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
@@ -110,6 +103,9 @@ app.include_router(application_progress_router)
 app.include_router(student_feedback_ticket_router, prefix="/api")
 app.include_router(ai_tool_router, prefix="/api")
 app.include_router(ai_tool_router, prefix="/api/v1")
+# 兼容线上已发布 Dify 工作流的回调路径（/ai-tools 段）
+app.include_router(ai_tool_router, prefix="/api/ai-tools")
+app.include_router(ai_tool_router, prefix="/api/v1/ai-tools")
 
 
 def create_app() -> FastAPI:

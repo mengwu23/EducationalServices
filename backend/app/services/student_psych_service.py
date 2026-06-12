@@ -45,6 +45,7 @@ from backend.app.schemas.student_psych_schema import (
     PsychAlertResponse,
     PsychProfileResponse,
 )
+from backend.app.services.emotion_recognition_service import EmotionRecognitionService
 
 
 class StudentPsychService:
@@ -395,6 +396,74 @@ class StudentPsychService:
 
         # 重新查询获取更新后的数据
         profile = self.dao.get_profile_by_student_id(student_id)
+        return self._build_profile_response(profile, student_name=student.student_name)
+
+    def emotion_checkin(
+        self,
+        current_user_id: int,
+        current_user_type: str,
+        content: str,
+        recognizer: Optional[EmotionRecognitionService] = None,
+    ) -> PsychProfileResponse:
+        """学生情绪打卡：输入文本 → AI 识别情绪 → 更新自己的心理画像。
+
+        流程：
+            1. 校验当前用户是学生，解析其 student_id
+            2. 调 AI 识别情绪标签/分值/摘要/风险等级
+            3. 查找或创建心理画像并写入识别结果
+            4. 提交事务
+
+        Args:
+            current_user_id: 当前登录用户的 sys_user.id
+            current_user_type: 当前登录用户的 user_type（必须为 student）
+            content: 学生情绪打卡文本
+            recognizer: 情绪识别服务（可注入，便于测试）
+
+        Returns:
+            更新后的心理画像
+
+        Raises:
+            PermissionDeniedException: 非学生角色
+            NotFoundException: 学生档案不存在
+            ValidationErrorException: AI 情绪识别不可用或识别失败
+        """
+        if current_user_type != UserType.STUDENT.value:
+            raise PermissionDeniedException("只有学生才能进行情绪打卡")
+
+        student = self._get_student_by_user_id(current_user_id)
+        if student is None:
+            raise NotFoundException("未找到学生档案", code=40401)
+
+        recognizer = recognizer or EmotionRecognitionService()
+        if not recognizer.is_available():
+            raise ValidationErrorException("情绪识别服务暂未配置，无法完成 AI 打卡")
+
+        recognized = recognizer.recognize(content)
+        if not recognized:
+            raise ValidationErrorException("情绪识别失败，请稍后重试或补充更多描述")
+
+        # 查找或创建心理画像
+        profile = self.dao.get_profile_by_student_id(student.id)
+        if profile is None:
+            from backend.app.models.student_psych_profile import StudentPsychProfile
+            profile = StudentPsychProfile(
+                student_id=student.id,
+                risk_level=PsychRiskLevel.LOW.value,
+            )
+            self.db.add(profile)
+            self.db.flush()
+
+        self.dao.update_profile(
+            student_id=student.id,
+            latest_emotion_tag=recognized["emotion_tag"],
+            emotion_score=recognized["emotion_score"],
+            risk_level=recognized["risk_level"],
+            emotion_summary=recognized["summary"],
+            last_interaction_time=datetime.now(),
+        )
+        self.db.commit()
+
+        profile = self.dao.get_profile_by_student_id(student.id)
         return self._build_profile_response(profile, student_name=student.student_name)
 
     def process_alert(

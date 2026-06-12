@@ -56,3 +56,10 @@ desktop.ini
 # Local tooling
 .codegraph/
 .superpowers/
+
+# Local databases (SQLite test/scratch)
+*.db
+!Thumbs.db
+
+# Local env (contains real credentials)
+.env
