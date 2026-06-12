@@ -214,12 +214,22 @@ def crm_sync(payload: CRMSyncRequest, db: Session = Depends(get_db)):
     service = ApplicationProgressService(db)
     try:
         if payload.sync_direction == "to_local":
-            result = service.sync_from_crm(payload.crm_system, payload.crm_record_id)
-        else:
-            result = service.sync_to_crm(
-                # progress_id 需要从 crm_record_id 映射获取
-                0, payload.crm_system,
+            result = service.sync_from_crm(
+                crm_system=payload.crm_system,
+                crm_record_id=payload.crm_record_id,
+                student_id=payload.student_id,
+                progress_stage=payload.progress_stage,
+                progress_status=payload.progress_status,
+                progress_desc=payload.progress_desc,
             )
+        elif payload.sync_direction == "to_crm":
+            result = service.sync_to_crm(
+                progress_id=payload.progress_id,
+                crm_system=payload.crm_system,
+                crm_record_id=payload.crm_record_id,
+            )
+        else:
+            raise ValueError("sync_direction must be to_local or to_crm")
         return success_response(data=result, message="同步完成")
     except NotImplementedError as e:
         return error_response(code=50100, message=str(e))

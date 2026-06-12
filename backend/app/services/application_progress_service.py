@@ -17,10 +17,12 @@ CRM 集成预留：
 from datetime import datetime
 from typing import Optional
 
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from backend.app.common.exceptions import NotFoundException, BadRequestError
 from backend.app.daos.application_progress_dao import ApplicationProgressDao
+from backend.app.models.crm_lead import CrmLead
 from backend.app.models.employee_profile import EmployeeProfile
 from backend.app.models.student_profile import StudentProfile
 from backend.app.models.sys_user import SysUser
@@ -216,33 +218,112 @@ class ApplicationProgressService:
     # CRM 集成预留（待 CRM 系统合并后实现）
     # ══════════════════════════════════════════════════════════
 
-    def sync_from_crm(self, crm_system: str, crm_record_id: str) -> dict:
-        """从 CRM 系统拉取进度数据（预留）。
+    def sync_from_crm(
+        self,
+        crm_system: str,
+        crm_record_id: Optional[str],
+        student_id: Optional[int] = None,
+        progress_stage: Optional[str] = None,
+        progress_status: Optional[str] = None,
+        progress_desc: Optional[str] = None,
+    ) -> dict:
+        """从现有客户线索表同步生成/更新学生申请进度。"""
+        lead = self._get_crm_lead(crm_record_id)
+        student = self._resolve_student_for_lead(lead, student_id)
 
-        TODO: 接入 CRM 后实现：
-        1. 根据 crm_system 选择对应的 CRM 适配器
-        2. 通过 crm_record_id 查询 CRM 系统中的申请进度
-        3. 将 CRM 数据映射为本地 StudentApplicationProgress 记录
-        4. 更新 crm_sync_status = 'synced'
-        """
-        raise NotImplementedError(
-            f"CRM integration not yet implemented. "
-            f"System={crm_system}, record_id={crm_record_id}"
+        stage = progress_stage or "school_apply"
+        status = progress_status or self._map_lead_status_to_progress_status(lead.status)
+        if stage not in self.VALID_STAGES:
+            raise BadRequestError(f"Invalid stage: {stage}")
+        if status not in self.VALID_STATUSES:
+            raise BadRequestError(f"Invalid status: {status}")
+
+        now = datetime.now()
+        normalized_crm_record_id = self._normalized_crm_record_id(lead)
+        update_kwargs = {
+            "student_id": student.id,
+            "progress_stage": stage,
+            "target_country": lead.target_country or student.target_country,
+            "school_name": lead.school_name,
+            "program_name": lead.target_program,
+            "progress_status": status,
+            "progress_desc": progress_desc or self._build_progress_desc_from_lead(lead),
+            "handler_employee_id": lead.owner_employee_id or student.counselor_employee_id,
+            "crm_record_id": normalized_crm_record_id,
+            "crm_sync_status": "synced",
+            "crm_last_sync_time": now,
+        }
+
+        progress = (
+            self.dao.get_by_crm_record_id(normalized_crm_record_id)
+            or self.dao.get_by_crm_record_id(str(crm_record_id))
+        )
+        action = "updated"
+        if progress is None:
+            progress = self.dao.create(**update_kwargs)
+            action = "created"
+        else:
+            progress = self.dao.update(progress.id, **update_kwargs)
+
+        self.db.commit()
+        return {
+            "sync_direction": "to_local",
+            "crm_system": crm_system,
+            "crm_record_id": normalized_crm_record_id,
+            "action": action,
+            "lead": self._lead_snapshot(lead),
+            "student_id": student.id,
+            "progress": self._to_response(progress, student_name=student.student_name),
+        }
+
+    def sync_to_crm(
+        self,
+        progress_id: Optional[int],
+        crm_system: str,
+        crm_record_id: Optional[str] = None,
+    ) -> dict:
+        """将本地申请进度回写到现有客户线索表。"""
+        if progress_id is None:
+            raise BadRequestError("progress_id is required when sync_direction=to_crm")
+
+        progress = self.dao.get_by_id(progress_id)
+        if progress is None:
+            raise NotFoundException("Progress record not found")
+
+        lead_record_id = crm_record_id or progress.crm_record_id
+        lead = self._get_crm_lead(lead_record_id)
+
+        now = datetime.now()
+        summary = self._build_follow_up_summary(progress)
+        lead.latest_follow_up_summary = summary
+        lead.follow_up_history = self._append_follow_up_history(lead.follow_up_history, summary, now)
+        lead.last_follow_up_time = now
+        if progress.target_country:
+            lead.target_country = progress.target_country
+        if progress.program_name:
+            lead.target_program = progress.program_name
+        if progress.handler_employee_id:
+            lead.owner_employee_id = progress.handler_employee_id
+        if lead.status == "new":
+            lead.status = "following"
+
+        normalized_crm_record_id = self._normalized_crm_record_id(lead)
+        progress = self.dao.update(
+            progress.id,
+            crm_record_id=normalized_crm_record_id,
+            crm_sync_status="synced",
+            crm_last_sync_time=now,
         )
 
-    def sync_to_crm(self, progress_id: int, crm_system: str) -> dict:
-        """将本地进度数据推送到 CRM 系统（预留）。
-
-        TODO: 接入 CRM 后实现：
-        1. 查询本地进度记录
-        2. 根据 crm_system 选择对应的 CRM 适配器
-        3. 将本地数据映射为 CRM 系统的字段格式
-        4. 推送并更新本地 crm_sync_status = 'synced'
-        """
-        raise NotImplementedError(
-            f"CRM integration not yet implemented. "
-            f"Progress={progress_id}, system={crm_system}"
-        )
+        self.db.commit()
+        return {
+            "sync_direction": "to_crm",
+            "crm_system": crm_system,
+            "crm_record_id": normalized_crm_record_id,
+            "action": "updated",
+            "lead": self._lead_snapshot(lead),
+            "progress": self._to_response(progress),
+        }
 
     # ── 私有辅助 ──
 
@@ -268,13 +349,137 @@ class ApplicationProgressService:
             handler_employee_id=progress.handler_employee_id,
             handler_name=handler_name,
             expected_finish_time=progress.expected_finish_time,
-            # CRM 预留字段 — 当前返回 None
-            crm_record_id=None,
-            crm_sync_status=None,
-            crm_last_sync_time=None,
+            crm_record_id=getattr(progress, "crm_record_id", None),
+            crm_sync_status=getattr(progress, "crm_sync_status", None),
+            crm_last_sync_time=getattr(progress, "crm_last_sync_time", None),
             create_time=progress.create_time,
             update_time=progress.update_time,
         )
+
+    def _get_crm_lead(self, crm_record_id: Optional[str]) -> CrmLead:
+        if not crm_record_id:
+            raise BadRequestError("crm_record_id is required")
+
+        record_id = str(crm_record_id).strip()
+        query = self.db.query(CrmLead).filter(CrmLead.is_delete == 0)
+        lead = None
+        if record_id.isdigit():
+            lead = query.filter(CrmLead.id == int(record_id)).first()
+        if lead is None:
+            lead = query.filter(CrmLead.lead_no == record_id).first()
+        if lead is None:
+            raise NotFoundException(f"CRM lead not found: {crm_record_id}")
+        return lead
+
+    def _resolve_student_for_lead(self, lead: CrmLead, student_id: Optional[int]) -> StudentProfile:
+        if student_id is not None:
+            student = self._get_student(student_id)
+            if student is None:
+                raise NotFoundException("Student not found")
+            return student
+
+        filters = []
+        if lead.phone:
+            filters.append(StudentProfile.phone == lead.phone)
+        if lead.email:
+            filters.append(StudentProfile.email == lead.email)
+        if lead.customer_name:
+            filters.append(StudentProfile.student_name == lead.customer_name)
+
+        for condition in filters:
+            student = self.db.query(StudentProfile).filter(
+                condition,
+                StudentProfile.is_delete == 0,
+            ).first()
+            if student is not None:
+                return student
+
+        student = StudentProfile(
+            student_no=self._next_crm_student_no(lead),
+            student_name=lead.customer_name,
+            phone=lead.phone,
+            email=lead.email,
+            current_school=lead.school_name,
+            current_grade=lead.current_grade,
+            target_country=lead.target_country,
+            target_program=lead.target_program,
+            counselor_employee_id=lead.owner_employee_id,
+            teacher_employee_id=lead.owner_employee_id,
+        )
+        if self.db.get_bind().dialect.name == "sqlite":
+            student.id = (self.db.query(func.max(StudentProfile.id)).scalar() or 0) + 1
+        self.db.add(student)
+        self.db.flush()
+        return student
+
+    def _next_crm_student_no(self, lead: CrmLead) -> str:
+        raw_base = f"CRM-{lead.lead_no or lead.id}"
+        base = raw_base[:45]
+        candidate = base
+        suffix = 1
+        while self.db.query(StudentProfile).filter(StudentProfile.student_no == candidate).first() is not None:
+            suffix += 1
+            candidate = f"{base}-{suffix}"[:50]
+        return candidate
+
+    @staticmethod
+    def _normalized_crm_record_id(lead: CrmLead) -> str:
+        return str(lead.id)
+
+    @staticmethod
+    def _map_lead_status_to_progress_status(lead_status: str) -> str:
+        mapping = {
+            "new": "pending",
+            "following": "processing",
+            "signed": "processing",
+            "lost": "blocked",
+            "invalid": "blocked",
+        }
+        return mapping.get(lead_status, "processing")
+
+    @staticmethod
+    def _build_progress_desc_from_lead(lead: CrmLead) -> str:
+        parts = [f"由客户线索 {lead.lead_no} 同步生成"]
+        if lead.latest_follow_up_summary:
+            parts.append(f"最近跟进：{lead.latest_follow_up_summary}")
+        if lead.background_info:
+            parts.append(f"客户背景：{lead.background_info}")
+        return "；".join(parts)
+
+    def _build_follow_up_summary(self, progress) -> str:
+        stage_label = PROGRESS_STAGES.get(progress.progress_stage, progress.progress_stage)
+        status_label = PROGRESS_STATUSES.get(progress.progress_status, progress.progress_status)
+        student_name = self._get_student_name(progress.student_id) or f"学生{progress.student_id}"
+        summary = f"{student_name}申请进度更新：{stage_label} - {status_label}"
+        if progress.school_name:
+            summary += f"，院校：{progress.school_name}"
+        if progress.program_name:
+            summary += f"，项目：{progress.program_name}"
+        if progress.progress_desc:
+            summary += f"，说明：{progress.progress_desc}"
+        return summary
+
+    @staticmethod
+    def _append_follow_up_history(history: Optional[str], summary: str, sync_time: datetime) -> str:
+        item = f"[{sync_time.strftime('%Y-%m-%d %H:%M:%S')}] {summary}"
+        if not history:
+            return item
+        return f"{history}\n{item}"
+
+    @staticmethod
+    def _lead_snapshot(lead: CrmLead) -> dict:
+        return {
+            "id": lead.id,
+            "lead_no": lead.lead_no,
+            "customer_name": lead.customer_name,
+            "phone": lead.phone,
+            "email": lead.email,
+            "status": lead.status,
+            "target_country": lead.target_country,
+            "target_program": lead.target_program,
+            "owner_employee_id": lead.owner_employee_id,
+            "latest_follow_up_summary": lead.latest_follow_up_summary,
+        }
 
     def _get_student(self, student_id: int) -> Optional[StudentProfile]:
         return self.db.query(StudentProfile).filter(
