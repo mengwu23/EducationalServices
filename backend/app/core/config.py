@@ -1,8 +1,12 @@
 from functools import lru_cache
 from pathlib import Path
 
-from pydantic import AliasChoices, Field,field_validator
+from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+BACKEND_DIR = Path(__file__).resolve().parents[2]
+PROJECT_ROOT = Path(__file__).resolve().parents[3]
 
 
 class Settings(BaseSettings):
@@ -40,6 +44,11 @@ class Settings(BaseSettings):
     # AI Tools 密钥
     ai_tools_secret: str = Field(default="", alias="AI_TOOLS_SECRET")
 
+    jwt_secret_key: str = Field(default="education-service-dev-secret", alias="JWT_SECRET_KEY")
+    jwt_algorithm: str = Field(default="HS256", alias="JWT_ALGORITHM")
+    jwt_access_token_expire_minutes: int = Field(default=120, alias="JWT_ACCESS_TOKEN_EXPIRE_MINUTES")
+    auth_dev_header_enabled: bool = Field(default=True, alias="AUTH_DEV_HEADER_ENABLED")
+
     @field_validator("dify_api_base_url", mode="after")
     @classmethod
     def validate_dify_base_url(cls, v: str) -> str:
@@ -58,7 +67,10 @@ class Settings(BaseSettings):
         return v
 
     model_config = SettingsConfigDict(
-        env_file=str(Path(__file__).resolve().parents[3] / ".env"),
+        env_file=(
+            str(PROJECT_ROOT / ".env"),
+            str(BACKEND_DIR / ".env"),
+        ),
         env_file_encoding="utf-8-sig",
         populate_by_name=True,
         extra="ignore",

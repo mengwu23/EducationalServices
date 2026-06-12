@@ -26,6 +26,7 @@ from sqlalchemy.orm import Session
 from backend.app.common.exceptions import AppException
 from backend.app.common.pagination import PageQuery
 from backend.app.common.responses import ApiResponse, error_response, success_response
+from backend.app.core.security import require_permissions
 from backend.app.database import get_db
 from backend.app.schemas.student_psych_schema import (
     EmotionCheckinRequest,
@@ -80,7 +81,7 @@ def get_current_user(
 @router.get("/profile", response_model=ApiResponse, summary="查看自己的心理画像")
 def get_my_profile(
     db: Session = Depends(get_db),
-    current_user: CurrentUser = Depends(get_current_user),
+    current_user: CurrentUser = Depends(require_permissions("student_psych:own")),
 ):
     """学生查看自己的心理状态画像
 
@@ -107,7 +108,7 @@ def get_my_profile(
 def emotion_checkin(
     data: EmotionCheckinRequest,
     db: Session = Depends(get_db),
-    current_user: CurrentUser = Depends(get_current_user),
+    current_user: CurrentUser = Depends(require_permissions("student_psych:own")),
 ):
     """学生提交情绪打卡文本，由 AI 识别情绪标签、分值和摘要并更新心理画像。
 
@@ -135,7 +136,7 @@ def emotion_checkin(
 def list_all_profiles(
     query: PsychProfileListQuery = Depends(),
     db: Session = Depends(get_db),
-    current_user: CurrentUser = Depends(get_current_user),
+    current_user: CurrentUser = Depends(require_permissions("student_psych:read")),
 ):
     """员工查看所有学生的心理画像列表
 
@@ -169,7 +170,7 @@ def list_all_profiles(
 def list_my_alerts(
     query: PsychAlertListQuery = Depends(),
     db: Session = Depends(get_db),
-    current_user: CurrentUser = Depends(get_current_user),
+    current_user: CurrentUser = Depends(require_permissions("student_psych:own")),
 ):
     """学生查看自己的心理预警记录
 
@@ -204,7 +205,7 @@ def list_my_alerts(
 def create_alert(
     data: PsychAlertCreateRequest,
     db: Session = Depends(get_db),
-    current_user: CurrentUser = Depends(get_current_user),
+    current_user: CurrentUser = Depends(require_permissions("student_psych:manage")),
 ):
     """创建心理预警
 
@@ -239,7 +240,7 @@ def create_alert(
 def list_pending_alerts(
     query: PageQuery = Depends(),
     db: Session = Depends(get_db),
-    current_user: CurrentUser = Depends(get_current_user),
+    current_user: CurrentUser = Depends(require_permissions("student_psych:read")),
 ):
     """员工查看所有待处理和跟进中的预警
 
@@ -272,7 +273,7 @@ def list_pending_alerts(
 @router.get("/alerts/pending/count", response_model=ApiResponse, summary="统计待处理预警数量")
 def count_pending_alerts(
     db: Session = Depends(get_db),
-    current_user: CurrentUser = Depends(get_current_user),
+    current_user: CurrentUser = Depends(require_permissions("student_psych:read")),
 ):
     """统计当前待处理和跟进中的预警总数
 
@@ -296,7 +297,7 @@ def count_pending_alerts(
 def list_processed_alerts(
     query: PageQuery = Depends(),
     db: Session = Depends(get_db),
-    current_user: CurrentUser = Depends(get_current_user),
+    current_user: CurrentUser = Depends(require_permissions("student_psych:read")),
 ):
     """员工查看自己处理过的预警历史
 
@@ -331,7 +332,7 @@ def handle_alert(
     alert_id: int,
     data: PsychAlertActionRequest,
     db: Session = Depends(get_db),
-    current_user: CurrentUser = Depends(get_current_user),
+    current_user: CurrentUser = Depends(require_permissions("student_psych:manage")),
 ):
     """处理心理预警
 
