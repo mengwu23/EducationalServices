@@ -147,6 +147,27 @@ def test_real_dify_extracts_embedded_json_object(monkeypatch):
     assert draft["title"] == "嵌入JSON报告"
 
 
+def test_real_dify_repairs_truncated_json(monkeypatch):
+    """LLM max_tokens 不足导致 JSON 在 sections 中途截断时，挽救出完整前缀。"""
+    truncated = (
+        '<think>推理过程，含 status={a:1} 干扰花括号</think>\n'
+        '{"tool_call_success": true, "tool_status_code": 200, "tool_error": "",'
+        '"title": "投诉处理周报", "summary": "本周共10件投诉",'
+        '"sections": [{"heading": "整体概况", "content": "投诉总量10件",'
+        '"metrics": [{"name": "投诉总量", "value": "10"}]},'
+        '{"heading": "处理进展", "content": "已解决5件但这里被截'
+    )
+    payload = {"data": {"outputs": {"report": truncated}}}
+    client, _ = build_client(monkeypatch, payload)
+
+    draft = client.generate_report_draft(ReportType.COMPLAINT_WEEKLY, {}, {}, "trace-truncated")
+
+    assert draft["title"] == "投诉处理周报"
+    # 截断的第二个 section 被丢弃，保留第一个完整 section
+    assert len(draft["sections"]) == 1
+    assert draft["sections"][0]["heading"] == "整体概况"
+
+
 def test_real_dify_rejects_failed_tool_call(monkeypatch):
     report = {
         "tool_call_success": False,

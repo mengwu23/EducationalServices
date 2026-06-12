@@ -3,7 +3,7 @@ from datetime import date, datetime
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
+from sqlalchemy import BigInteger, create_engine
 from sqlalchemy.dialects.mysql import LONGTEXT
 from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.orm import Session, sessionmaker
@@ -33,6 +33,13 @@ def compile_longtext_for_sqlite(_type, compiler, **kw):
     return "TEXT"
 
 
+@compiles(BigInteger, "sqlite")
+def compile_bigint_for_sqlite(_type, compiler, **kw):
+    # SQLite 仅对 INTEGER PRIMARY KEY 提供 rowid 自增；将 BIGINT 主键映射为
+    # INTEGER 后，未显式赋 id 的插入（如 create_ticket）才能自增主键。
+    return "INTEGER"
+
+
 @pytest.fixture()
 def db_session() -> Generator[Session, None, None]:
     engine = create_engine(
@@ -49,6 +56,20 @@ def db_session() -> Generator[Session, None, None]:
     finally:
         db.close()
         Base.metadata.drop_all(bind=engine)
+
+
+@pytest.fixture(autouse=True)
+def _force_dify_mock(monkeypatch) -> Generator[None, None, None]:
+    """测试期间强制启用 Dify Mock，使测试与 .env 的真实 Dify 配置解耦。
+
+    避免本地 .env 设为 DIFY_MOCK_ENABLED=false 时，集成测试误打真实 Dify 导致超时挂起。
+    """
+    from backend.app.core.config import get_settings
+
+    monkeypatch.setenv("DIFY_MOCK_ENABLED", "true")
+    get_settings.cache_clear()
+    yield
+    get_settings.cache_clear()
 
 
 @pytest.fixture()
