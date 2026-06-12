@@ -69,50 +69,12 @@ class PsychAlertActionRequest(BaseModel):
     handle_result: Optional[str] = Field(default=None, max_length=2000, description="处理结果，resolve 和 close 时建议填写")
 
 
-class AIEmotionAnalysisRequest(BaseModel):
-    """AI 情绪分析 — 请求体（Dify 聊天后自动调用）
-
-    相比 EmotionUpdateRequest 多了 trigger_reason 字段，
-    当风险等级为 high/critical 时自动创建预警。
-
-    使用示例：
-        POST /psych/alerts/analyze-emotion
-        {
-            "student_id": 1,
-            "emotion_tag": "焦虑",
-            "emotion_score": 35,
-            "risk_level": "high",
-            "trigger_reason": "学生多次提到考试压力大，表现出明显焦虑",
-            "summary": "近期学业压力导致情绪波动"
-        }
-    """
-    student_id: int = Field(..., description="学生 ID")
-    emotion_tag: Optional[str] = Field(default=None, max_length=100, description="情绪标签")
-    emotion_score: Optional[int] = Field(default=None, ge=0, le=100, description="情绪分值")
-    risk_level: PsychRiskLevel = Field(..., description="风险等级")
-    trigger_reason: Optional[str] = Field(default=None, max_length=1000, description="触发预警原因（high/critical时必填）")
-    summary: Optional[str] = Field(default=None, max_length=1000, description="情绪摘要")
-
-
 class EmotionUpdateRequest(BaseModel):
-    """更新情绪状态 — 请求体
-
-    AI 预留接口，后续 Dify 聊天时实时更新学生的情绪状态。
-    人工也可以调用此接口手动更新。
-
-    使用示例（后续 AI 调用）：
-        PATCH /psych/profile/emotion
-        {
-            "emotion_tag": "学业压力",
-            "emotion_score": 45,
-            "risk_level": "high",
-            "summary": "近期作业压力增大，情绪波动明显"
-        }
-    """
-    emotion_tag: Optional[str] = Field(default=None, max_length=100, description='情绪标签，如「学业压力」「平稳」「焦虑」')
-    emotion_score: Optional[int] = Field(default=None, ge=0, le=100, description="情绪分值 0-100，越高越积极")
+    """更新情绪状态 — 请求体（chat_psych 内部调用）。"""
+    emotion_tag: Optional[str] = Field(default=None, max_length=100, description="情绪标签")
+    emotion_score: Optional[int] = Field(default=None, ge=0, le=100, description="情绪分值 0-100")
     risk_level: Optional[PsychRiskLevel] = Field(default=None, description="风险等级：low / medium / high / critical")
-    summary: Optional[str] = Field(default=None, max_length=1000, description="情绪摘要，AI 总结的近期情绪状态")
+    summary: Optional[str] = Field(default=None, max_length=1000, description="情绪摘要")
 
 
 class EmotionCheckinRequest(BaseModel):
@@ -128,10 +90,6 @@ class EmotionCheckinRequest(BaseModel):
     """
     content: str = Field(..., min_length=1, max_length=2000, description="情绪打卡文本，学生的自我情绪描述")
 
-
-# ============================================================
-# 查询参数
-# ============================================================
 
 class PsychProfileListQuery(PageQuery):
     """心理画像列表查询参数
