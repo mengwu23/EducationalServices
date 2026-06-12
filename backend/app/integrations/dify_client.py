@@ -729,7 +729,7 @@ class DifyClient:
     ) -> dict[str, Any]:
         if not self.settings.dify_api_key:
             raise RuntimeError("未配置 Dify API Key")
-        url = f"{self.settings.dify_api_base_url.rstrip('/')}/v1/workflows/run"
+        url = f"{self.settings.dify_api_base_url.rstrip('/')}/workflows/run"
         payload = {
             "inputs": {
                 "report_type": report_type,
