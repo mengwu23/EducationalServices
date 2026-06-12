@@ -2,6 +2,8 @@
 
 import sys
 import uvicorn
+import logging
+import time
 from pathlib import Path
 
 if __package__ is None or __package__ == "":
@@ -18,6 +20,10 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from backend.app.common.exceptions import AppException
 from backend.app.common.responses import ApiResponse, error_response, success_response
+from backend.app.core.logging import configure_logging, log_exception
+
+configure_logging()
+logger = logging.getLogger("app.api")
 
 # ── 控制器路由 ──
 from backend.app.controllers.academic_event_controller import router as academic_event_router
@@ -52,8 +58,37 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
+@app.middleware("http")
+async def request_logging_middleware(request: Request, call_next):
+    start_time = time.perf_counter()
+    try:
+        response = await call_next(request)
+    except Exception as exc:
+        duration_ms = (time.perf_counter() - start_time) * 1000
+        log_exception(
+            logger,
+            f"请求处理异常 | {request.method} {request.url.path} | 耗时 {duration_ms:.2f} ms",
+            exc,
+        )
+        raise
+
+    duration_ms = (time.perf_counter() - start_time) * 1000
+    logger.info(
+        "请求完成 | %s %s | 状态码 %s | 耗时 %.2f ms | 客户端 %s",
+        request.method,
+        request.url.path,
+        response.status_code,
+        duration_ms,
+        request.client.host if request.client else "-",
+    )
+    return response
+
+
 @app.exception_handler(AppException)
 async def app_exception_handler(request: Request, exc: AppException):
+    if exc.status_code >= 500:
+        log_exception(logger, f"业务异常 | {request.method} {request.url.path}", exc)
     return JSONResponse(
         status_code=exc.status_code,
         content=error_response(code=exc.code, message=exc.message).model_dump(),
@@ -62,6 +97,8 @@ async def app_exception_handler(request: Request, exc: AppException):
 
 @app.exception_handler(StarletteHTTPException)
 async def http_exception_handler(request: Request, exc: StarletteHTTPException):
+    if exc.status_code >= 500:
+        log_exception(logger, f"HTTP 异常 | {request.method} {request.url.path}", exc)
     message = exc.detail if isinstance(exc.detail, str) else str(exc.detail)
     return JSONResponse(
         status_code=exc.status_code,
