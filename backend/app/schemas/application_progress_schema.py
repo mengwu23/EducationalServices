@@ -141,7 +141,12 @@ class StagesReferenceResponse(BaseModel):
 # ── CRM 同步预留 ──
 
 class CRMSyncRequest(BaseModel):
-    """CRM 数据同步请求（预留接口）。"""
-    crm_system: str = Field(default="salesforce", description="CRM系统标识")
-    crm_record_id: str = Field(..., description="CRM系统中的记录ID")
+    """CRM 数据同步请求。"""
+    crm_system: str = Field(default="crm_lead", description="CRM系统标识，当前支持本地crm_lead")
+    crm_record_id: Optional[str] = Field(default=None, description="CRM系统中的记录ID，支持crm_lead.id或lead_no")
     sync_direction: str = Field(default="to_local", description="同步方向：to_local从CRM拉取/to_crm推送到CRM")
+    progress_id: Optional[int] = Field(default=None, description="本地申请进度ID，to_crm时建议传入")
+    student_id: Optional[int] = Field(default=None, description="本地学生ID，to_local时可指定同步到哪个学生")
+    progress_stage: Optional[str] = Field(default=None, description="同步生成/更新的进度阶段")
+    progress_status: Optional[str] = Field(default=None, description="同步生成/更新的进度状态")
+    progress_desc: Optional[str] = Field(default=None, description="同步生成/更新的进度说明")

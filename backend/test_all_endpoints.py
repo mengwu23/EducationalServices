@@ -25,11 +25,22 @@ def call(method, path, params=None, body=None):
     req = urllib.request.Request(url, data=data, headers=headers, method=method)
     try:
         with urllib.request.urlopen(req, timeout=30) as resp:
-            return resp.status, resp.read().decode("utf-8")[:500]
+            return resp.status, resp.read().decode("utf-8")
     except urllib.error.HTTPError as e:
-        return e.code, e.read().decode("utf-8", errors="replace")[:500]
+        return e.code, e.read().decode("utf-8", errors="replace")
     except Exception as e:
         return None, str(e)[:200]
+
+
+def business_ok(status, resp):
+    """HTTP 2xx 的统一响应必须同时满足业务 code=0。"""
+    if status is None or status < 200 or status >= 300 or not resp:
+        return True
+    try:
+        data = json.loads(resp)
+    except json.JSONDecodeError:
+        return True
+    return data.get("code", 0) == 0
 
 
 def test(name, method, path, params=None, body=None, expected_codes=(200, 201), skip=False, skip_reason=""):
@@ -38,7 +49,7 @@ def test(name, method, path, params=None, body=None, expected_codes=(200, 201), 
         return {"name": name, "method": method, "path": path, "status": "SKIP", "reason": skip_reason}
 
     status, resp = call(method, path, params, body)
-    ok = status in expected_codes if status is not None else False
+    ok = (status in expected_codes and business_ok(status, resp)) if status is not None else False
     result = {
         "name": name,
         "method": method,
@@ -57,7 +68,23 @@ def test(name, method, path, params=None, body=None, expected_codes=(200, 201), 
     return result
 
 
+def first_lead_no():
+    status, resp = call("GET", "/enterprise/api/v1/enterprise-query/leads/search", params={"page": 1, "page_size": 1})
+    if status != 200:
+        return None
+    try:
+        body = json.loads(resp)
+        items = ((body.get("data") or {}).get("items") or [])
+        return items[0].get("lead_no") if items else None
+    except Exception:
+        return None
+
+
+STUDENT_USER = {"user_id": 11, "user_type": "student"}
+EMPLOYEE_USER = {"user_id": 1, "user_type": "employee"}
+
 results = []
+sample_lead_no = first_lead_no()
 
 # ============================================================
 # 1. 系统
@@ -87,7 +114,9 @@ results.append(test("创建学业事件", "POST", "/api/academic-events",
 results.append(test("查询申请进度列表", "GET", "/api/application-progress", params={"page": 1, "size": 5}))
 results.append(test("获取阶段参考", "GET", "/api/application-progress/stages"))
 results.append(test("统计卡住数量", "GET", "/api/application-progress/stats/blocked-count"))
-results.append(test("CRM同步(预览)", "POST", "/api/application-progress/crm/sync", body={}, expected_codes=(200, 201, 422, 500)))
+results.append(test("CRM同步-客户线索到申请进度", "POST", "/api/application-progress/crm/sync",
+    body={"crm_system": "crm_lead", "crm_record_id": sample_lead_no or "L2026001", "sync_direction": "to_local"},
+    expected_codes=(200, 201, 404, 422, 500)))
 
 # ============================================================
 # 5. Dify 工具接口
@@ -126,29 +155,29 @@ results.append(test("报告-生成草稿", "POST", "/api/v1/reports/generate-dra
 # ============================================================
 # 8. 学生助手 - 请假
 # ============================================================
-results.append(test("学生助手-请假列表", "GET", "/api/v1/student-assistant/leaves", params={"page": 1, "size": 5},
+results.append(test("学生助手-请假列表", "GET", "/api/v1/student-assistant/leaves", params={"page": 1, "size": 5, **STUDENT_USER},
     expected_codes=(200, 401, 403, 500)))
-results.append(test("学生助手-待审批列表", "GET", "/api/v1/student-assistant/leaves/pending", params={"page": 1, "size": 5},
+results.append(test("学生助手-待审批列表", "GET", "/api/v1/student-assistant/leaves/pending", params={"page": 1, "size": 5, **EMPLOYEE_USER},
     expected_codes=(200, 401, 403, 500)))
-results.append(test("学生助手-待审批计数", "GET", "/api/v1/student-assistant/leaves/pending/count",
+results.append(test("学生助手-待审批计数", "GET", "/api/v1/student-assistant/leaves/pending/count", params=EMPLOYEE_USER,
     expected_codes=(200, 401, 403, 500)))
-results.append(test("学生助手-审批历史", "GET", "/api/v1/student-assistant/leaves/history", params={"page": 1, "size": 5},
+results.append(test("学生助手-审批历史", "GET", "/api/v1/student-assistant/leaves/history", params={"page": 1, "size": 5, **EMPLOYEE_USER},
     expected_codes=(200, 401, 403, 500)))
 
 # ============================================================
 # 9. 学生助手 - 心理关怀
 # ============================================================
-results.append(test("心理关怀-查看自己的档案", "GET", "/api/v1/student-assistant/psych/profile",
+results.append(test("心理关怀-查看自己的档案", "GET", "/api/v1/student-assistant/psych/profile", params=STUDENT_USER,
     expected_codes=(200, 401, 403, 404, 500)))
-results.append(test("心理关怀-预警列表(学生)", "GET", "/api/v1/student-assistant/psych/alerts", params={"page": 1, "size": 5},
+results.append(test("心理关怀-预警列表(学生)", "GET", "/api/v1/student-assistant/psych/alerts", params={"page": 1, "size": 5, **STUDENT_USER},
     expected_codes=(200, 401, 403, 500)))
-results.append(test("心理关怀-待处理预警(员工)", "GET", "/api/v1/student-assistant/psych/alerts/pending", params={"page": 1, "size": 5},
+results.append(test("心理关怀-待处理预警(员工)", "GET", "/api/v1/student-assistant/psych/alerts/pending", params={"page": 1, "size": 5, **EMPLOYEE_USER},
     expected_codes=(200, 401, 403, 500)))
-results.append(test("心理关怀-待处理计数", "GET", "/api/v1/student-assistant/psych/alerts/pending/count",
+results.append(test("心理关怀-待处理计数", "GET", "/api/v1/student-assistant/psych/alerts/pending/count", params=EMPLOYEE_USER,
     expected_codes=(200, 401, 403, 500)))
-results.append(test("心理关怀-预警历史(员工)", "GET", "/api/v1/student-assistant/psych/alerts/history", params={"page": 1, "size": 5},
+results.append(test("心理关怀-预警历史(员工)", "GET", "/api/v1/student-assistant/psych/alerts/history", params={"page": 1, "size": 5, **EMPLOYEE_USER},
     expected_codes=(200, 401, 403, 500)))
-results.append(test("心理关怀-学生档案列表(员工)", "GET", "/api/v1/student-assistant/psych/profiles", params={"page": 1, "size": 5},
+results.append(test("心理关怀-学生档案列表(员工)", "GET", "/api/v1/student-assistant/psych/profiles", params={"page": 1, "size": 5, **EMPLOYEE_USER},
     expected_codes=(200, 401, 403, 500)))
 
 # ============================================================
@@ -157,11 +186,11 @@ results.append(test("心理关怀-学生档案列表(员工)", "GET", "/api/v1/s
 results.append(test("学生助手-生活支持FAQ", "GET", "/api/v1/student-assistant/life-support/faq", params={"keyword": "宿舍"},
     expected_codes=(200, 500)))
 results.append(test("学生助手-生活支持对话", "POST", "/api/v1/student-assistant/life-support/chat",
-    body={"message": "你好", "student_id": 1}, expected_codes=(200, 201, 500)))
+    params={"query": "你好"}, expected_codes=(200, 201, 500)))
 results.append(test("学生助手-留学政策对话", "POST", "/api/v1/student-assistant/policy/chat",
-    body={"message": "新加坡留学条件", "student_id": 1}, expected_codes=(200, 201, 500)))
+    params={"query": "新加坡留学条件"}, expected_codes=(200, 201, 500)))
 results.append(test("学生助手-心理关怀对话", "POST", "/api/v1/student-assistant/psych/chat",
-    body={"message": "最近压力大", "student_id": 1}, expected_codes=(200, 201, 500)))
+    body={"message": "最近压力大", "user_id": 3}, expected_codes=(200, 201, 500)))
 
 # ============================================================
 # 11. 企业管理查询助手
@@ -186,7 +215,7 @@ results.append(test("企业-新人入职指引", "GET", f"{ENTERPRISE}/onboardin
 # 12. NL2SQL
 # ============================================================
 results.append(test("企业-NL2SQL查询", "POST", f"{ENTERPRISE}/nl2sql/query",
-    body={"query": "查询所有学生的成绩"}, expected_codes=(200, 201, 500)))
+    params={"query": "查询所有学生的成绩"}, expected_codes=(200, 201, 500)))
 
 # ============================================================
 # 13. 企业业务办理

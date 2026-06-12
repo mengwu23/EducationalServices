@@ -267,12 +267,15 @@ def t5_6():
     db = Session()
     try:
         svc = ApplicationProgressService(db)
-        try:
-            svc.sync_from_crm('salesforce', 'rec_abc')
-            assert False, 'should have raised'
-        except NotImplementedError as e:
-            assert 'not yet implemented' in str(e)
-            print(f'      CRM reserved: Salesforce rec_abc')
+        from backend.app.models.crm_lead import CrmLead
+        lead = db.query(CrmLead).filter(CrmLead.is_delete == 0).first()
+        if lead:
+            result = svc.sync_from_crm('crm_lead', lead.lead_no)
+            assert result['sync_direction'] == 'to_local'
+            assert result['progress'].crm_sync_status == 'synced'
+            print(f'      CRM synced from lead: {lead.lead_no}')
+        else:
+            print(f'      No CRM lead to sync, skip')
     finally: db.rollback(); db.close()
 
 def t5_7():

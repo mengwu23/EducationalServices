@@ -9,7 +9,7 @@
 from datetime import datetime
 from typing import Optional
 
-from sqlalchemy import desc
+from sqlalchemy import desc, func
 from sqlalchemy.orm import Session
 
 from backend.app.models.student_application_progress import StudentApplicationProgress
@@ -29,9 +29,18 @@ class ApplicationProgressDao:
             StudentApplicationProgress.is_delete == 0,
         ).first()
 
+    def get_by_crm_record_id(self, crm_record_id: str) -> Optional[StudentApplicationProgress]:
+        return self.db.query(StudentApplicationProgress).filter(
+            StudentApplicationProgress.crm_record_id == crm_record_id,
+            StudentApplicationProgress.is_delete == 0,
+        ).order_by(desc(StudentApplicationProgress.update_time)).first()
+
     # ── 写入 ──
 
     def create(self, **kwargs) -> StudentApplicationProgress:
+        if "id" not in kwargs and self.db.get_bind().dialect.name == "sqlite":
+            next_id = (self.db.query(func.max(StudentApplicationProgress.id)).scalar() or 0) + 1
+            kwargs["id"] = next_id
         progress = StudentApplicationProgress(**kwargs)
         self.db.add(progress)
         self.db.flush()

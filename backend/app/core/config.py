@@ -1,7 +1,7 @@
 from functools import lru_cache
 from pathlib import Path
 
-from pydantic import AliasChoices, Field
+from pydantic import AliasChoices, Field,field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -39,6 +39,23 @@ class Settings(BaseSettings):
 
     # AI Tools 密钥
     ai_tools_secret: str = Field(default="", alias="AI_TOOLS_SECRET")
+
+    @field_validator("dify_api_base_url", mode="after")
+    @classmethod
+    def validate_dify_base_url(cls, v: str) -> str:
+        """检测 DIFY_API_BASE_URL 是否误包含路径后缀，启动时打印警告。"""
+        forbidden_suffixes = ("/chat-messages", "/workflows/run", "/files/upload", "/completion-messages")
+        v_stripped = v.rstrip("/")
+        for suffix in forbidden_suffixes:
+            if v_stripped.endswith(suffix):
+                import warnings
+                warnings.warn(
+                    f"DIFY_API_BASE_URL 以 '{suffix}' 结尾，可能导致 URL 拼接异常。"
+                    f"应仅填写基础地址（如 http://host/v1），当前值: {v}",
+                    UserWarning,
+                )
+                break
+        return v
 
     model_config = SettingsConfigDict(
         env_file=str(Path(__file__).resolve().parents[3] / ".env"),
