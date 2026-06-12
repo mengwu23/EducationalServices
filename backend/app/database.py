@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session as OrmSession
 from sqlalchemy.orm import declarative_base, sessionmaker
 
 from backend.app.core.config import get_settings
+from backend.app.core.logging import configure_sql_logging
 
 Base = declarative_base()
 
@@ -30,6 +31,7 @@ def get_engine() -> Engine:
             pool_pre_ping=True,
             connect_args=connect_args,
         )
+        configure_sql_logging(_engine)
     return _engine
 
 
