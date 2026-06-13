@@ -104,6 +104,20 @@ class LeaveListQuery(PageQuery):
     date_to: Optional[datetime] = Field(default=None, description="结束时间，按 create_time 筛选")
 
 
+class LeaveApprovalQuery(PageQuery):
+    """员工审批页 — 待审批列表 / 审批历史查询参数
+
+    继承 PageQuery 的分页参数，额外支持按状态、请假类型和学生姓名筛选。
+
+    使用示例：
+        GET /api/v1/student-assistant/leaves/pending?page=1&page_size=8&leave_type=sick
+        GET /api/v1/student-assistant/leaves/history?page=1&page_size=6&status=approved
+    """
+    status: Optional[LeaveStatus] = Field(default=None, description="按状态筛选（pending / approved / rejected / cancelled）")
+    leave_type: Optional[LeaveType] = Field(default=None, description="按请假类型筛选（sick / personal / other）")
+    student_name: Optional[str] = Field(default=None, max_length=50, description="按学生姓名模糊搜索")
+
+
 # ============================================================
 # 响应模型
 # ============================================================

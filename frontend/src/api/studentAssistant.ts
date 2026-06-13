@@ -32,11 +32,18 @@ export function getPendingLeaveCount(): Promise<{ count: number }> {
   return request<{ count: number }>("/api/v1/student-assistant/leaves/pending/count");
 }
 
-export function listPendingLeaves(page = 1, pageSize = 10): Promise<PagedResult<LeaveRecord>> {
+export function listPendingLeaves(
+  page = 1,
+  pageSize = 10,
+  leaveType = "",
+  studentName = "",
+): Promise<PagedResult<LeaveRecord>> {
   const params = new URLSearchParams({
     page: String(page),
     page_size: String(pageSize),
   });
+  if (leaveType) params.set("leave_type", leaveType);
+  if (studentName) params.set("student_name", studentName);
   return request<PagedResult<LeaveRecord>>(`/api/v1/student-assistant/leaves/pending?${params.toString()}`);
 }
 
@@ -63,11 +70,20 @@ export function cancelLeave(leaveId: number, reason = ""): Promise<LeaveRecord> 
   });
 }
 
-export function listApprovalHistory(page = 1, pageSize = 10): Promise<PagedResult<LeaveRecord>> {
+export function listApprovalHistory(
+  page = 1,
+  pageSize = 10,
+  status = "",
+  leaveType = "",
+  studentName = "",
+): Promise<PagedResult<LeaveRecord>> {
   const params = new URLSearchParams({
     page: String(page),
     page_size: String(pageSize),
   });
+  if (status) params.set("status", status);
+  if (leaveType) params.set("leave_type", leaveType);
+  if (studentName) params.set("student_name", studentName);
   return request<PagedResult<LeaveRecord>>(`/api/v1/student-assistant/leaves/history?${params.toString()}`);
 }
 
