@@ -2,23 +2,20 @@
 import { computed } from "vue";
 import { useRouter } from "vue-router";
 import AppSidebar from "@/components/common/AppSidebar.vue";
-import { navigationItems } from "@/config/navigation";
-import { authState, hasPermission, logout, roleLabelMap } from "@/stores/authStore";
+import { getVisibleNavigationItems } from "@/config/navigation";
+import { authState, logout, roleLabelMap } from "@/stores/authStore";
 
 const router = useRouter();
 
 const user = computed(() => authState.user);
 const roleLabel = computed(() => roleLabelMap[user.value?.role || ""] || user.value?.role || "-");
 const isStudent = computed(() => user.value?.role === "student");
+const permissionValue = computed(() => (authState.permissions.includes("*") ? "全部" : String(authState.permissions.length)));
+const permissionDesc = computed(() => (authState.permissions.includes("*") ? "全部权限" : `${authState.permissions.length} 项权限`));
 
 const modules = computed(() => {
   const role = user.value?.role || "";
-  return navigationItems.filter((item) => {
-    const isBusinessModule = item.key !== "dashboard" && item.description;
-    const roleMatched = item.roles.includes(role);
-    const permissionMatched = !item.permission || hasPermission(item.permission);
-    return isBusinessModule && roleMatched && permissionMatched;
-  });
+  return getVisibleNavigationItems(role, authState.permissions).filter((item) => item.key !== "dashboard" && item.description);
 });
 
 const serviceItems = [
@@ -82,8 +79,8 @@ function openModule(route: string) {
         </div>
         <div class="permission-panel">
           <span>当前权限</span>
-          <strong>{{ authState.permissions.length }}</strong>
-          <p>{{ authState.permissions.includes("*") ? "全部权限" : "按角色授权" }}</p>
+          <strong>{{ permissionValue }}</strong>
+          <p>{{ permissionDesc }}</p>
         </div>
       </section>
 

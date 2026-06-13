@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from "vue";
-import { navigationItems } from "@/config/navigation";
-import { authState, hasPermission } from "@/stores/authStore";
+import { getVisibleNavigationItems } from "@/config/navigation";
+import { authState } from "@/stores/authStore";
 
 defineProps<{
   activeKey: string;
@@ -9,11 +9,7 @@ defineProps<{
 
 const visibleItems = computed(() => {
   const role = authState.user?.role || "";
-  return navigationItems.filter((item) => {
-    const roleMatched = item.roles.includes(role);
-    const permissionMatched = !item.permission || hasPermission(item.permission);
-    return roleMatched && permissionMatched;
-  });
+  return getVisibleNavigationItems(role, authState.permissions);
 });
 </script>
 
