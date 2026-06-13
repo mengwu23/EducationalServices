@@ -134,8 +134,7 @@ class JudgementRecordItem(BaseModel):
     create_time: datetime
     update_time: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
 
 
 class JudgementRecordDetail(JudgementRecordItem):

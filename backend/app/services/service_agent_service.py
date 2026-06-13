@@ -32,7 +32,8 @@ class ServiceAgentService:
     def handle_visitor_message(self, request: ServiceAgentMessageRequest) -> dict[str, Any]:
         """转发访客消息到 Dify 客服 Agent，直接返回 Agent 的回复。"""
         trace_id = f"sa-{uuid4().hex[:12]}"
-        visitor_id = request.conversation_id or f"visitor-{uuid4().hex[:12]}"
+        # visitor_id 保持稳定，不随 conversation_id 变化
+        visitor_id = f"visitor-{uuid4().hex[:12]}"
         try:
             ai_result = self.dify_client.call_service_agent(
                 query=request.message,

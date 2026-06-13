@@ -1,5 +1,7 @@
-"""教育服务系统 API 入口。"""
+"""FastAPI application entrypoint."""
 
+import os
+import uvicorn
 import sys
 import uvicorn
 import logging

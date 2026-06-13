@@ -1,12 +1,19 @@
 from datetime import datetime
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 class ServiceAgentMessageRequest(BaseModel):
     message: str = Field(min_length=1, max_length=2000, description="访客消息")
-    conversation_id: str | None = Field(default=None, max_length=100, description="会话ID（用于多轮对话，首次为空）")
+    conversation_id: str | None = Field(default=None, max_length=100, description="会话ID（用于多轮对话，首次不填）")
+
+    @field_validator("conversation_id", mode="before")
+    @classmethod
+    def empty_str_to_none(cls, v):
+        if v == "" or v is None:
+            return None
+        return v
 
 
 class ServiceAgentMessageResponse(BaseModel):

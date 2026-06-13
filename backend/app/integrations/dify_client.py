@@ -126,7 +126,7 @@ class DifyClient:
             },
             "query": query,
             "response_mode": "blocking",
-            "user": visitor_id or "visitor",
+            "user": "education-service-backend",
         }
         if conversation_id:
             payload["conversation_id"] = conversation_id
