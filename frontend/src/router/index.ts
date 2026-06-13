@@ -15,7 +15,7 @@ import StudentMyFeedbackView from "@/views/StudentMyFeedbackView.vue";
 import StudentAssistantView from "@/views/StudentAssistantView.vue";
 import AcademicEventView from "@/views/AcademicEventView.vue";
 import ServiceCenterView from "@/views/ServiceCenterView.vue";
-import { getNavigationItemByRoute } from "@/config/navigation";
+import { getNavigationItemByRoute, hasAccessToNavigationItem } from "@/config/navigation";
 import { authState, bootstrapAuth } from "@/stores/authStore";
 
 function routeMeta(route: string) {
@@ -51,12 +51,8 @@ router.beforeEach(async (to) => {
     if (!authState.token || !authState.user) {
       return "/login";
     }
-    const roles = to.meta.roles as string[] | undefined;
-    const permission = to.meta.permission as string | undefined;
-    const roleMatched = !roles?.length || roles.includes(authState.user.role);
-    const permissionMatched =
-      !permission || authState.permissions.includes("*") || authState.permissions.includes(permission);
-    if (to.path !== "/forbidden" && (!roleMatched || !permissionMatched)) {
+    const navigationItem = getNavigationItemByRoute(to.path);
+    if (to.path !== "/forbidden" && navigationItem && !hasAccessToNavigationItem(navigationItem, authState.user.role, authState.permissions)) {
       return { path: "/forbidden", query: { from: to.fullPath } };
     }
   }

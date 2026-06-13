@@ -147,3 +147,16 @@ export function getNavigationItemByRoute(route: string): NavigationItem | undefi
   return navigationItems.find((item) => item.route === route);
 }
 
+export function hasAccessToNavigationItem(
+  item: NavigationItem,
+  role: string,
+  permissions: string[],
+): boolean {
+  const roleMatched = item.roles.includes(role);
+  const permissionMatched = !item.permission || permissions.includes("*") || permissions.includes(item.permission);
+  return roleMatched && permissionMatched;
+}
+
+export function getVisibleNavigationItems(role: string, permissions: string[]): NavigationItem[] {
+  return navigationItems.filter((item) => hasAccessToNavigationItem(item, role, permissions));
+}
