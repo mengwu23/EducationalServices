@@ -7,13 +7,11 @@ import urllib.request
 from sqlalchemy.orm import Session
 
 from backend.app.core.config import get_settings
-from backend.app.daos.student_assistant_dao import StudentAssistantDao
 
 settings = get_settings()
 from backend.app.models.employee_profile import EmployeeProfile
 from backend.app.models.student_profile import StudentProfile
 from backend.app.models.sys_user import SysUser
-from backend.app.schemas.student_assistant_schema import LifeFaqItem, LifeFaqResult
 from backend.app.schemas.student_psych_schema import EmotionUpdateRequest, PsychAlertCreateRequest
 from backend.app.services.student_psych_service import StudentPsychService
 
@@ -85,15 +83,6 @@ class StudentAssistantService:
                 raw = re.sub(r"^```\w*\n?", "", raw)
                 raw = re.sub(r"\n?```$", "", raw)
             return json.loads(raw)
-
-    @staticmethod
-    def search_life_faq(db: Session, keyword: str, limit: int = 10) -> LifeFaqResult:
-        """本地 FAQ 知识库搜索。"""
-        items, total = StudentAssistantDao.search_life_faq(db, keyword, limit)
-        return LifeFaqResult(
-            items=[LifeFaqItem.model_validate(i) for i in items],
-            keyword=keyword, total=total,
-        )
 
     @staticmethod
     def ask_life_assistant(query: str) -> dict:

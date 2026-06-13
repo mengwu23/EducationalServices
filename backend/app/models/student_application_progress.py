@@ -14,6 +14,7 @@ class StudentApplicationProgress(Base):
         Index("idx_progress_stage", "progress_stage"),
         Index("idx_progress_status", "progress_status"),
         Index("idx_progress_handler", "handler_employee_id"),
+        Index("idx_progress_crm_record", "crm_record_id"),
         {"comment": "学生申请进度表"},
     )
 
@@ -27,6 +28,9 @@ class StudentApplicationProgress(Base):
     progress_desc = Column(Text, nullable=True, comment="进度说明")
     handler_employee_id = Column(BigInteger, ForeignKey("employee_profile.id"), nullable=True, comment="负责人员工ID")
     expected_finish_time = Column(DateTime, nullable=True, comment="预计完成时间")
+    crm_record_id = Column(String(100), nullable=True, comment="CRM系统记录ID")
+    crm_sync_status = Column(String(30), nullable=False, default="not_synced", server_default="not_synced", comment="CRM同步状态：not_synced/syncing/synced/failed")
+    crm_last_sync_time = Column(DateTime, nullable=True, comment="最近CRM同步时间")
     is_delete = Column(Integer, nullable=False, default=0, server_default="0", comment="软删除标记：0-未删除，1-已删除")
     create_time = Column(DateTime, nullable=False, server_default=func.current_timestamp(), comment="创建时间")
     update_time = Column(DateTime, nullable=False, server_default=func.current_timestamp(), onupdate=func.current_timestamp(), comment="更新时间")

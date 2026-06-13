@@ -60,35 +60,9 @@ def list_academic_events(
     return success_response(data=data)
 
 
-@router.get("/{event_id}", response_model=ApiResponse, summary="获取学业事件详情")
-def get_academic_event(event_id: int, db: Session = Depends(get_db)):
-    event = AcademicEventService.get_event(db, event_id)
-    return success_response(data=AcademicEventOut.model_validate(event))
-
-
-@router.patch("/{event_id}", response_model=ApiResponse, summary="更新学业事件")
-def update_academic_event(
-    event_id: int,
-    payload: AcademicEventUpdate,
-    db: Session = Depends(get_db),
-):
-    event = AcademicEventService.update_event(db, event_id, payload)
-    return success_response(data=AcademicEventOut.model_validate(event), message="学业事件更新成功")
-
-
-@router.post("/{event_id}/complete", response_model=ApiResponse, summary="完成学业事件")
-def complete_academic_event(event_id: int, db: Session = Depends(get_db)):
-    event = AcademicEventService.complete_event(db, event_id)
-    return success_response(data=AcademicEventOut.model_validate(event), message="学业事件已完成")
-
-
-@router.post("/{event_id}/cancel", response_model=ApiResponse, summary="取消学业事件")
-def cancel_academic_event(event_id: int, db: Session = Depends(get_db)):
-    event = AcademicEventService.cancel_event(db, event_id)
-    return success_response(data=AcademicEventOut.model_validate(event), message="学业事件已取消")
-
-
 # ── 学业风险检测与智能提醒 ──
+# ⚠️ 特定路由必须定义在 /{event_id} 之前，否则会被参数化路由拦截
+
 
 @router.get("/approaching-deadlines", response_model=ApiResponse, summary="查询临期/逾期学业事件")
 def list_approaching_deadlines(
@@ -176,3 +150,31 @@ def list_upcoming_reminders(
         data=data,
         message=f"查询到 {total} 条待触发提醒的学业事件",
     )
+
+
+@router.get("/{event_id}", response_model=ApiResponse, summary="获取学业事件详情")
+def get_academic_event(event_id: int, db: Session = Depends(get_db)):
+    event = AcademicEventService.get_event(db, event_id)
+    return success_response(data=AcademicEventOut.model_validate(event))
+
+
+@router.patch("/{event_id}", response_model=ApiResponse, summary="更新学业事件")
+def update_academic_event(
+    event_id: int,
+    payload: AcademicEventUpdate,
+    db: Session = Depends(get_db),
+):
+    event = AcademicEventService.update_event(db, event_id, payload)
+    return success_response(data=AcademicEventOut.model_validate(event), message="学业事件更新成功")
+
+
+@router.post("/{event_id}/complete", response_model=ApiResponse, summary="完成学业事件")
+def complete_academic_event(event_id: int, db: Session = Depends(get_db)):
+    event = AcademicEventService.complete_event(db, event_id)
+    return success_response(data=AcademicEventOut.model_validate(event), message="学业事件已完成")
+
+
+@router.post("/{event_id}/cancel", response_model=ApiResponse, summary="取消学业事件")
+def cancel_academic_event(event_id: int, db: Session = Depends(get_db)):
+    event = AcademicEventService.cancel_event(db, event_id)
+    return success_response(data=AcademicEventOut.model_validate(event), message="学业事件已取消")

@@ -10,8 +10,8 @@ import sqlalchemy as sa
 from sqlalchemy.dialects.mysql import LONGTEXT
 from sqlalchemy.ext.compiler import compiles
 
-from app import models  # noqa: F401
-from app.database import Base
+from backend.app import models  # noqa: F401
+from backend.app.database import Base
 
 
 revision = "20260610_0003"

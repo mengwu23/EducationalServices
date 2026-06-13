@@ -268,10 +268,10 @@ workflow:
             size: 50
         model:
           completion_params:
-            max_tokens: 2400
-            reasoning_effort: high
+            max_tokens: 384000
+            reasoning_effort: medium
             temperature: 0.2
-            thinking_mode: high
+            thinking_mode: disabled
           mode: chat
           name: deepseek-v4-flash
           provider: langgenius/deepseek/deepseek
@@ -288,19 +288,28 @@ workflow:
             你必须生成一份业务分析报告，涵盖投诉处理的全流程：
             1. 整体概况：统计投诉总量，标注较前序周期对比趋势（如有参考数据）；区分新增投诉和存量结转。
             2. 处理进展：按待处理/处理中/已解决分布，计算解决率、在途率；分析是否存在积压风险。
-            3. 时效与薄弱环节：如工具返回了处理时长或分类数据，识别最长未处理工单、最慢处理环节。
+            3. 时效与薄弱环节：source_data 包含 avg_processing_hours（已闭环工单平均处理时长，小时）时，在"处理进展"章节输出平均处理时长，超过 48 小时判定为时效偏慢并列入薄弱环节；结合分类数据识别最慢处理环节。
             4. 风险预警：标注超 48 小时无更新的工单；对同一客户/同一类别反复投诉提出关注。
             5. 改善建议：针对薄弱环节提出可执行改进措施。
+            6. 同环比对比：source_data 包含 prev_week_total（上周投诉总量）、wow_delta_pct（周环比变化%）、wow_trend_label（"上升"/"下降"/"持平"）时，在"整体概况"章节描述本周与上周的同环比变化。
+            7. 满意度分析：source_data 包含 satisfaction_avg（平均满意度，1-5分）时，在"处理进展"章节输出满意度均分，并结合解决率判断服务质量趋势。
+            8. 优先级分布：source_data 包含 priority_counts（normal/urgent/severe 分布）时，在"处理进展"章节描述紧急和严重工单占比，优先级偏高时列入风险。
+            9. 超期工单预警：source_data 包含 overdue_ticket_count 时，在"风险预警"章节明确标出超 48 小时未闭环的工单数量，大于 0 时必须列入 risks。
+            10. 投诉中文分类：source_data 包含 category_cn_counts（中文分类键，如"教学课程"/"签证办理"）时，优先使用中文键呈现投诉类别分布，不再使用英文原值。
 
             # 全域客户经营分析报告 (customer_operation)
             你必须覆盖意向、成交、流失三大客群维度：
             1. 意向客户分析：基于 lead_source_breakdown 分析各渠道线索数量和质量趋势；基于 lead_status_breakdown 判读线索阶段分布。
             2. 研判转化漏斗：基于 analysis_result_breakdown 分析研判等级分布和高意向客户识别；计算线索→研判→成交的转化漏斗。
-            3. 成交客户复盘：统计已成交客户数量，分析成交客户共性特征（渠道来源、研判等级）。
+            3. 成交客户复盘：source_data 包含 signed_count（本周期成交单数，按 signed_time 落在周期内统计）、signed_conversion_rate（线索→成交转化率%）、signed_source_breakdown（成交客户渠道来源分布）、avg_conversion_days（平均转化周期，天）时，在"成交客户"章节统计成交数量、转化率，并基于 signed_source_breakdown 分析高价值客户的获客渠道偏好，基于 avg_conversion_days 判断转化效率。结合 analysis_result_breakdown 描述成交客户的研判等级共性特征。
             4. 活动转化跟踪：基于 event_registration_breakdown 分析活动报名到实际转化的转化率。
             5. 流失归因预警：统计已流失/废弃线索数量，分析流失占比，给出流失归因建议。
-            6. 客群画像提炼：基于渠道分布和研判等级分布，概述本周期主要客群特征。
-            7. 全链路经营建议：针对获客、转化、留存全链路给出可执行的改善建议。
+            6. 客群画像提炼：
+               - 渠道与阶段：基于 lead_source_breakdown 和 lead_status_breakdown 描述线索来源和漏斗分布。
+               - 深度画像（如 source_data 包含 portrait_breakdown）：target_country_counts 输出前3高频意向国家；target_program_counts 输出前3高频意向项目；budget_range_counts 输出预算区间集中分布；education_level_counts 输出主要学历背景分布。若某子字典全为"未填写"，说明该维度数据录入不完整，建议完善线索录入规范。
+               - 组合聚类（如 source_data 包含 cluster_breakdown）：该字段是按"意向国家+意向项目+预算区间"组合维度分组的真聚类客群列表（每条含 label 组合标签和 count 人数，已按人数降序）。在"客群画像提炼"章节列出 Top 3 组合客群（如"美国+计算机硕士+50-80万（3人）"），帮助识别核心目标客群，比单维分布更精准。
+            7. 流失归因细化（在"流失客户"章节）：source_data 包含 lost_reason_counts 时，输出前3高频流失原因，帮助团队识别可预防的流失模式。若大量线索标注"未填写归因"，在 recommendations 中提示完善流失原因记录。
+            8. 全链路经营建议：针对获客、转化、留存全链路给出可执行的改善建议。
 
             # 员工日报汇总-日 (employee_daily_summary)
             1. 提交情况：总日报数、提交率、未提交/草稿/归档分布。
@@ -309,17 +318,17 @@ workflow:
             4. 管理建议：对提交率低的团队或个人，对高频风险类型提出应对措施。
 
             # 员工日报汇总-周 (employee_weekly_summary)
-            1. 周度提交趋势：逐日提交量变化，识别波峰波谷和工作日规律。
+            1. 周度提交趋势：逐日提交量变化，识别波峰波谷和工作日规律。source_data 包含 week_submission_rate（周提交率）时，在"周度提交趋势"章节直接引用该数值。source_data 包含 peak_submission_day 和 valley_submission_day 时，在每日趋势分析中明确指出提交量最高日和最低日，并分析原因。
             2. 团队覆盖率：本周提交员工数，对比部门总人数计算覆盖率。
-            3. 工作质量观察：风险摘要占比、明日计划填报率，判断日报质量。
+            3. 工作质量观察：风险摘要占比、明日计划填报率，判断日报质量。source_data 包含 top_risk_themes（高频风险关键词列表，格式为 [[关键词, 次数]]）时，在"工作质量"章节列出 Top 3-5 风险主题词，帮助管理层快速感知团队风险集中领域。
             4. 周度对比：如有上周数据可做环比分析。
             5. 管理建议：针对提交率波动和工作质量给出改进建议。
 
             # 学生心理健康周报 (student_psych_weekly)
             你必须结合留学场景进行深度分析：
-            1. 整体心理态势：本周心理画像数量、平均情绪分，对比正常区间判断整体健康度。
+            1. 整体心理态势：本周心理画像数量、平均情绪分，对比正常区间判断整体健康度。source_data 包含 emotion_summary_samples（高风险学生情绪摘要列表，每条含 summary 字段）时，在"整体心理态势"章节引用 1-3 条摘要片段，增强报告叙事深度；注意不要输出 student_id，只引用 summary 内容，且以"（摘录）"标注。source_data 包含 period_hint 字段时，将其作为当前留学阶段背景纳入分析；若不存在，使用默认的"学期中段"描述。
             2. 风险分层分析：高风险/中风险/低风险学生分布，逐一描述高风险学生的核心问题。
-            3. 情绪标签分布：焦虑、孤独、适应困难等情绪标签的分布，结合留学周期（考试季、假期）解读趋势。
+            3. 情绪标签分布：焦虑、孤独、适应困难等情绪标签的分布，结合留学周期（考试季、假期）解读趋势。source_data 中 emotion_tag_counts 的键可能是英文原值（如 anxious/stable/depressed/lonely/stressed/happy/neutral/cultural_conflict）；metrics 中 name 必须翻译为中文业务名称（焦虑/平稳/低落/孤独/压力大/积极/平静/文化冲突）。其中 cultural_conflict（文化冲突）是留学生因海外文化差异、语言障碍、融入困难产生的困扰，识别到时应在分析中重点关注并结合跨文化适应给出疏导建议。source_data 包含 interaction_trend（每日互动人次）时，在"情绪标签与趋势"章节描述本周逐日心理互动记录趋势，识别情绪波动峰值日。
             4. 预警处理进展：心理预警的处理闭环率，未处理预警的紧迫性判断。
             5. 个性化关怀建议：针对高风险学生群体，推荐关怀方案和社群支持策略。
 

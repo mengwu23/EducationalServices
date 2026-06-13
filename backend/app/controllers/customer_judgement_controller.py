@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, File, Form, Query, UploadFile
 from sqlalchemy.orm import Session
 
 from backend.app.common.responses import success
-from backend.app.core.security import CurrentUser, get_current_user
+from backend.app.core.security import CurrentUser, require_permissions
 from backend.app.db.session import get_db
 from backend.app.schemas.customer_judgement_schema import (
     CustomerJudgementRequest,
@@ -26,7 +26,7 @@ def analyze_customer(
     target_product: Annotated[str | None, Form(description="Target product")] = None,
     files: Optional[list[UploadFile]] = File(None, description="Attachments (PDF/Word/Excel/image)"),
     db: Session = Depends(get_db),
-    user: CurrentUser = Depends(get_current_user),
+    user: CurrentUser = Depends(require_permissions("customer_judgement:write")),
 ):
     """Submit customer info text with optional attachments. Dify workflow analyses and returns structured result."""
     request = CustomerJudgementRequest(
@@ -49,7 +49,7 @@ def list_records(
     date_start: date | None = Query(default=None, description="创建开始日期"),
     date_end: date | None = Query(default=None, description="创建结束日期"),
     db: Session = Depends(get_db),
-    user: CurrentUser = Depends(get_current_user),
+    user: CurrentUser = Depends(require_permissions("customer_judgement:read")),
 ):
     """分页查询研判记录列表，支持按状态、线索、匹配等级、日期范围筛选。"""
     req = JudgementListRequest(
@@ -69,7 +69,7 @@ def list_records(
 def get_record(
     record_id: int,
     db: Session = Depends(get_db),
-    user: CurrentUser = Depends(get_current_user),
+    user: CurrentUser = Depends(require_permissions("customer_judgement:read")),
 ):
     """获取单条研判记录的完整详情，包含 AI 研判结果。"""
     data = CustomerJudgementService(db).get_analysis_record(record_id, user)

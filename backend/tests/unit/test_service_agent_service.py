@@ -1,12 +1,12 @@
-from app.models.course_project import CourseProject
-from app.models.event_registration import EventRegistration
-from app.models.faq_qa import FaqQa
-from app.schemas.service_agent_schema import (
+from backend.app.models.course_project import CourseProject
+from backend.app.models.event_registration import EventRegistration
+from backend.app.models.faq_qa import FaqQa
+from backend.app.schemas.service_agent_schema import (
     ActivitySignupRequest,
     ServiceAgentMessageRequest,
     ServiceAgentProjectSearchRequest,
 )
-from app.services.service_agent_service import ServiceAgentService
+from backend.app.services.service_agent_service import ServiceAgentService
 
 
 def seed_service_agent_content(db_session):

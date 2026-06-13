@@ -26,10 +26,10 @@ from sqlalchemy.orm import Session
 from backend.app.common.exceptions import AppException
 from backend.app.common.pagination import PageQuery
 from backend.app.common.responses import ApiResponse, error_response, success_response
+from backend.app.core.security import require_permissions
 from backend.app.database import get_db
 from backend.app.schemas.student_psych_schema import (
-    AIEmotionAnalysisRequest,
-    EmotionUpdateRequest,
+    EmotionCheckinRequest,
     PsychAlertActionRequest,
     PsychAlertCreateRequest,
     PsychAlertListQuery,
@@ -81,7 +81,7 @@ def get_current_user(
 @router.get("/profile", response_model=ApiResponse, summary="查看自己的心理画像")
 def get_my_profile(
     db: Session = Depends(get_db),
-    current_user: CurrentUser = Depends(get_current_user),
+    current_user: CurrentUser = Depends(require_permissions("student_psych:own")),
 ):
     """学生查看自己的心理状态画像
 
@@ -100,32 +100,30 @@ def get_my_profile(
 
 
 # ----------------------------------------------------------
-# PATCH /psych/profile/emotion — 更新情绪状态（AI预留）
+# ----------------------------------------------------------
+# POST /psych/profile/checkin — 学生情绪打卡（AI 识别）
 # ----------------------------------------------------------
 
-@router.patch("/profile/emotion", response_model=ApiResponse, summary="更新情绪状态（AI预留接口）")
-def update_emotion(
-    data: EmotionUpdateRequest,
-    student_id: int = Query(..., description="要更新的学生ID"),
+@router.post("/profile/checkin", response_model=ApiResponse, summary="学生情绪打卡（AI 识别情绪）")
+def emotion_checkin(
+    data: EmotionCheckinRequest,
     db: Session = Depends(get_db),
-    current_user: CurrentUser = Depends(get_current_user),
+    current_user: CurrentUser = Depends(require_permissions("student_psych:own")),
 ):
-    """更新学生的情绪状态
+    """学生提交情绪打卡文本，由 AI 识别情绪标签、分值和摘要并更新心理画像。
 
-    当前阶段仅供员工手动更新。
-    后续 Dify 聊天时，AI 分析学生情绪后自动调用此接口。
-
-    请求体中的字段部分更新，只传需要修改的字段即可。
+    学生输入一段自我情绪描述，系统调用 DeepSeek 识别情绪状态
+    （含焦虑/孤独/文化冲突等留学场景标签），自动更新本人心理画像。
+    需配置 LLM API Key，否则返回服务未就绪提示。
     """
     try:
         service = StudentPsychService(db)
-        result = service.update_emotion(
+        result = service.emotion_checkin(
             current_user_id=current_user.user_id,
             current_user_type=current_user.user_type,
-            student_id=student_id,
-            data=data,
+            content=data.content,
         )
-        return success_response(data=result, message="情绪状态已更新")
+        return success_response(data=result, message="情绪打卡完成")
     except AppException as e:
         return error_response(code=e.code, message=e.message)
 
@@ -138,7 +136,7 @@ def update_emotion(
 def list_all_profiles(
     query: PsychProfileListQuery = Depends(),
     db: Session = Depends(get_db),
-    current_user: CurrentUser = Depends(get_current_user),
+    current_user: CurrentUser = Depends(require_permissions("student_psych:read")),
 ):
     """员工查看所有学生的心理画像列表
 
@@ -172,7 +170,7 @@ def list_all_profiles(
 def list_my_alerts(
     query: PsychAlertListQuery = Depends(),
     db: Session = Depends(get_db),
-    current_user: CurrentUser = Depends(get_current_user),
+    current_user: CurrentUser = Depends(require_permissions("student_psych:own")),
 ):
     """学生查看自己的心理预警记录
 
@@ -207,7 +205,7 @@ def list_my_alerts(
 def create_alert(
     data: PsychAlertCreateRequest,
     db: Session = Depends(get_db),
-    current_user: CurrentUser = Depends(get_current_user),
+    current_user: CurrentUser = Depends(require_permissions("student_psych:manage")),
 ):
     """创建心理预警
 
@@ -242,7 +240,7 @@ def create_alert(
 def list_pending_alerts(
     query: PageQuery = Depends(),
     db: Session = Depends(get_db),
-    current_user: CurrentUser = Depends(get_current_user),
+    current_user: CurrentUser = Depends(require_permissions("student_psych:read")),
 ):
     """员工查看所有待处理和跟进中的预警
 
@@ -275,7 +273,7 @@ def list_pending_alerts(
 @router.get("/alerts/pending/count", response_model=ApiResponse, summary="统计待处理预警数量")
 def count_pending_alerts(
     db: Session = Depends(get_db),
-    current_user: CurrentUser = Depends(get_current_user),
+    current_user: CurrentUser = Depends(require_permissions("student_psych:read")),
 ):
     """统计当前待处理和跟进中的预警总数
 
@@ -299,7 +297,7 @@ def count_pending_alerts(
 def list_processed_alerts(
     query: PageQuery = Depends(),
     db: Session = Depends(get_db),
-    current_user: CurrentUser = Depends(get_current_user),
+    current_user: CurrentUser = Depends(require_permissions("student_psych:read")),
 ):
     """员工查看自己处理过的预警历史
 
@@ -334,7 +332,7 @@ def handle_alert(
     alert_id: int,
     data: PsychAlertActionRequest,
     db: Session = Depends(get_db),
-    current_user: CurrentUser = Depends(get_current_user),
+    current_user: CurrentUser = Depends(require_permissions("student_psych:manage")),
 ):
     """处理心理预警
 
@@ -389,44 +387,5 @@ def handle_alert(
                 message=f"不支持的动作：{data.action}，仅支持 process / resolve / close",
             )
 
-    except AppException as e:
-        return error_response(code=e.code, message=e.message)
-
-
-# ----------------------------------------------------------
-# POST /psych/alerts/analyze-emotion — AI情绪分析（Dify 触发）
-# ----------------------------------------------------------
-
-@router.post("/alerts/analyze-emotion", response_model=ApiResponse, summary="AI情绪分析（Dify聊天触发）")
-def analyze_emotion(
-    data: "AIEmotionAnalysisRequest",
-    db: Session = Depends(get_db),
-    current_user: CurrentUser = Depends(get_current_user),
-):
-    """AI 聊天后分析学生情绪，自动更新画像并视风险创建预警
-
-    使用场景：
-        Dify 聊天模块完成一轮对话后，分析学生的情绪状态，
-        调用此接口更新心理画像。若风险等级为 high/critical，
-        自动创建预警通知老师介入。
-
-    请求体：
-    {
-        "student_id": 1,
-        "emotion_tag": "焦虑",
-        "emotion_score": 35,
-        "risk_level": "high",
-        "trigger_reason": "学生多次提到考试压力大，表现出明显焦虑",
-        "summary": "近期学业压力导致情绪波动"
-    }
-    """
-    try:
-        service = StudentPsychService(db)
-        result = service.analyze_emotion(
-            current_user_id=current_user.user_id,
-            current_user_type=current_user.user_type,
-            data=data,
-        )
-        return success_response(data=result, message=result.get("message", "情绪分析完成"))
     except AppException as e:
         return error_response(code=e.code, message=e.message)

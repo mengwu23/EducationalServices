@@ -10,7 +10,7 @@ from backend.app.ai_tools.service_agent_tools import (
     search_customer_service_faq,
 )
 from backend.app.common.responses import success
-from backend.app.db.session import get_db
+from backend.app.database import get_db
 from backend.app.schemas.report_schema import AiToolReportSourceDataRequest
 from backend.app.schemas.service_agent_schema import (
     ActivitySignupRequest,

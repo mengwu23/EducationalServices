@@ -1,16 +1,16 @@
 ﻿import sys, os, random
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from datetime import date, datetime, timedelta
-from app.db.session import SessionLocal
-from app.models.crm_lead import CrmLead
-from app.models.customer_analysis_record import CustomerAnalysisRecord
-from app.models.employee_daily_report import EmployeeDailyReport
-from app.models.employee_profile import EmployeeProfile
-from app.models.event_registration import EventRegistration
-from app.models.student_feedback_ticket import StudentFeedbackTicket
-from app.models.student_profile import StudentProfile
-from app.models.student_psych_alert import StudentPsychAlert
-from app.models.student_psych_profile import StudentPsychProfile
+from backend.app.db.session import SessionLocal
+from backend.app.models.crm_lead import CrmLead
+from backend.app.models.customer_analysis_record import CustomerAnalysisRecord
+from backend.app.models.employee_daily_report import EmployeeDailyReport
+from backend.app.models.employee_profile import EmployeeProfile
+from backend.app.models.event_registration import EventRegistration
+from backend.app.models.student_feedback_ticket import StudentFeedbackTicket
+from backend.app.models.student_profile import StudentProfile
+from backend.app.models.student_psych_alert import StudentPsychAlert
+from backend.app.models.student_psych_profile import StudentPsychProfile
 
 random.seed(42)
 TODAY = date.today()

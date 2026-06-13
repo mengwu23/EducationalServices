@@ -30,6 +30,7 @@ from sqlalchemy.orm import Session
 from backend.app.common.exceptions import AppException
 from backend.app.common.pagination import PageQuery
 from backend.app.common.responses import ApiResponse, error_response, success_response
+from backend.app.core.security import require_any_permission, require_permissions
 from backend.app.database import get_db
 from backend.app.schemas.student_leave_schema import (
     LeaveApproveRequest,
@@ -105,7 +106,7 @@ def get_current_user(
 def create_leave(
     data: LeaveCreateRequest,
     db: Session = Depends(get_db),
-    current_user: CurrentUser = Depends(get_current_user),
+    current_user: CurrentUser = Depends(require_permissions("student_leave:own")),
 ):
     """学生提交请假申请
 
@@ -145,7 +146,7 @@ def create_leave(
 def list_my_leaves(
     query: LeaveListQuery = Depends(),
     db: Session = Depends(get_db),
-    current_user: CurrentUser = Depends(get_current_user),
+    current_user: CurrentUser = Depends(require_permissions("student_leave:own")),
 ):
     """学生查询自己的请假记录列表（分页 + 按状态/时间筛选）
 
@@ -186,7 +187,7 @@ def list_my_leaves(
 def list_pending_leaves(
     query: PageQuery = Depends(),
     db: Session = Depends(get_db),
-    current_user: CurrentUser = Depends(get_current_user),
+    current_user: CurrentUser = Depends(require_permissions("student_leave:read")),
 ):
     """员工查询所有待审批的请假列表
 
@@ -220,7 +221,7 @@ def list_pending_leaves(
 @router.get("/pending/count", response_model=ApiResponse, summary="统计待审批请假数量")
 def count_pending_leaves(
     db: Session = Depends(get_db),
-    current_user: CurrentUser = Depends(get_current_user),
+    current_user: CurrentUser = Depends(require_permissions("student_leave:read")),
 ):
     """统计当前待审批的请假总数
 
@@ -244,7 +245,7 @@ def count_pending_leaves(
 def list_approval_history(
     query: PageQuery = Depends(),
     db: Session = Depends(get_db),
-    current_user: CurrentUser = Depends(get_current_user),
+    current_user: CurrentUser = Depends(require_permissions("student_leave:read")),
 ):
     """员工查询自己审批过的请假记录（已通过/已驳回）
     """
@@ -276,7 +277,7 @@ def list_approval_history(
 def get_leave_detail(
     leave_id: int,
     db: Session = Depends(get_db),
-    current_user: CurrentUser = Depends(get_current_user),
+    current_user: CurrentUser = Depends(require_any_permission("student_leave:own", "student_leave:read")),
 ):
     """查询请假申请的完整信息
 
@@ -305,7 +306,7 @@ def get_leave_detail(
 def approve_leave(
     leave_id: int,
     db: Session = Depends(get_db),
-    current_user: CurrentUser = Depends(get_current_user),
+    current_user: CurrentUser = Depends(require_permissions("student_leave:approve")),
 ):
     """员工审批通过请假申请
 
@@ -333,7 +334,7 @@ def reject_leave(
     leave_id: int,
     data: LeaveApproveRequest,
     db: Session = Depends(get_db),
-    current_user: CurrentUser = Depends(get_current_user),
+    current_user: CurrentUser = Depends(require_permissions("student_leave:approve")),
 ):
     """员工驳回请假申请
 
@@ -364,7 +365,7 @@ def cancel_leave(
     leave_id: int,
     data: LeaveCancelRequest,
     db: Session = Depends(get_db),
-    current_user: CurrentUser = Depends(get_current_user),
+    current_user: CurrentUser = Depends(require_permissions("student_leave:own")),
 ):
     """学生取消请假申请（仅待审批状态可取消）
 
