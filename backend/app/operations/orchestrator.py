@@ -90,6 +90,20 @@ class OperationOrchestrator:
         """首次解析：LLM → 路由 Handler。"""
         parsed = self.llm.parse_intent(req.query, req.conversation_id)
 
+        # 无关输入处理
+        if parsed.intent == "irrelevant" or (
+            parsed.intent == "create_lead"
+            and not parsed.parameters.get("customer_name")
+            and not parsed.parameters.get("phone")
+            and not parsed.parameters.get("student_name")
+            and not parsed.parameters.get("raw_content")
+        ):
+            return OperationResponse(
+                status="failed",
+                message="当前仅支持业务相关操作：新增客户、更新状态、提交日报、录入成绩、请假审批、投诉处理。请重新输入与业务相关的内容。",
+                intent="irrelevant",
+            )
+
         # 路由到对应的 Handler
         handler = self._resolve_handler(parsed.intent)
         response = handler.create_draft(parsed.parameters, user)

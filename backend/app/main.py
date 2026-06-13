@@ -1,3 +1,8 @@
+"""后端服务的 FastAPI 应用入口。"""
+from pathlib import Path
+
+from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
 """教育服务系统 API 入口。"""
 
 import sys
@@ -31,6 +36,7 @@ from backend.app.controllers.ai_tool_controller import router as ai_tool_router
 from backend.app.controllers.application_progress_controller import router as application_progress_router
 from backend.app.controllers.auth_controller import router as auth_router
 from backend.app.controllers.enterprise_assistant_controller import router as enterprise_assistant_router
+from backend.app.controllers.voice_controller import router as voice_router
 from backend.app.operations.router import router as operation_router
 from backend.app.controllers.enterprise_nl2sql_controller import router as enterprise_nl2sql_router
 from backend.app.controllers.report_controller import router as report_router
@@ -153,9 +159,17 @@ def create_app() -> FastAPI:
 app.include_router(enterprise_assistant_router, prefix="/enterprise", tags=["企业智能助手模块"])
 # 挂载企业业务办理助手路由。
 app.include_router(operation_router, prefix="/enterprise", tags=["企业业务办理助手"])
+# 挂载语音识别路由。
+app.include_router(voice_router, prefix="/enterprise", tags=["语音识别"])
 app.include_router(enterprise_nl2sql_router, prefix="/enterprise", tags=["企业智能助手NL2SQL模块"])
 app.include_router(service_agent_router, prefix="/api", tags=["客服Agent模块"])
 app.include_router(customer_judgement_router, tags=["客户研判模块"])
+
+# 挂载静态文件（前端页面）
+from fastapi.staticfiles import StaticFiles
+static_dir = Path(__file__).resolve().parent.parent / "static"
+if static_dir.exists():
+    app.mount("/app", StaticFiles(directory=str(static_dir), html=True), name="static")
 
 
 if __name__ == "__main__":
