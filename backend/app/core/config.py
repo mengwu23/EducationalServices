@@ -16,7 +16,7 @@ class Settings(BaseSettings):
         alias="DATABASE_URL",
     )
 
-    dify_api_base_url: str = Field(default="http://localhost/v1", alias="DIFY_API_BASE_URL")
+    dify_api_base_url: str = Field(default="DIFY_API_BASE_URL", alias="DIFY_API_BASE_URL")
     dify_api_key: str = Field(default="", alias="DIFY_API_KEY")
     dify_cj_api_key: str = Field(default="", alias="DIFY_CJ_API_KEY")
     dify_service_agent_api_key: str = Field(default="", alias="DIFY_SERVICE_AGENT_API_KEY")
