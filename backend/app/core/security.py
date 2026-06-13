@@ -66,6 +66,10 @@ ROLE_PERMISSION_MAP: dict[str, set[str]] = {
         "student_leave:approve",
         "student_psych:read",
         "student_psych:manage",
+        "application_progress:read",
+        "application_progress:write",
+        "student_feedback:read",
+        "student_feedback:manage",
     },
     "employee": {
         "report:read",
@@ -78,10 +82,16 @@ ROLE_PERMISSION_MAP: dict[str, set[str]] = {
         "student_leave:approve",
         "student_psych:read",
         "student_psych:manage",
+        "application_progress:read",
+        "application_progress:write",
+        "student_feedback:read",
+        "student_feedback:manage",
     },
     "student": {
         "student_leave:own",
         "student_psych:own",
+        "application_progress:own",
+        "student_feedback:own",
     },
 }
 

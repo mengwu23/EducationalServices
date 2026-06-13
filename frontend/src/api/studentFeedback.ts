@@ -2,6 +2,7 @@ import { request } from "@/api/request";
 import type {
   StudentFeedbackCreatePayload,
   StudentFeedbackListParams,
+  StudentFeedbackMyCreatePayload,
   StudentFeedbackPage,
   StudentFeedbackTicket,
 } from "@/types/studentFeedback";
@@ -23,6 +24,18 @@ export function listStudentFeedbackTickets(params: StudentFeedbackListParams = {
 
 export function createStudentFeedbackTicket(payload: StudentFeedbackCreatePayload): Promise<StudentFeedbackTicket> {
   return request<StudentFeedbackTicket>("/api/student-feedback-tickets", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function listMyStudentFeedbackTickets(params: Omit<StudentFeedbackListParams, "student_id" | "handler_employee_id"> = {}): Promise<StudentFeedbackPage> {
+  const query = toQuery({ page: 1, size: 20, ...params });
+  return request<StudentFeedbackPage>(`/api/student-feedback-tickets/my?${query}`);
+}
+
+export function createMyStudentFeedbackTicket(payload: StudentFeedbackMyCreatePayload): Promise<StudentFeedbackTicket> {
+  return request<StudentFeedbackTicket>("/api/student-feedback-tickets/my", {
     method: "POST",
     body: JSON.stringify(payload),
   });

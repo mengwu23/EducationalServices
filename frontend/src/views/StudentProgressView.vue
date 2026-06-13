@@ -117,10 +117,6 @@ function formatDateTime(value?: string | null): string {
   return value.replace("T", " ").slice(0, 16);
 }
 
-function currentStudentUserId(): number {
-  return user.value?.id || 0;
-}
-
 async function loadReference() {
   try {
     reference.value = await getApplicationProgressStages();
@@ -142,10 +138,9 @@ async function loadData() {
     };
 
     if (isStudent.value) {
-      const studentUserId = currentStudentUserId();
       const [listResult, timelineResult] = await Promise.all([
-        listMyApplicationProgress({ ...params, student_user_id: studentUserId }),
-        getMyApplicationTimeline(studentUserId),
+        listMyApplicationProgress(params),
+        getMyApplicationTimeline(),
       ]);
       records.value = listResult.items || [];
       total.value = listResult.total;

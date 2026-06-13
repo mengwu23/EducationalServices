@@ -18,15 +18,13 @@
     POST   /psych/alerts/{alert_id}/action  — 处理预警（process/resolve/close）
 """
 
-from typing import Optional
-
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from backend.app.common.exceptions import AppException
 from backend.app.common.pagination import PageQuery
 from backend.app.common.responses import ApiResponse, error_response, success_response
-from backend.app.core.security import require_permissions
+from backend.app.core.security import CurrentUser, require_permissions
 from backend.app.database import get_db
 from backend.app.schemas.student_psych_schema import (
     EmotionCheckinRequest,
@@ -42,31 +40,6 @@ router = APIRouter(
     prefix="/api/v1/student-assistant/psych",
     tags=["心理关怀"],
 )
-
-
-# ============================================================
-# 当前用户依赖（复用占位实现）
-# ============================================================
-# TODO: 接入正式 JWT 鉴权后，替换为 core/security.py 中的 get_current_user
-
-from pydantic import BaseModel, Field
-
-
-class CurrentUser(BaseModel):
-    """当前登录用户信息"""
-    user_id: int = Field(..., description="用户ID（sys_user.id）")
-    user_type: str = Field(..., description="用户角色：student=学生 / employee=员工 / admin=管理员")
-
-
-def get_current_user(
-    user_id: Optional[int] = Query(default=None, description="用户ID（sys_user.id），如 11=李娜, 1=陈远"),
-    user_type: Optional[str] = Query(default=None, description="用户角色：传 student 测试学生功能，传 employee 测试员工功能"),
-) -> CurrentUser:
-    """获取当前登录用户（开发测试用）"""
-    return CurrentUser(
-        user_id=user_id or 1,
-        user_type=user_type or "student",
-    )
 
 
 # ============================================================

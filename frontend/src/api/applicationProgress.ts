@@ -31,14 +31,13 @@ export function listApplicationProgress(params: ProgressListParams = {}): Promis
   return request<ProgressPagedResult>(`/api/application-progress?${query}`);
 }
 
-export function listMyApplicationProgress(params: ProgressListParams & { student_user_id: number }): Promise<ProgressPagedResult> {
+export function listMyApplicationProgress(params: ProgressListParams = {}): Promise<ProgressPagedResult> {
   const query = toQuery({ page: 1, page_size: 20, ...params });
   return request<ProgressPagedResult>(`/api/application-progress/my-progress?${query}`);
 }
 
-export function getMyApplicationTimeline(studentUserId: number): Promise<ProgressTimeline> {
-  const query = new URLSearchParams({ student_user_id: String(studentUserId) });
-  return request<ProgressTimeline>(`/api/application-progress/my-progress/timeline?${query.toString()}`);
+export function getMyApplicationTimeline(): Promise<ProgressTimeline> {
+  return request<ProgressTimeline>("/api/application-progress/my-progress/timeline");
 }
 
 export function getApplicationProgressStages(): Promise<ProgressStageReference> {
