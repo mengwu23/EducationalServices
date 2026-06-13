@@ -6,6 +6,7 @@ import type {
   LeaveRecord,
   PagedResult,
   PsychAlert,
+  PsychChatResult,
   PsychProfile,
 } from "@/types/studentAssistant";
 
@@ -164,9 +165,9 @@ export function chatPolicyAssistant(query: string): Promise<AssistantChatResult>
   });
 }
 
-export function chatPsychAssistant(message: string, userId: number): Promise<Record<string, unknown>> {
-  return plainRequest<Record<string, unknown>>("/api/v1/student-assistant/psych/chat", {
+export function chatPsychAssistant(message: string): Promise<PsychChatResult> {
+  return plainRequest<PsychChatResult>("/api/v1/student-assistant/psych/chat", {
     method: "POST",
-    body: JSON.stringify({ message, user_id: userId }),
+    body: JSON.stringify({ message }),
   });
 }

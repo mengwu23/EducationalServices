@@ -4,9 +4,9 @@ import { useRouter } from "vue-router";
 import { login } from "@/stores/authStore";
 
 const router = useRouter();
-const username = ref(localStorage.getItem("education_service_remembered_username") || "emp001");
-const password = ref("123456");
-const remember = ref(true);
+const username = ref("");
+const password = ref("");
+const remember = ref(false);
 const errorMessage = ref("");
 const submitting = ref(false);
 

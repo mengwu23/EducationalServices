@@ -2,6 +2,7 @@
 import { computed } from "vue";
 import { useRouter } from "vue-router";
 import AppSidebar from "@/components/common/AppSidebar.vue";
+import { navigationItems } from "@/config/navigation";
 import { authState, hasPermission, logout, roleLabelMap } from "@/stores/authStore";
 
 const router = useRouter();
@@ -11,107 +12,12 @@ const roleLabel = computed(() => roleLabelMap[user.value?.role || ""] || user.va
 
 const modules = computed(() => {
   const role = user.value?.role || "";
-  return [
-  {
-    title: "我的请假",
-    desc: "学生提交请假、查看审批进度和取消待审批申请",
-    roles: ["student", "admin"],
-    permission: "student_leave:own",
-    count: "自助",
-    tone: "amber",
-    route: "/student/leaves",
-  },
-  {
-    title: "学生助手",
-    desc: "生活支持、留学政策咨询和心理支持对话",
-    roles: ["student", "admin"],
-    permission: "student_psych:own",
-    count: "AI",
-    tone: "green",
-    route: "/student/assistant",
-  },
-  {
-    title: "请假审批",
-    desc: "学生请假申请、审批历史与待处理统计",
-    roles: ["manager", "employee", "admin"],
-    permission: "student_leave:read",
-    count: "12",
-    tone: "amber",
-    route: "/students/leaves",
-  },
-  {
-    title: "学业事件",
-    desc: "考试、论文、课程 Deadline 与提醒管理",
-    roles: ["manager", "employee", "admin"],
-    permission: "student_psych:read",
-    count: "DDL",
-    tone: "sand",
-    route: "/academic-events",
-  },
-  {
-    title: "心理预警",
-    desc: "心理画像、风险预警、处理闭环",
-    roles: ["manager", "employee", "admin"],
-    permission: "student_psych:read",
-    count: "6",
-    tone: "red",
-    route: "/students/psych",
-  },
-  {
-    title: "客服中心",
-    desc: "访客咨询、FAQ、项目推荐和活动报名",
-    roles: ["manager", "employee", "admin"],
-    permission: "enterprise_operation:execute",
-    count: "客",
-    tone: "green",
-    route: "/service-center",
-  },
-  {
-    title: "申请进度",
-    desc: "文书、院校、签证、Offer 等关键节点追踪",
-    roles: ["student", "manager", "employee", "admin"],
-    permission: "",
-    count: "32",
-    tone: "sand",
-    route: "/students/progress",
-  },
-  {
-    title: "反馈工单",
-    desc: "投诉、建议、咨询的分派处理与学生通知",
-    roles: ["manager", "employee", "admin"],
-    permission: "enterprise_operation:execute",
-    count: "11",
-    tone: "clay",
-    route: "/students/feedback",
-  },
-  {
-    title: "智能报告",
-    desc: "报告生成、草稿确认、发布与导出",
-    roles: ["manager", "employee", "admin"],
-    permission: "report:read",
-    count: "18",
-    tone: "green",
-    route: "/reports",
-  },
-  {
-    title: "客户研判",
-    desc: "客户资料分析、匹配等级与跟进建议",
-    roles: ["manager", "employee", "admin"],
-    permission: "customer_judgement:read",
-    count: "24",
-    tone: "clay",
-    route: "/customer-judgement",
-  },
-  {
-    title: "企业查询",
-    desc: "线索、日报、组织、学生与待办汇总",
-    roles: ["manager", "employee", "admin"],
-    permission: "enterprise_operation:execute",
-    count: "9",
-    tone: "sand",
-    route: "/business-query",
-  },
-  ].filter((item) => item.roles.includes(role) && (!item.permission || hasPermission(item.permission)));
+  return navigationItems.filter((item) => {
+    const isBusinessModule = item.key !== "dashboard" && item.description;
+    const roleMatched = item.roles.includes(role);
+    const permissionMatched = !item.permission || hasPermission(item.permission);
+    return isBusinessModule && roleMatched && permissionMatched;
+  });
 });
 
 const serviceItems = [
@@ -199,15 +105,15 @@ function openModule(route: string) {
           <div class="module-grid">
             <article
               v-for="item in modules"
-              :key="item.title"
+              :key="item.key"
               :class="['module-card', item.tone, { clickable: item.route }]"
               @click="openModule(item.route)"
             >
               <div>
                 <span>{{ item.count }}</span>
-                <strong>{{ item.title }}</strong>
+                <strong>{{ item.label }}</strong>
               </div>
-              <p>{{ item.desc }}</p>
+              <p>{{ item.description }}</p>
             </article>
           </div>
         </div>

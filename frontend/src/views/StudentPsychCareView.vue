@@ -4,7 +4,7 @@ import { useRouter } from "vue-router";
 import AppSidebar from "@/components/common/AppSidebar.vue";
 import { chatPsychAssistant, emotionCheckin, getMyPsychProfile, listMyPsychAlerts } from "@/api/studentAssistant";
 import { authState, logout, roleLabelMap } from "@/stores/authStore";
-import type { PsychAlert, PsychProfile } from "@/types/studentAssistant";
+import type { PsychAlert, PsychChatResult, PsychProfile } from "@/types/studentAssistant";
 
 const router = useRouter();
 const loading = ref(false);
@@ -14,7 +14,7 @@ const profile = ref<PsychProfile | null>(null);
 const alerts = ref<PsychAlert[]>([]);
 const checkinText = ref("最近申请压力比较大，担心材料准备不够充分。");
 const chatMessage = ref("我最近因为申请结果很焦虑，应该怎么调整？");
-const chatResult = ref<Record<string, unknown> | null>(null);
+const chatResult = ref<PsychChatResult | null>(null);
 
 const user = computed(() => authState.user);
 const roleLabel = computed(() => roleLabelMap[user.value?.role || ""] || user.value?.role || "-");
@@ -48,10 +48,16 @@ async function handleCheckin() {
 }
 
 async function handleChat() {
+  const question = chatMessage.value.trim();
+  if (!question) {
+    message.value = "请输入需要咨询的问题";
+    return;
+  }
   actionLoading.value = true;
   message.value = "";
   try {
-    chatResult.value = await chatPsychAssistant(chatMessage.value, user.value?.id || 0);
+    chatResult.value = await chatPsychAssistant(question);
+    await loadData();
   } catch (error) {
     message.value = error instanceof Error ? error.message : "心理对话失败";
   } finally {
@@ -114,7 +120,18 @@ onMounted(loadData);
           <button class="primary-button" :disabled="actionLoading" type="button" @click="handleChat">发送</button>
           <div class="reason-box">
             <strong>回复</strong>
-            <pre>{{ chatResult ? JSON.stringify(chatResult, null, 2) : "暂无回复" }}</pre>
+            <template v-if="chatResult">
+              <p>{{ chatResult.reply }}</p>
+              <div class="detail-tags">
+                <span>{{ chatResult.emotion_tag }}</span>
+                <span>{{ chatResult.risk_level }}</span>
+                <span>情绪分 {{ chatResult.emotion_score }}</span>
+              </div>
+              <p v-if="chatResult.alert_created">系统已自动创建心理预警。</p>
+              <p v-if="chatResult.assigned_teacher">已分配老师：{{ chatResult.assigned_teacher }}</p>
+              <p v-if="chatResult.degraded" class="module-message">{{ chatResult.warning }}</p>
+            </template>
+            <pre v-else>暂无回复</pre>
           </div>
         </aside>
       </section>

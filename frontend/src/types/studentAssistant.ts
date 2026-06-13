@@ -72,6 +72,18 @@ export interface AssistantChatResult {
   conversation_id: string | null;
 }
 
+export interface PsychChatResult {
+  reply: string;
+  emotion_tag: string;
+  emotion_score: number;
+  risk_level: string;
+  alert_created: boolean;
+  assigned_teacher?: string | null;
+  degraded?: boolean;
+  warning?: string;
+  summary?: string;
+}
+
 export interface EmotionCheckinResult {
   profile: PsychProfile;
   alert?: PsychAlert | null;
