@@ -31,6 +31,7 @@ class Settings(BaseSettings):
     deepseek_api_key: str = Field(default="", alias="DEEPSEEK_API_KEY")
     deepseek_base_url: str = Field(default="https://api.deepseek.com", alias="DEEPSEEK_BASE_URL")
     deepseek_model: str = Field(default="deepseek-chat", alias="DEEPSEEK_MODEL")
+    qwen_asr_api_key: str = Field(default="", alias="QWEN_ASR_API_KEY")
     report_export_dir: str = Field(default="storage/reports", alias="REPORT_EXPORT_DIR")
     report_pdf_converter_path: str = Field(default="", alias="REPORT_PDF_CONVERTER_PATH")
 
