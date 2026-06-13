@@ -5,6 +5,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
+from backend.app.core.security import CurrentUser, require_permissions
 from backend.app.database import get_db
 from backend.app.models.faq_qa import FaqQa
 from backend.app.services.student_assistant_service import StudentAssistantService
@@ -70,10 +71,14 @@ def chat_policy_assistant(query: str = Query(..., min_length=1)):
 
 class PsychChatRequest(BaseModel):
     message: str = Field(..., min_length=1)
-    user_id: int = Field(...)
+    user_id: int | None = Field(default=None, description="兼容旧前端字段，实际以 JWT 当前用户为准")
 
 
 @router.post("/psych/chat", summary="心理关怀 AI 对话")
-def chat_psych(payload: PsychChatRequest, db: Session = Depends(get_db)):
+def chat_psych(
+    payload: PsychChatRequest,
+    db: Session = Depends(get_db),
+    current_user: CurrentUser = Depends(require_permissions("student_psych:own")),
+):
     """DeepSeek 心理关怀对话。每次更新画像，高危自动预警。"""
-    return StudentAssistantService.chat_psych(db, payload.message, payload.user_id)
+    return StudentAssistantService.chat_psych(db, payload.message, current_user.id)

@@ -1,7 +1,11 @@
 """学生智能助手 — 公共业务服务。"""
 
 import json
+import logging
 import re
+import socket
+import ssl
+import urllib.error
 import urllib.request
 
 from sqlalchemy.orm import Session
@@ -9,6 +13,7 @@ from sqlalchemy.orm import Session
 from backend.app.core.config import get_settings
 
 settings = get_settings()
+logger = logging.getLogger("app.api")
 from backend.app.models.employee_profile import EmployeeProfile
 from backend.app.models.student_profile import StudentProfile
 from backend.app.models.sys_user import SysUser
@@ -66,6 +71,9 @@ class StudentAssistantService:
     @staticmethod
     def _call_deepseek(messages: list) -> dict:
         """调用 DeepSeek API，返回解析后的 JSON。"""
+        if not settings.deepseek_api_key:
+            raise RuntimeError("DeepSeek API Key 未配置，心理支持服务已切换为本地兜底回复")
+
         body = json.dumps({
             "model": "deepseek-chat", "messages": messages, "temperature": 0.7,
         }).encode("utf-8")
@@ -76,13 +84,51 @@ class StudentAssistantService:
                 "Content-Type": "application/json",
             },
         )
-        with urllib.request.urlopen(req, timeout=60) as resp:
-            data = json.loads(resp.read())
+        try:
+            with urllib.request.urlopen(req, timeout=60) as resp:
+                data = json.loads(resp.read())
+        except ssl.SSLError as exc:
+            raise RuntimeError("DeepSeek HTTPS 证书校验失败，心理支持服务已切换为本地兜底回复") from exc
+        except socket.timeout as exc:
+            raise RuntimeError("DeepSeek 请求超时，心理支持服务已切换为本地兜底回复") from exc
+        except urllib.error.HTTPError as exc:
+            detail = exc.read().decode("utf-8", errors="ignore")[:300]
+            raise RuntimeError(f"DeepSeek 返回 HTTP {exc.code}，心理支持服务已切换为本地兜底回复：{detail}") from exc
+        except urllib.error.URLError as exc:
+            raise RuntimeError(f"DeepSeek 网络连接失败，心理支持服务已切换为本地兜底回复：{exc.reason}") from exc
+        except json.JSONDecodeError as exc:
+            raise RuntimeError("DeepSeek 响应不是有效 JSON，心理支持服务已切换为本地兜底回复") from exc
+
+        try:
             raw = data["choices"][0]["message"]["content"].strip()
             if raw.startswith("```"):
                 raw = re.sub(r"^```\w*\n?", "", raw)
                 raw = re.sub(r"\n?```$", "", raw)
-            return json.loads(raw)
+            result = json.loads(raw)
+        except (KeyError, IndexError, TypeError, json.JSONDecodeError) as exc:
+            raise RuntimeError("DeepSeek 回复格式异常，心理支持服务已切换为本地兜底回复") from exc
+
+        return result
+
+    @staticmethod
+    def _fallback_psych_reply(message: str, warning: str) -> dict:
+        """外部模型不可用时返回本地心理支持兜底回复。"""
+        logger.warning("心理支持 AI 降级返回：%s", warning)
+        return {
+            "reply": (
+                "我看到了你的压力和焦虑。可以先把眼前最担心的事情写成三项：已经完成的、正在处理的、需要老师协助的。"
+                "如果现在情绪很强烈，先暂停十分钟，做几轮缓慢呼吸，再联系顾问或老师一起确认下一步。"
+                "如果你出现伤害自己或他人的念头，请立刻联系身边可信的人或当地紧急求助渠道。"
+            ),
+            "emotion_tag": "焦虑",
+            "emotion_score": 50,
+            "risk_level": "medium",
+            "alert_created": False,
+            "assigned_teacher": None,
+            "degraded": True,
+            "warning": warning,
+            "summary": f"本地兜底回复，原始问题：{message[:200]}",
+        }
 
     @staticmethod
     def ask_life_assistant(query: str) -> dict:
@@ -98,20 +144,31 @@ class StudentAssistantService:
     def chat_psych(db: Session, message: str, user_id: int) -> dict:
         """心理关怀 AI 对话。每次更新画像，高危自动创建预警并分配老师。"""
         # 1. DeepSeek 对话
-        result = StudentAssistantService._call_deepseek([
-            {"role": "system", "content": PSYCH_SYSTEM_PROMPT},
-            {"role": "user", "content": message},
-        ])
+        try:
+            result = StudentAssistantService._call_deepseek([
+                {"role": "system", "content": PSYCH_SYSTEM_PROMPT},
+                {"role": "user", "content": message},
+            ])
+        except RuntimeError as exc:
+            return StudentAssistantService._fallback_psych_reply(message, str(exc))
+
         reply = result.get("reply", "")
         emotion_tag = result.get("emotion_tag", "未知")
-        emotion_score = result.get("emotion_score", 50)
+        try:
+            emotion_score = int(result.get("emotion_score", 50))
+        except (TypeError, ValueError):
+            emotion_score = 50
+        emotion_score = max(0, min(100, emotion_score))
         risk_level = result.get("risk_level", "low")
+        if risk_level not in {"low", "medium", "high", "critical"}:
+            risk_level = "low"
 
         # 2. 查学生
         student = db.query(StudentProfile).filter(StudentProfile.user_id == user_id).first()
         if student is None:
             return {"reply": reply, "emotion_tag": emotion_tag, "emotion_score": emotion_score,
-                    "risk_level": risk_level, "alert_created": False, "warning": "未找到学生档案"}
+                    "risk_level": risk_level, "alert_created": False, "assigned_teacher": None,
+                    "degraded": False, "warning": "未找到学生档案"}
 
         # 3. 更新画像（每次必做）
         psych_service = StudentPsychService(db)
@@ -150,4 +207,5 @@ class StudentAssistantService:
         return {
             "reply": reply, "emotion_tag": emotion_tag, "emotion_score": emotion_score,
             "risk_level": risk_level, "alert_created": alert_created, "assigned_teacher": assigned_teacher,
+            "degraded": False,
         }
