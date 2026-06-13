@@ -6,6 +6,7 @@ export interface ServiceAgentMessageResponse {
   intent: string | null;
   suggested_actions: Array<Record<string, unknown>>;
   references: Array<Record<string, unknown>>;
+  suggested_questions?: string[];
   trace_id: string | null;
 }
 

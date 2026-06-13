@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from "vue";
+import { computed, onMounted, ref, watch, nextTick } from "vue";
 import { useRouter } from "vue-router";
 import AppSidebar from "@/components/common/AppSidebar.vue";
 import { createActivitySignup, listServiceEvents, searchServiceFaq, searchServiceProjects, sendServiceMessage } from "@/api/serviceAgent";
@@ -14,12 +14,39 @@ const keyword = ref("");
 const faqs = ref<ServiceFaqItem[]>([]);
 const projects = ref<ServiceProjectItem[]>([]);
 const events = ref<ServiceEventItem[]>([]);
-const visitorMessage = ref("我想了解英国硕士申请服务");
-const reply = ref("");
-const conversationId = ref<string | null>(null);
+const visitorMessage = ref("");
+const chatLoading = ref(false);
 const signupName = ref("");
 const signupPhone = ref("");
-const selectedEvent = ref<ServiceEventItem | null>(null);
+const selectedEventId = ref<number | null>(null);
+const chatHistoryRef = ref<HTMLElement | null>(null);
+
+// ── Chat message interface ──
+interface ChatMessage {
+  id: string;
+  role: "user" | "assistant";
+  content: string;
+  timestamp: number;
+  isLoading?: boolean;
+  error?: string;
+  suggestedQuestions?: string[];
+}
+
+const chatMessages = ref<ChatMessage[]>([]);
+
+// ── Conversation persistence ──
+const STORAGE_KEY = "service_center_conversation_id";
+const conversationId = ref<string | null>(
+  localStorage.getItem(STORAGE_KEY) || null
+);
+
+watch(conversationId, (newVal) => {
+  if (newVal) {
+    localStorage.setItem(STORAGE_KEY, newVal);
+  } else {
+    localStorage.removeItem(STORAGE_KEY);
+  }
+});
 
 const user = computed(() => authState.user);
 const roleLabel = computed(() => roleLabelMap[user.value?.role || ""] || user.value?.role || "-");
@@ -36,7 +63,7 @@ async function loadData() {
     faqs.value = faqResult || [];
     projects.value = projectResult || [];
     events.value = eventResult || [];
-    selectedEvent.value = events.value[0] || null;
+    selectedEventId.value = events.value[0]?.id ?? null;
   } catch (error) {
     message.value = error instanceof Error ? error.message : "客服中心数据加载失败";
   } finally {
@@ -44,25 +71,100 @@ async function loadData() {
   }
 }
 
+function scrollChatToBottom() {
+  nextTick(() => {
+    if (chatHistoryRef.value) {
+      chatHistoryRef.value.scrollTop = chatHistoryRef.value.scrollHeight;
+    }
+  });
+}
+
 async function handleMessage() {
-  actionLoading.value = true;
+  const text = visitorMessage.value.trim();
+  if (!text || chatLoading.value) return;
+
+  // Add user message
+  const userMsg: ChatMessage = {
+    id: `u-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+    role: "user",
+    content: text,
+    timestamp: Date.now(),
+  };
+  chatMessages.value.push(userMsg);
+
+  // Add loading placeholder
+  const loadingMsg: ChatMessage = {
+    id: `a-loading-${Date.now()}`,
+    role: "assistant",
+    content: "",
+    timestamp: Date.now(),
+    isLoading: true,
+  };
+  chatMessages.value.push(loadingMsg);
+
+  // Clear input
+  visitorMessage.value = "";
+  scrollChatToBottom();
+
+  chatLoading.value = true;
   try {
-    const result = await sendServiceMessage(visitorMessage.value, conversationId.value);
-    reply.value = result.reply_text;
+    const result = await sendServiceMessage(text, conversationId.value);
+    // Replace loading message with real reply
+    const loadingIndex = chatMessages.value.findIndex(m => m.id === loadingMsg.id);
+    if (loadingIndex !== -1) {
+      chatMessages.value[loadingIndex] = {
+        id: `a-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+        role: "assistant",
+        content: result.reply_text || "（无回复内容）",
+        timestamp: Date.now(),
+        suggestedQuestions: result.suggested_questions,
+      };
+    }
     conversationId.value = result.conversation_id;
   } catch (error) {
-    message.value = error instanceof Error ? error.message : "客服消息发送失败";
+    let errMsg = "客服消息发送失败";
+    if (error instanceof Error) {
+      const raw = error.message;
+      if (raw.includes("不可达") || raw.includes("ConnectError") || raw.includes("ConnectTimeout")) {
+        errMsg = "智能客服暂时不可用，请稍后重试或联系人工客服";
+      } else if (raw.includes("超时") || raw.includes("Timeout")) {
+        errMsg = "客服响应超时，请稍后重试";
+      } else if (raw.includes("API Key") || raw.includes("未授权")) {
+        errMsg = "客服系统配置异常，请联系管理员";
+      } else {
+        errMsg = raw;
+      }
+    }
+    // Replace loading message with error state
+    const loadingIndex = chatMessages.value.findIndex(m => m.id === loadingMsg.id);
+    if (loadingIndex !== -1) {
+      chatMessages.value[loadingIndex] = {
+        id: `a-err-${Date.now()}`,
+        role: "assistant",
+        content: "",
+        timestamp: Date.now(),
+        error: errMsg,
+      };
+    }
+    message.value = errMsg;
   } finally {
-    actionLoading.value = false;
+    chatLoading.value = false;
+    scrollChatToBottom();
   }
 }
 
+function handleSuggestedClick(question: string) {
+  visitorMessage.value = question;
+  handleMessage();
+}
+
 async function handleSignup() {
-  if (!selectedEvent.value) return;
+  const selectedEvent = events.value.find(e => e.id === selectedEventId.value);
+  if (!selectedEvent) return;
   actionLoading.value = true;
   try {
     await createActivitySignup({
-      event_id: selectedEvent.value.id,
+      event_id: selectedEvent.id,
       visitor_name: signupName.value,
       visitor_phone: signupPhone.value,
       conversation_id: conversationId.value,
@@ -125,18 +227,67 @@ onMounted(loadData);
         <aside class="assistant-panel">
           <p class="eyebrow">客服对话</p>
           <h2>访客消息</h2>
+
+          <!-- Chat history -->
+          <div ref="chatHistoryRef" class="chat-history">
+            <div v-if="chatMessages.length === 0" class="chat-empty">
+              👋 您好！我是客服小助手，请输入您的问题开始对话~
+            </div>
+            <div
+              v-for="msg in chatMessages"
+              :key="msg.id"
+              :class="['chat-bubble', msg.role === 'user' ? 'chat-bubble--user' : 'chat-bubble--assistant']"
+            >
+              <div class="chat-bubble__role">{{ msg.role === 'user' ? '访客' : '客服' }}</div>
+              <!-- Loading dots -->
+              <div v-if="msg.isLoading" class="chat-loading">
+                <span class="chat-dot"></span><span class="chat-dot"></span><span class="chat-dot"></span>
+              </div>
+              <!-- Error state -->
+              <div v-else-if="msg.error" class="chat-error">{{ msg.error }}</div>
+              <!-- Normal content -->
+              <div v-else class="chat-content">{{ msg.content }}</div>
+              <!-- Suggested questions -->
+              <div v-if="msg.suggestedQuestions && msg.suggestedQuestions.length" class="chat-suggestions">
+                <button
+                  v-for="q in msg.suggestedQuestions"
+                  :key="q"
+                  class="chat-suggestion-chip"
+                  type="button"
+                  @click="handleSuggestedClick(q)"
+                >
+                  {{ q }}
+                </button>
+              </div>
+              <div class="chat-time">{{ new Date(msg.timestamp).toLocaleTimeString() }}</div>
+            </div>
+          </div>
+
+          <!-- Input area -->
           <label class="reject-comment">
             <span>消息</span>
-            <textarea v-model="visitorMessage" rows="4" />
+            <textarea
+              v-model="visitorMessage"
+              rows="4"
+              placeholder="输入您的问题，Ctrl+Enter 发送..."
+              @keyup.ctrl.enter="handleMessage"
+            />
           </label>
-          <button class="primary-button" :disabled="actionLoading" type="button" @click="handleMessage">发送</button>
-          <div class="reason-box"><strong>回复</strong><p>{{ reply || "暂无回复" }}</p></div>
+          <button
+            class="primary-button"
+            :disabled="chatLoading || !visitorMessage.trim()"
+            type="button"
+            @click="handleMessage"
+          >
+            {{ chatLoading ? '发送中...' : '发送' }}
+          </button>
+
           <label class="reject-comment"><span>报名姓名</span><input v-model="signupName" /></label>
           <label class="reject-comment"><span>报名电话</span><input v-model="signupPhone" /></label>
-          <select v-model="selectedEvent">
-            <option v-for="event in events" :key="event.id" :value="event">{{ event.event_name || event.title || `活动 ${event.id}` }}</option>
+          <select v-model="selectedEventId">
+            <option v-for="event in events" :key="event.id" :value="event.id">{{ event.event_name || event.title || `活动 ${event.id}` }}</option>
           </select>
-          <button class="secondary-button" :disabled="actionLoading || !selectedEvent" type="button" @click="handleSignup">创建报名</button>
+          <button class="secondary-button" :disabled="actionLoading || !selectedEventId" type="button" @click="handleSignup">创建报名</button>
         </aside>
       </section>
     </main>

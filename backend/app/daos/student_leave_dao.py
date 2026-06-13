@@ -155,19 +155,34 @@ class StudentLeaveDao:
     def list_all_pending(
         self,
         query: PageQuery,
+        leave_type: Optional[str] = None,
+        student_name: Optional[str] = None,
     ) -> tuple[list[StudentLeaveRequest], int]:
-        """查询所有待审批的请假列表（分页）
+        """查询所有待审批的请假列表（分页 + 可选筛选）
 
         员工端的"待审批"入口，显示所有 status=pending 的记录。
         审批后 approver_employee_id 才被赋值，所以待审批时不按员工筛选。
 
         Args:
             query: 分页参数
+            leave_type: 按请假类型筛选（可选）
+            student_name: 按学生姓名模糊搜索（可选，需 JOIN student_profile）
 
         Returns:
             (当前页数据列表, 符合条件的总记录数)
         """
         filters = [StudentLeaveRequest.status == LeaveStatus.PENDING.value]
+
+        if leave_type is not None:
+            filters.append(StudentLeaveRequest.leave_type == leave_type)
+        if student_name is not None and student_name.strip():
+            from backend.app.models.student_profile import StudentProfile
+            return self._paginated_query_with_join(
+                filters, query, StudentProfile,
+                StudentProfile.id == StudentLeaveRequest.student_id,
+                StudentProfile.student_name.like(f"%{student_name.strip()}%"),
+            )
+
         return self._paginated_query(filters, query)
 
     def list_approval_history(
@@ -175,8 +190,10 @@ class StudentLeaveDao:
         employee_id: int,
         query: PageQuery,
         status: Optional[LeaveStatus] = None,
+        leave_type: Optional[str] = None,
+        student_name: Optional[str] = None,
     ) -> tuple[list[StudentLeaveRequest], int]:
-        """查询某员工审批过的请假历史（分页 + 可选状态筛选）
+        """查询某员工审批过的请假历史（分页 + 可选筛选）
 
         用于员工查看自己处理过的审批记录（已通过/已驳回）。
         只有 approver_employee_id 等于当前员工 ID 的记录才会被查到。
@@ -185,6 +202,8 @@ class StudentLeaveDao:
             employee_id: 员工 ID（employee_profile.id）
             query: 分页参数
             status: 按状态筛选（可选，如 approved / rejected）
+            leave_type: 按请假类型筛选（可选）
+            student_name: 按学生姓名模糊搜索（可选，需 JOIN student_profile）
 
         Returns:
             (当前页数据列表, 符合条件的总记录数)
@@ -193,6 +212,15 @@ class StudentLeaveDao:
 
         if status is not None:
             filters.append(StudentLeaveRequest.status == status.value)
+        if leave_type is not None:
+            filters.append(StudentLeaveRequest.leave_type == leave_type)
+        if student_name is not None and student_name.strip():
+            from backend.app.models.student_profile import StudentProfile
+            return self._paginated_query_with_join(
+                filters, query, StudentProfile,
+                StudentProfile.id == StudentLeaveRequest.student_id,
+                StudentProfile.student_name.like(f"%{student_name.strip()}%"),
+            )
 
         return self._paginated_query(filters, query)
 
@@ -239,6 +267,44 @@ class StudentLeaveDao:
         total = q.count()
 
         # 按创建时间倒序排列，最新的在前
+        items = q.order_by(
+            desc(StudentLeaveRequest.create_time)
+        ).offset(
+            (query.page - 1) * query.page_size
+        ).limit(
+            query.page_size
+        ).all()
+
+        return items, total
+
+    def _paginated_query_with_join(
+        self,
+        filters: list,
+        query: PageQuery,
+        join_model,
+        join_condition,
+        *extra_filters,
+    ) -> tuple[list[StudentLeaveRequest], int]:
+        """执行带 JOIN 的分页查询
+
+        用于需要跨表筛选的场景（如按学生姓名模糊搜索）。
+
+        Args:
+            filters: SQLAlchemy 过滤条件列表（主表）
+            query: 分页参数
+            join_model: 要 JOIN 的模型类
+            join_condition: JOIN 条件
+            *extra_filters: JOIN 表上的额外过滤条件
+
+        Returns:
+            (当前页数据, 总记录数)
+        """
+        q = self.db.query(StudentLeaveRequest).join(
+            join_model, join_condition
+        ).filter(*filters, *extra_filters)
+
+        total = q.count()
+
         items = q.order_by(
             desc(StudentLeaveRequest.create_time)
         ).offset(

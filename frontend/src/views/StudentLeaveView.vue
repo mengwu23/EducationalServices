@@ -22,6 +22,9 @@ const approvalHistory = ref<LeaveRecord[]>([]);
 const selectedLeave = ref<LeaveRecord | null>(null);
 const rejectComment = ref("请补充请假原因或相关证明后重新提交。");
 const activeTab = ref<"pending" | "history">("pending");
+const filterStudentName = ref("");
+const filterLeaveType = ref("");
+const filterStatus = ref("");
 
 const user = computed(() => authState.user);
 const roleLabel = computed(() => roleLabelMap[user.value?.role || ""] || user.value?.role || "-");
@@ -60,8 +63,8 @@ async function loadData() {
   try {
     const [countResult, pendingResult, historyResult] = await Promise.all([
       getPendingLeaveCount(),
-      listPendingLeaves(1, 8),
-      listApprovalHistory(1, 6),
+      listPendingLeaves(1, 8, filterLeaveType.value, filterStudentName.value),
+      listApprovalHistory(1, 6, filterStatus.value, filterLeaveType.value, filterStudentName.value),
     ]);
     pendingCount.value = countResult.count;
     pendingLeaves.value = pendingResult.items || [];
@@ -167,18 +170,18 @@ onMounted(loadData);
           </div>
 
           <div class="filter-row">
-            <input placeholder="搜索学生姓名" />
-            <select>
-              <option>全部类型</option>
-              <option>病假</option>
-              <option>事假</option>
-              <option>其他</option>
+            <input v-model="filterStudentName" placeholder="搜索学生姓名" @change="loadData" />
+            <select v-model="filterLeaveType" @change="loadData">
+              <option value="">全部类型</option>
+              <option value="sick">病假</option>
+              <option value="personal">事假</option>
+              <option value="other">其他</option>
             </select>
-            <select>
-              <option>全部状态</option>
-              <option>待审批</option>
-              <option>已通过</option>
-              <option>已驳回</option>
+            <select v-model="filterStatus" @change="loadData">
+              <option value="">全部状态</option>
+              <option value="pending">待审批</option>
+              <option value="approved">已通过</option>
+              <option value="rejected">已驳回</option>
             </select>
           </div>
 

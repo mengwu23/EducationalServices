@@ -1,6 +1,7 @@
 from typing import Any
 from uuid import uuid4
 
+import httpx
 from sqlalchemy.orm import Session
 
 from backend.app.common.exceptions import BusinessError, NotFoundError, ReportGenerationError
@@ -45,12 +46,29 @@ class ServiceAgentService:
                 "conversation_id": ai_result.get("conversation_id") or request.conversation_id,
                 "visitor_message": request.message,
                 "reply_text": ai_result.get("answer", ""),
+                "intent": ai_result.get("intent"),
+                "suggested_actions": ai_result.get("suggested_actions", []),
+                "references": ai_result.get("references", []),
                 "suggested_questions": ai_result.get("suggested_questions", []),
                 "trace_id": trace_id,
             }
+        except httpx.HTTPStatusError as e:
+            self.db.rollback()
+            error_body = ""
+            if e.response is not None:
+                try:
+                    error_body = e.response.text[:500]
+                except Exception:
+                    pass
+            raise ReportGenerationError(
+                f"客服回复生成失败 (HTTP {e.response.status_code if e.response is not None else '?'}): {error_body}"
+            ) from e
+        except RuntimeError as e:
+            self.db.rollback()
+            raise ReportGenerationError(str(e)) from e
         except Exception as exc:
             self.db.rollback()
-            raise ReportGenerationError(f"客服回复生成失败：{exc}") from exc
+            raise ReportGenerationError(f"客服回复生成失败（{type(exc).__name__}）：{exc}") from exc
 
     def search_faq(self, request: ServiceAgentFaqSearchRequest) -> list[dict[str, Any]]:
         rows = self.dao.search_faq(request.keyword, request.category, request.limit)
