@@ -1,6 +1,9 @@
 from pathlib import Path
 
-from xhtml2pdf import pisa
+try:
+    from xhtml2pdf import pisa
+except ModuleNotFoundError:  # pragma: no cover - optional dependency fallback
+    pisa = None
 
 from backend.app.common.enums import ExportType
 from backend.app.core.config import Settings
@@ -28,6 +31,8 @@ class ReportExportService:
         return file_name, str(file_path)
 
     def _export_pdf(self, report: AiReport) -> tuple[str, str]:
+        if pisa is None:
+            raise RuntimeError("PDF export dependency missing: xhtml2pdf")
         export_dir = self._ensure_export_dir()
         file_name = f"{report.report_no}.pdf"
         file_path = export_dir / file_name
