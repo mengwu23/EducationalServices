@@ -76,6 +76,30 @@ const guideResult = ref<OnboardingGuideResult | null>(null);
 const operationQuery = ref("新增客户，王一鸣，本科大三，想去英国读硕士，预算30万，电话13700030001，来源官网咨询");
 const operationResult = ref<OperationResponse | null>(null);
 const rejectReason = ref("信息不完整，暂不执行。");
+const dropdownOpen = ref(false);
+
+const tabOptions = [
+  { value: "leads", label: "线索", icon: "🔍", desc: "客户线索检索与筛选" },
+  { value: "students", label: "学生", icon: "🎓", desc: "学生档案与申请信息" },
+  { value: "todos", label: "待办", icon: "📋", desc: "请假、反馈与超时线索" },
+  { value: "statistics", label: "统计", icon: "📊", desc: "运营数据汇总与摘要" },
+  { value: "nl2sql", label: "问数", icon: "💬", desc: "自然语言智能问数" },
+  { value: "operation", label: "办理", icon: "⚡", desc: "语音/文本输入，业务解析执行" },
+  { value: "guide", label: "指引", icon: "📖", desc: "制度流程与入职问答" },
+];
+
+function selectTab(value: string) {
+  activeTab.value = value as typeof activeTab.value;
+  dropdownOpen.value = false;
+}
+
+function currentTabLabel(): string {
+  return tabOptions.find((t) => t.value === activeTab.value)?.label || "";
+}
+
+function currentTabIcon(): string {
+  return tabOptions.find((t) => t.value === activeTab.value)?.icon || "";
+}
 
 // Voice input state
 const voiceMode = ref<"none" | "browser" | "upload">("none");
@@ -429,15 +453,31 @@ onUnmounted(() => {
               <p class="eyebrow">查询范围</p>
               <h2>业务数据检索</h2>
             </div>
-            <div class="enterprise-tabs">
-              <button :class="{ active: activeTab === 'leads' }" type="button" @click="activeTab = 'leads'">线索</button>
-              <button :class="{ active: activeTab === 'students' }" type="button" @click="activeTab = 'students'">学生</button>
-              <button :class="{ active: activeTab === 'todos' }" type="button" @click="activeTab = 'todos'">待办</button>
-              <button :class="{ active: activeTab === 'statistics' }" type="button" @click="activeTab = 'statistics'">统计</button>
-              <button :class="{ active: activeTab === 'nl2sql' }" type="button" @click="activeTab = 'nl2sql'">问数</button>
-              <button :class="{ active: activeTab === 'operation' }" type="button" @click="activeTab = 'operation'">办理</button>
-              <button :class="{ active: activeTab === 'guide' }" type="button" @click="activeTab = 'guide'">指引</button>
+          </div>
+          <div class="enterprise-tabs enterprise-tabs-center">
+            <div class="func-dropdown">
+              <button class="func-dropdown-btn" type="button" @click="dropdownOpen = !dropdownOpen">
+                <span class="func-dropdown-icon">{{ currentTabIcon() }}</span>
+                <span>{{ currentTabLabel() }}</span>
+                <svg class="func-dropdown-chevron" :class="{ open: dropdownOpen }" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
+              </button>
+              <div v-if="dropdownOpen" class="func-dropdown-panel" @mouseleave="dropdownOpen = false">
+                <button
+                  v-for="opt in tabOptions"
+                  :key="opt.value"
+                  :class="{ selected: activeTab === opt.value }"
+                  type="button"
+                  @click="selectTab(opt.value)"
+                >
+                  <span class="func-opt-icon">{{ opt.icon }}</span>
+                  <span class="func-opt-body">
+                    <strong>{{ opt.label }}</strong>
+                    <span>{{ opt.desc }}</span>
+                  </span>
+                </button>
+              </div>
             </div>
+            <div v-if="dropdownOpen" class="func-dropdown-overlay" @click="dropdownOpen = false" />
           </div>
 
           <template v-if="activeTab === 'leads'">
