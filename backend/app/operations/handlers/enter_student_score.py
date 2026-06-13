@@ -246,6 +246,12 @@ class EnterStudentScoreHandler(OperationHandler):
             fields.append(FieldItem(key="exam_type", label="考试类型", value=params["exam_type"], required=False))
         for s in scores_list:
             fields.append(FieldItem(key=f"score_{s['course_name']}", label=s["course_name"], value=str(s["score"]), required=True))
+        if params.get("semester"):
+            fields.append(FieldItem(key="semester", label="学期", value=params["semester"], required=False))
+        if params.get("exam_date"):
+            fields.append(FieldItem(key="exam_date", label="考试日期", value=params["exam_date"], required=False))
+        if params.get("remark"):
+            fields.append(FieldItem(key="remark", label="备注", value=params["remark"], required=False))
         score_texts = [s["course_name"] + " " + str(s["score"]) + "分" for s in scores_list]
         summary = student.student_name + "：" + "，".join(score_texts)
         return OperationResponse(status="pending_confirm", message=f"AI已识别你要为「{student.student_name}」录入成绩",

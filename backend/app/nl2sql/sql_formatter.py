@@ -1,10 +1,13 @@
-"""SQL 格式化工具。"""
+"""SQL formatting helpers."""
 
-import sqlparse
+try:
+    import sqlparse
+except ModuleNotFoundError:  # pragma: no cover - optional dependency fallback
+    sqlparse = None
 
 
 def extract_sql(raw: str) -> str:
-    """从 LLM 原始输出中提取 SQL，兼容模型误返回 Markdown 代码块的情况。"""
+    """Extract SQL from raw LLM output, including fenced code blocks."""
     text = raw.strip()
     if text.startswith("```"):
         text = text.strip("`")
@@ -16,5 +19,8 @@ def extract_sql(raw: str) -> str:
 
 
 def format_sql(sql: str) -> str:
-    """美化 SQL，便于日志和接口返回展示。"""
-    return sqlparse.format(sql.strip(), keyword_case="upper", reindent=True).rstrip(";")
+    """Format SQL for display and logging."""
+    sql_text = sql.strip()
+    if sqlparse is None:
+        return sql_text.rstrip(";")
+    return sqlparse.format(sql_text, keyword_case="upper", reindent=True).rstrip(";")

@@ -44,9 +44,16 @@ class SubmitDailyReportHandler(OperationHandler):
 
     # ==================== 核心流程 ====================
 
+    # 日报结构化提取后仍需补充的字段（不含 summary，因为 summary 由 AI 强制生成）
+    _REQUIRED_REPORT_FIELDS = [
+        ("key_progress", "关键进展", "请输入关键进展（如：跟进客户、签约情况）"),
+        ("risks", "风险问题", "请输入今日风险或问题（如无不填）"),
+        ("tomorrow_plan", "明日计划", "请输入明日工作计划"),
+    ]
+
     def create_draft(self, params: Dict[str, Any], user: CurrentUser) -> OperationResponse:
         """首次创建日报草稿。"""
-        # 1. 校验必填字段
+        # 1. 校验必填（raw_content）
         missing = self._check_required(params)
         if missing:
             return self._build_missing_response(missing)
@@ -62,22 +69,70 @@ class SubmitDailyReportHandler(OperationHandler):
                 intent=self.intent,
             )
 
-        # 3. 检查当天是否已有日报
+        # 3. AI 提取结构化字段（summary, key_progress, risks, tomorrow_plan）
+        extracted = self.llm.extract_daily_report_fields(raw_content)
+
+        summary = extracted.get("summary") or params.get("summary", "")
+        key_progress = extracted.get("key_progress") or params.get("key_progress", "")
+        risks = extracted.get("risks") or params.get("risks", "")
+        tomorrow_plan = extracted.get("tomorrow_plan") or params.get("tomorrow_plan", "")
+
+        # 4. 检查缺失字段
+        report_missing = []
+        if not summary:
+            report_missing.append(MissingField(key="summary", label="AI摘要", question="AI正在生成摘要..."))
+        if not key_progress:
+            report_missing.append(MissingField(key="key_progress", label="关键进展", question="请输入关键进展"))
+        if not risks:
+            report_missing.append(MissingField(key="risks", label="风险问题", question="请输入今日风险或问题"))
+        if not tomorrow_plan:
+            report_missing.append(MissingField(key="tomorrow_plan", label="明日计划", question="请输入明日工作计划"))
+
+        # 5. 检查当天是否已有日报
         today = date.today()
         existing = self.dao.find_today_report(employee.id, today)
         update_mode = existing is not None
 
-        # 4. 创建草稿
+        # 6. 有缺失字段 → 创建草稿（存已有字段）→ 返回追问
+        if report_missing:
+            partial_content = {
+                "_intent": self.intent,
+                "_state": "supplementing",
+                "employee_id": employee.id,
+                "department_id": employee.department_id,
+                "report_date": today.isoformat(),
+                "raw_content": raw_content,
+                "summary": summary,
+                "key_progress": key_progress,
+                "risks": risks,
+                "tomorrow_plan": tomorrow_plan,
+                "is_update": update_mode,
+            }
+            draft = self.dao.create_draft(
+                intent=self.intent,
+                content_json=partial_content,
+                created_by=user.id,
+                status=DraftStatus.GENERATING,
+            )
+            return OperationResponse(
+                status="missing_fields",
+                message="请补充以下日报信息",
+                draft_id=draft.id,
+                intent=self.intent,
+                missing_fields=report_missing,
+            )
+
+        # 7. 全部齐了 → 创建草稿
         draft_content = {
             "_intent": self.intent,
             "employee_id": employee.id,
             "department_id": employee.department_id,
             "report_date": today.isoformat(),
             "raw_content": raw_content,
-            "summary": params.get("summary"),
-            "key_progress": params.get("key_progress"),
-            "risks": params.get("risks"),
-            "tomorrow_plan": params.get("tomorrow_plan"),
+            "summary": summary,
+            "key_progress": key_progress,
+            "risks": risks,
+            "tomorrow_plan": tomorrow_plan,
             "is_update": update_mode,
         }
         draft = self.dao.create_draft(
@@ -96,23 +151,49 @@ class SubmitDailyReportHandler(OperationHandler):
         return self._build_confirm_response(draft, draft_content, msg_parts, employee)
 
     def supplement(self, draft: AiDraft, query: str, user: CurrentUser) -> OperationResponse:
-        """追问补全（日报修改/追加）。"""
+        """追问补全（日报追加信息）。"""
         content = dict(draft.content_json)
+        state = content.get("_state", "")
 
-        # 用新 query 补全字段
-        merged = self.llm.supplement_fields(query, content)
-        merged["raw_content"] = content.get("raw_content", "") + "\n" + query
+        # 追加 query 到 raw_content
+        raw = content.get("raw_content", "")
+        content["raw_content"] = raw + "\n" + query
 
-        self.dao.update_draft_content(draft, merged)
+        # 从合并后的内容重新提取结构化字段
+        merged_raw = content["raw_content"]
+        extracted = self.llm.extract_daily_report_fields(merged_raw)
 
-        missing = self._check_required(merged)
-        if missing:
-            return self._build_missing_response(missing)
+        content["summary"] = extracted.get("summary") or content.get("summary", "")
+        content["key_progress"] = extracted.get("key_progress") or content.get("key_progress", "")
+        content["risks"] = extracted.get("risks") or content.get("risks", "")
+        content["tomorrow_plan"] = extracted.get("tomorrow_plan") or content.get("tomorrow_plan", "")
+
+        # 检查是否还缺字段
+        report_missing = []
+        if not content.get("summary"):
+            report_missing.append(MissingField(key="summary", label="AI摘要", question="AI正在生成摘要..."))
+        if not content.get("key_progress"):
+            report_missing.append(MissingField(key="key_progress", label="关键进展", question="请输入关键进展"))
+        if not content.get("risks"):
+            report_missing.append(MissingField(key="risks", label="风险问题", question="请输入今日风险或问题"))
+        if not content.get("tomorrow_plan"):
+            report_missing.append(MissingField(key="tomorrow_plan", label="明日计划", question="请输入明日工作计划"))
+
+        content["_state"] = "supplementing"
+        self.dao.update_draft_content(draft, content)
+
+        if report_missing:
+            return OperationResponse(
+                status="missing_fields",
+                message="请补充以下日报信息",
+                draft_id=draft.id,
+                intent=self.intent,
+                missing_fields=report_missing,
+            )
 
         self.dao.update_draft_status(draft, DraftStatus.PENDING_CONFIRM)
-
         employee = self.dao.get_employee_by_user_id(user.id)
-        return self._build_confirm_response(draft, merged, ["日报已更新"], employee)
+        return self._build_confirm_response(draft, content, ["日报已更新"], employee)
 
     def execute(self, draft: AiDraft, user: CurrentUser) -> ExecuteResult:
         """确认执行，写入日报。"""

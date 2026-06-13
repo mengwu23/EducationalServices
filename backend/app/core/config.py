@@ -1,7 +1,7 @@
 from functools import lru_cache
 from pathlib import Path
 
-from pydantic import Field, field_validator
+from pydantic import AliasChoices, Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -23,6 +23,23 @@ class Settings(BaseSettings):
     dify_mock_enabled: bool = Field(default=True, alias="DIFY_MOCK_ENABLED")
     dify_onboarding_api_base_url: str = Field(default="http://localhost/v1", alias="DIFY_ONBOARDING_API_BASE_URL")
     dify_onboarding_api_key: str = Field(default="", alias="DIFY_ONBOARDING_API_KEY")
+    nl2sql_llm_api_key: str = Field(
+        default="",
+        validation_alias=AliasChoices("NL2SQL_LLM_API_KEY", "DEEPSEEK_API_KEY"),
+    )
+    nl2sql_llm_base_url: str = Field(
+        default="https://api.deepseek.com",
+        validation_alias=AliasChoices("NL2SQL_LLM_BASE_URL", "DEEPSEEK_BASE_URL"),
+    )
+    nl2sql_llm_model: str = Field(
+        default="deepseek-chat",
+        validation_alias=AliasChoices("NL2SQL_LLM_MODEL", "MODEL_NAME"),
+    )
+    dify_onboarding_api_key: str = Field(default="app-3YDkdTb9x8Ot1X5jzhLK4nCN", alias="DIFY_ONBOARDING_API_KEY")
+    deepseek_api_key: str = Field(default="", alias="DEEPSEEK_API_KEY")
+    deepseek_base_url: str = Field(default="https://api.deepseek.com", alias="DEEPSEEK_BASE_URL")
+    deepseek_model: str = Field(default="deepseek-chat", alias="DEEPSEEK_MODEL")
+    qwen_asr_api_key: str = Field(default="", alias="QWEN_ASR_API_KEY")
     report_export_dir: str = Field(default="storage/reports", alias="REPORT_EXPORT_DIR")
     report_pdf_converter_path: str = Field(default="", alias="REPORT_PDF_CONVERTER_PATH")
 

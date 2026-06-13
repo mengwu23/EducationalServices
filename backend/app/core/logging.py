@@ -1,4 +1,4 @@
-"""项目日志配置。"""
+"""Project logging configuration."""
 
 from __future__ import annotations
 
@@ -9,7 +9,11 @@ from datetime import date, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
-import sqlparse
+try:
+    import sqlparse
+except ModuleNotFoundError:  # pragma: no cover - optional dependency fallback
+    sqlparse = None
+
 from sqlalchemy import event
 from sqlalchemy.engine import Engine
 
@@ -22,7 +26,7 @@ _SQL_LOGGING_ENGINES: set[int] = set()
 
 
 class DailyFileHandler(logging.Handler):
-    """按自然日期写入 prefix-YYYY-MM-DD.log，并保留最近若干天。"""
+    """Write logs to prefix-YYYY-MM-DD.log and rotate by day."""
 
     def __init__(self, log_dir: Path, prefix: str, retention_days: int = LOG_RETENTION_DAYS):
         super().__init__()
@@ -72,7 +76,7 @@ class DailyFileHandler(logging.Handler):
 
 
 def configure_logging() -> None:
-    """初始化项目日志。"""
+    """Initialize application logging."""
     global _CONFIGURED
     if _CONFIGURED:
         return
@@ -105,11 +109,11 @@ def configure_logging() -> None:
     logging.getLogger("sqlalchemy.engine").setLevel(logging.WARNING)
 
     _CONFIGURED = True
-    logging.getLogger("app").info("日志系统初始化完成，日志目录：%s", LOG_DIR)
+    logging.getLogger("app").info("Logging initialized. Log directory: %s", LOG_DIR)
 
 
 def configure_sql_logging(engine: Engine) -> None:
-    """为 SQLAlchemy Engine 注册 SQL 执行日志。"""
+    """Register SQL execution logging for a SQLAlchemy engine."""
     configure_logging()
     engine_id = id(engine)
     if engine_id in _SQL_LOGGING_ENGINES:
@@ -132,7 +136,7 @@ def configure_sql_logging(engine: Engine) -> None:
         )
         rowcount = getattr(cursor, "rowcount", None)
         sql_logger.info(
-            "SQL 执行完成 | 耗时 %.2f ms | 行数 %s | executemany=%s\n%s",
+            "SQL completed | duration %.2f ms | rows %s | executemany=%s\n%s",
             duration_ms,
             rowcount,
             executemany,
@@ -149,7 +153,7 @@ def configure_sql_logging(engine: Engine) -> None:
         if not formatted_sql and exception_context.statement:
             formatted_sql = _format_statement(exception_context.statement, exception_context.parameters)
         sql_logger.exception(
-            "SQL 执行失败 | 耗时 %.2f ms | 错误：%s\n%s",
+            "SQL failed | duration %.2f ms | error=%s\n%s",
             duration_ms,
             exception_context.original_exception,
             formatted_sql or "",
@@ -157,8 +161,8 @@ def configure_sql_logging(engine: Engine) -> None:
 
 
 def log_exception(logger: logging.Logger, message: str, exc: BaseException) -> None:
-    """记录异常堆栈到运行日志和错误日志。"""
-    logger.error("%s：%s\n%s", message, exc, "".join(traceback.format_exception(exc)))
+    """Log a full exception traceback."""
+    logger.error("%s: %s\n%s", message, exc, "".join(traceback.format_exception(exc)))
 
 
 def _format_sql_for_log(cursor: Any, statement: str, parameters: Any) -> str:
@@ -180,14 +184,17 @@ def _try_render_actual_sql(cursor: Any, statement: str, parameters: Any) -> str 
 
 
 def _format_statement(statement: str, parameters: Any) -> str:
-    formatted = sqlparse.format(
-        statement,
-        keyword_case="upper",
-        reindent=True,
-        strip_comments=False,
-    )
+    if sqlparse is not None:
+        formatted = sqlparse.format(
+            statement,
+            keyword_case="upper",
+            reindent=True,
+            strip_comments=False,
+        )
+    else:
+        formatted = statement.strip()
     if parameters not in (None, (), []):
-        formatted = f"{formatted}\n-- 参数：{parameters!r}"
+        formatted = f"{formatted}\n-- params: {parameters!r}"
     return formatted
 
 
