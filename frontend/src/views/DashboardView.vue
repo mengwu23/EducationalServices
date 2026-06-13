@@ -9,6 +9,7 @@ const router = useRouter();
 
 const user = computed(() => authState.user);
 const roleLabel = computed(() => roleLabelMap[user.value?.role || ""] || user.value?.role || "-");
+const isStudent = computed(() => user.value?.role === "student");
 
 const modules = computed(() => {
   const role = user.value?.role || "";
@@ -26,6 +27,23 @@ const serviceItems = [
   { name: "王璐", stage: "签证准备", status: "需确认资金证明", risk: "高" },
   { name: "赵晨", stage: "顾问沟通", status: "今日需回访", risk: "中" },
 ];
+
+const dashboardMetrics = computed(() => {
+  if (isStudent.value) {
+    return [
+      { label: "可用功能", value: String(modules.value.length), desc: "当前账号可访问的学生服务入口" },
+      { label: "当前身份", value: "学生", desc: "仅展示本人相关服务数据" },
+      { label: "服务范围", value: "本人", desc: "请假、反馈、心理与申请进度" },
+      { label: "数据边界", value: "已限制", desc: "不展示其他学生服务记录" },
+    ];
+  }
+  return [
+    { label: "今日待办", value: "27", desc: "审批、回访、报告确认" },
+    { label: "风险提醒", value: "8", desc: "心理预警与服务节点" },
+    { label: "申请推进", value: "64%", desc: "本周目标完成率" },
+    { label: "报告草稿", value: "5", desc: "待确认与待发布" },
+  ];
+});
 
 function handleLogout() {
   logout();
@@ -47,7 +65,7 @@ function openModule(route: string) {
       <header class="topbar">
         <div>
           <p class="eyebrow">工作台</p>
-          <h1>今日服务总览</h1>
+          <h1>{{ isStudent ? "我的服务总览" : "今日服务总览" }}</h1>
         </div>
         <div class="user-chip">
           <span>{{ roleLabel }}</span>
@@ -59,8 +77,8 @@ function openModule(route: string) {
       <section class="hero-band">
         <div>
           <p class="eyebrow">留学服务</p>
-          <h2>把申请规划、学生风险和顾问协同放在同一个工作面</h2>
-          <p>登录后系统已加载当前权限，工作台仅展示你可处理的业务模块。</p>
+          <h2>{{ isStudent ? "查看自己的申请进度、请假反馈和心理关怀" : "把申请规划、学生风险和顾问协同放在同一个工作面" }}</h2>
+          <p>{{ isStudent ? "登录后系统只展示与你本人相关的学生服务入口。" : "登录后系统已加载当前权限，工作台仅展示你可处理的业务模块。" }}</p>
         </div>
         <div class="permission-panel">
           <span>当前权限</span>
@@ -70,25 +88,10 @@ function openModule(route: string) {
       </section>
 
       <section class="metric-grid">
-        <article>
-          <span>今日待办</span>
-          <strong>27</strong>
-          <p>审批、回访、报告确认</p>
-        </article>
-        <article>
-          <span>风险提醒</span>
-          <strong>8</strong>
-          <p>心理预警与服务节点</p>
-        </article>
-        <article>
-          <span>申请推进</span>
-          <strong>64%</strong>
-          <p>本周目标完成率</p>
-        </article>
-        <article>
-          <span>报告草稿</span>
-          <strong>5</strong>
-          <p>待确认与待发布</p>
+        <article v-for="item in dashboardMetrics" :key="item.label">
+          <span>{{ item.label }}</span>
+          <strong>{{ item.value }}</strong>
+          <p>{{ item.desc }}</p>
         </article>
       </section>
 
@@ -118,7 +121,7 @@ function openModule(route: string) {
           </div>
         </div>
 
-        <aside class="assistant-panel">
+        <aside v-if="!isStudent" class="assistant-panel">
           <p class="eyebrow">AI 助手</p>
           <h2>服务动作建议</h2>
           <div class="assistant-message">
@@ -129,7 +132,7 @@ function openModule(route: string) {
         </aside>
       </section>
 
-      <section class="table-section">
+      <section v-if="!isStudent" class="table-section">
         <div class="section-heading">
           <div>
             <p class="eyebrow">学生服务动态</p>

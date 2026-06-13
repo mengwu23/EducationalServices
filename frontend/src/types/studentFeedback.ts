@@ -50,3 +50,12 @@ export interface StudentFeedbackCreatePayload {
   priority_level: FeedbackPriorityLevel;
   handler_employee_id?: number;
 }
+
+export interface StudentFeedbackMyCreatePayload {
+  ticket_type: FeedbackTicketType;
+  category?: string;
+  title: string;
+  content_summary?: string;
+  detail: string;
+  priority_level: FeedbackPriorityLevel;
+}

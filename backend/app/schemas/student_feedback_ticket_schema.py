@@ -25,6 +25,15 @@ class StudentFeedbackTicketCreate(StudentFeedbackTicketBase):
     handler_employee_id: Optional[int] = None
 
 
+class StudentFeedbackTicketMyCreate(BaseModel):
+    ticket_type: FeedbackTicketType = FeedbackTicketType.COMPLAINT
+    category: Optional[str] = Field(default=None, max_length=100)
+    title: str = Field(..., min_length=1, max_length=300)
+    content_summary: Optional[str] = None
+    detail: str = Field(..., min_length=1)
+    priority_level: FeedbackPriorityLevel = FeedbackPriorityLevel.NORMAL
+
+
 class StudentFeedbackTicketUpdate(BaseModel):
     ticket_type: Optional[FeedbackTicketType] = None
     category: Optional[str] = Field(default=None, max_length=100)

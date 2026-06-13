@@ -2,7 +2,7 @@
 import { computed, onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
 import AppSidebar from "@/components/common/AppSidebar.vue";
-import { createStudentFeedbackTicket, listStudentFeedbackTickets } from "@/api/studentFeedback";
+import { createMyStudentFeedbackTicket, listMyStudentFeedbackTickets } from "@/api/studentFeedback";
 import { authState, logout, roleLabelMap } from "@/stores/authStore";
 import type { StudentFeedbackTicket } from "@/types/studentFeedback";
 
@@ -21,13 +21,12 @@ const form = ref({
 
 const user = computed(() => authState.user);
 const roleLabel = computed(() => roleLabelMap[user.value?.role || ""] || user.value?.role || "-");
-const studentId = computed(() => user.value?.student_id || 0);
 
 async function loadData() {
   loading.value = true;
   message.value = "";
   try {
-    const result = await listStudentFeedbackTickets({ student_id: studentId.value, page: 1, size: 20 });
+    const result = await listMyStudentFeedbackTickets({ page: 1, size: 20 });
     tickets.value = result.items || [];
     selectedTicket.value = tickets.value[0] || null;
   } catch (error) {
@@ -41,8 +40,7 @@ async function handleCreate() {
   actionLoading.value = true;
   message.value = "";
   try {
-    await createStudentFeedbackTicket({
-      student_id: studentId.value,
+    await createMyStudentFeedbackTicket({
       ticket_type: form.value.ticket_type,
       title: form.value.title,
       detail: form.value.detail,
@@ -124,7 +122,7 @@ onMounted(loadData);
             <span>内容</span>
             <textarea v-model="form.detail" rows="5" />
           </label>
-          <button class="primary-button" :disabled="actionLoading || !studentId" type="button" @click="handleCreate">提交反馈</button>
+          <button class="primary-button" :disabled="actionLoading" type="button" @click="handleCreate">提交反馈</button>
           <div class="reason-box">
             <strong>处理结果</strong>
             <p>{{ selectedTicket?.solution || selectedTicket?.content_summary || "请选择一条反馈记录查看处理结果" }}</p>

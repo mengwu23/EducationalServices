@@ -18,19 +18,17 @@
     POST   /leaves/{leave_id}/cancel   — 学生取消请假
 
 认证说明：
-    当前使用 get_current_user 占位实现，从请求头 X-User-Id / X-User-Type
-    获取用户信息（仅开发测试用），后续接入正式 JWT 鉴权后替换该依赖即可。
+    当前使用 JWT 解析登录用户，并按权限码控制学生端和员工端接口。
+    学生端接口只能访问当前登录学生自己的请假数据。
 """
 
-from typing import Optional
-
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from backend.app.common.exceptions import AppException
 from backend.app.common.pagination import PageQuery
 from backend.app.common.responses import ApiResponse, error_response, success_response
-from backend.app.core.security import require_any_permission, require_permissions
+from backend.app.core.security import CurrentUser, require_any_permission, require_permissions
 from backend.app.database import get_db
 from backend.app.schemas.student_leave_schema import (
     LeaveApproveRequest,
@@ -45,51 +43,6 @@ router = APIRouter(
     prefix="/api/v1/student-assistant/leaves",
     tags=["学生请假审批"],
 )
-
-
-# ============================================================
-# 当前用户依赖（占位实现）
-# ============================================================
-# TODO: 接入正式 JWT 鉴权后，将此依赖替换为 core/security.py 中的 get_current_user
-# 当前实现从请求头读取用户信息，仅用于接口开发和测试联调。
-
-from pydantic import BaseModel, Field
-
-
-class CurrentUser(BaseModel):
-    """当前登录用户信息
-
-    由 get_current_user 依赖注入，后续接入 JWT 后，
-    user_id 和 user_type 从 token 中解析。
-    """
-    user_id: int = Field(..., description="用户ID（sys_user.id）")
-    user_type: str = Field(..., description="用户角色：student=学生 / employee=员工 / admin=管理员")
-
-
-def get_current_user(
-    user_id: Optional[int] = Query(default=None, description="用户ID（sys_user.id），如 11=李娜, 12=王伟, 13=刘洋"),
-    user_type: Optional[str] = Query(default=None, description="用户角色：传 student 测试学生功能，传 employee 测试员工功能"),
-) -> CurrentUser:
-    """获取当前登录用户（开发测试用）
-
-    当前通过显式传参获取用户信息（后续 Controller 接入路由时传入）。
-    后续接入 JWT 后，改为从 Request header 中解析 token：
-        from fastapi import Header
-        def get_current_user(authorization: str = Header(...)) -> CurrentUser: ...
-
-    Args:
-        user_id: sys_user.id（开发测试时传参）
-        user_type: 用户类型（开发测试时传参）
-
-    Returns:
-        当前用户信息
-    """
-    # 开发阶段：如果未传参，返回默认测试用户
-    # TODO: 上线前移除默认值
-    return CurrentUser(
-        user_id=user_id or 1,
-        user_type=user_type or "student",
-    )
 
 
 # ============================================================

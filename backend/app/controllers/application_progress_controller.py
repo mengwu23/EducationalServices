@@ -28,6 +28,7 @@ from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.orm import Session
 
 from backend.app.common.responses import ApiResponse, error_response, success_response
+from backend.app.core.security import CurrentUser, require_permissions
 from backend.app.database import get_db
 from backend.app.schemas.application_progress_schema import (
     CRMSyncRequest,
@@ -47,22 +48,22 @@ router = APIRouter(prefix="/api/application-progress", tags=["申请进度追踪
 
 @router.get("/my-progress", response_model=ApiResponse, summary="学生查看自己的申请进度")
 def list_my_progress(
-    student_user_id: int = Query(..., description="学生关联的 sys_user.id"),
     progress_stage: Optional[str] = Query(default=None, description="按阶段筛选：essay/school_apply/visa/offer/other"),
     progress_status: Optional[str] = Query(default=None, description="按状态筛选：pending/processing/completed/blocked"),
     page: int = Query(default=1, ge=1, description="页码"),
     page_size: int = Query(default=20, ge=1, le=100, description="每页数量"),
     db: Session = Depends(get_db),
+    current_user: CurrentUser = Depends(require_permissions("application_progress:own")),
 ):
     """学生自助查询自己的留学申请进度
 
     涵盖文书审核、院校申请、签证办理、录取通知等各阶段。
-    学生可通过 sys_user.id 查看关联的所有进度记录。
+    学生只能查看当前登录账号关联的所有进度记录。
     """
     service = ApplicationProgressService(db)
     try:
         items, total = service.list_my_progress(
-            student_user_id=student_user_id,
+            student_user_id=current_user.id,
             page=page,
             page_size=page_size,
             progress_stage=progress_stage,
@@ -77,8 +78,8 @@ def list_my_progress(
 
 @router.get("/my-progress/timeline", response_model=ApiResponse, summary="学生查看自己的进度时间线")
 def get_my_timeline(
-    student_user_id: int = Query(..., description="学生关联的 sys_user.id"),
     db: Session = Depends(get_db),
+    current_user: CurrentUser = Depends(require_permissions("application_progress:own")),
 ):
     """学生查看自己的申请进度时间线
 
@@ -87,7 +88,7 @@ def get_my_timeline(
     """
     service = ApplicationProgressService(db)
     try:
-        timeline = service.get_timeline(student_user_id=student_user_id)
+        timeline = service.get_timeline(student_user_id=current_user.id)
         return success_response(data=timeline)
     except Exception as e:
         return error_response(code=40000, message=str(e))
@@ -106,6 +107,7 @@ def list_progress(
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=20, ge=1, le=100),
     db: Session = Depends(get_db),
+    current_user: CurrentUser = Depends(require_permissions("application_progress:read")),
 ):
     """多维筛选查询申请进度列表（员工/管理员用）。"""
     service = ApplicationProgressService(db)
@@ -132,7 +134,11 @@ def get_stages_reference():
 
 
 @router.get("/{progress_id}", response_model=ApiResponse, summary="获取进度详情")
-def get_progress(progress_id: int, db: Session = Depends(get_db)):
+def get_progress(
+    progress_id: int,
+    db: Session = Depends(get_db),
+    current_user: CurrentUser = Depends(require_permissions("application_progress:read")),
+):
     """获取单条申请进度记录的详细信息。"""
     service = ApplicationProgressService(db)
     try:
@@ -147,7 +153,11 @@ def get_progress(progress_id: int, db: Session = Depends(get_db)):
 # ══════════════════════════════════════════════════════════
 
 @router.post("", response_model=ApiResponse, status_code=status.HTTP_201_CREATED, summary="创建申请进度记录")
-def create_progress(payload: ProgressCreateRequest, db: Session = Depends(get_db)):
+def create_progress(
+    payload: ProgressCreateRequest,
+    db: Session = Depends(get_db),
+    current_user: CurrentUser = Depends(require_permissions("application_progress:write")),
+):
     """员工/管理员为学生创建一条申请进度记录。
 
     请求体：
@@ -174,6 +184,7 @@ def update_progress(
     progress_id: int,
     payload: ProgressUpdateRequest,
     db: Session = Depends(get_db),
+    current_user: CurrentUser = Depends(require_permissions("application_progress:write")),
 ):
     """员工/管理员更新申请进度（部分更新）。"""
     service = ApplicationProgressService(db)
@@ -185,7 +196,10 @@ def update_progress(
 
 
 @router.get("/stats/blocked-count", response_model=ApiResponse, summary="统计受阻进度数量")
-def get_blocked_count(db: Session = Depends(get_db)):
+def get_blocked_count(
+    db: Session = Depends(get_db),
+    current_user: CurrentUser = Depends(require_permissions("application_progress:read")),
+):
     """统计当前所有处于「受阻」状态的申请进度总数。
 
     用于管理仪表盘展示异常进度数量。
@@ -203,7 +217,11 @@ def get_blocked_count(db: Session = Depends(get_db)):
 # ══════════════════════════════════════════════════════════
 
 @router.post("/crm/sync", response_model=ApiResponse, summary="[预留] CRM数据同步")
-def crm_sync(payload: CRMSyncRequest, db: Session = Depends(get_db)):
+def crm_sync(
+    payload: CRMSyncRequest,
+    db: Session = Depends(get_db),
+    current_user: CurrentUser = Depends(require_permissions("application_progress:write")),
+):
     """CRM 数据同步接口（预留）。
 
     当前 CRM 系统尚未合并，此接口返回 501 Not Implemented。
