@@ -387,12 +387,16 @@ class StudentLeaveService:
         self,
         current_user_type: str,
         query: PageQuery,
+        leave_type: Optional[str] = None,
+        student_name: Optional[str] = None,
     ):
         """查询所有待审批的请假列表（员工端）
 
         Args:
             current_user_type: 当前登录用户的 user_type（必须为 employee/admin）
             query: 分页参数
+            leave_type: 按请假类型筛选（可选）
+            student_name: 按学生姓名模糊搜索（可选）
 
         Returns:
             (当前页 LeaveResponse 列表, 总记录数)
@@ -400,7 +404,11 @@ class StudentLeaveService:
         if current_user_type not in (UserType.EMPLOYEE.value, UserType.ADMIN.value):
             raise PermissionDeniedException("只有员工才能查看待审批列表")
 
-        items, total = self.dao.list_all_pending(query)
+        items, total = self.dao.list_all_pending(
+            query,
+            leave_type=leave_type,
+            student_name=student_name,
+        )
 
         # 为每条待审批记录填充学生姓名
         results = [
@@ -418,6 +426,9 @@ class StudentLeaveService:
         current_user_id: int,
         current_user_type: str,
         query: PageQuery,
+        status: Optional[LeaveStatus] = None,
+        leave_type: Optional[str] = None,
+        student_name: Optional[str] = None,
     ):
         """查询当前员工的审批历史（已通过 / 已驳回）
 
@@ -425,6 +436,9 @@ class StudentLeaveService:
             current_user_id: 当前登录用户的 sys_user.id
             current_user_type: 当前登录用户的 user_type
             query: 分页参数
+            status: 按状态筛选（可选）
+            leave_type: 按请假类型筛选（可选）
+            student_name: 按学生姓名模糊搜索（可选）
 
         Returns:
             (当前页 LeaveResponse 列表, 总记录数)
@@ -439,6 +453,9 @@ class StudentLeaveService:
         items, total = self.dao.list_approval_history(
             employee_id=employee.id,
             query=query,
+            status=status,
+            leave_type=leave_type,
+            student_name=student_name,
         )
 
         results = [

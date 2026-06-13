@@ -26,11 +26,11 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from backend.app.common.exceptions import AppException
-from backend.app.common.pagination import PageQuery
 from backend.app.common.responses import ApiResponse, error_response, success_response
 from backend.app.core.security import CurrentUser, require_any_permission, require_permissions
 from backend.app.database import get_db
 from backend.app.schemas.student_leave_schema import (
+    LeaveApprovalQuery,
     LeaveApproveRequest,
     LeaveCancelRequest,
     LeaveCreateRequest,
@@ -138,7 +138,7 @@ def list_my_leaves(
 
 @router.get("/pending", response_model=ApiResponse, summary="员工查询待审批列表")
 def list_pending_leaves(
-    query: PageQuery = Depends(),
+    query: LeaveApprovalQuery = Depends(),
     db: Session = Depends(get_db),
     current_user: CurrentUser = Depends(require_permissions("student_leave:read")),
 ):
@@ -146,12 +146,20 @@ def list_pending_leaves(
 
     所有 status=pending 的请假都会显示，不按审批人过滤。
     员工看到全部后自行判断谁来审批。
+
+    查询参数（Query String）：
+        page=1           — 页码，默认1
+        page_size=8      — 每页条数，默认20
+        leave_type=sick  — 按请假类型筛选（可选）
+        student_name=张  — 按学生姓名模糊搜索（可选）
     """
     try:
         service = StudentLeaveService(db)
         items, total = service.list_all_pending(
             current_user_type=current_user.user_type,
             query=query,
+            leave_type=query.leave_type.value if query.leave_type else None,
+            student_name=query.student_name,
         )
 
         data = {
@@ -196,11 +204,18 @@ def count_pending_leaves(
 
 @router.get("/history", response_model=ApiResponse, summary="员工查询自己的审批历史")
 def list_approval_history(
-    query: PageQuery = Depends(),
+    query: LeaveApprovalQuery = Depends(),
     db: Session = Depends(get_db),
     current_user: CurrentUser = Depends(require_permissions("student_leave:read")),
 ):
     """员工查询自己审批过的请假记录（已通过/已驳回）
+
+    查询参数（Query String）：
+        page=1             — 页码，默认1
+        page_size=6        — 每页条数，默认20
+        status=approved    — 按状态筛选（可选）
+        leave_type=sick    — 按请假类型筛选（可选）
+        student_name=张    — 按学生姓名模糊搜索（可选）
     """
     try:
         service = StudentLeaveService(db)
@@ -208,6 +223,9 @@ def list_approval_history(
             current_user_id=current_user.user_id,
             current_user_type=current_user.user_type,
             query=query,
+            status=query.status,
+            leave_type=query.leave_type.value if query.leave_type else None,
+            student_name=query.student_name,
         )
 
         data = {

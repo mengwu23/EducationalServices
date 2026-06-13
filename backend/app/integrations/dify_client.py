@@ -1,4 +1,5 @@
 import json
+import logging
 import re
 import time
 from pathlib import Path
@@ -9,6 +10,8 @@ import httpx
 
 from backend.app.common.enums import ReportType
 from backend.app.core.config import Settings, get_settings
+
+logger = logging.getLogger(__name__)
 
 
 class DifyClient:
@@ -131,10 +134,74 @@ class DifyClient:
         if conversation_id:
             payload["conversation_id"] = conversation_id
         headers = {"Authorization": f"Bearer {api_key}"}
-        with httpx.Client(timeout=120) as client:
-            response = client.post(url, json=payload, headers=headers)
-            response.raise_for_status()
+        logger.info(
+            "Dify 客服 Agent 请求 | url=%s | query=%s | visitor_id=%s | conversation_id=%s | trace_id=%s",
+            url, query[:200], visitor_id, conversation_id, trace_id,
+        )
+        try:
+            with httpx.Client(timeout=120) as client:
+                response = client.post(url, json=payload, headers=headers)
+                response.raise_for_status()
+        except httpx.ConnectError:
+            raise RuntimeError("Dify 客服 Agent 服务不可达，请检查 Dify 是否运行")
+        except httpx.ConnectTimeout:
+            raise RuntimeError("Dify 客服 Agent 连接超时，请检查网络状况")
+        except httpx.ReadTimeout:
+            raise RuntimeError("Dify 客服 Agent 响应超时，请稍后重试")
+        except httpx.HTTPStatusError as e:
+            status_code = e.response.status_code
+            error_body = _safe_extract_response_text(e.response)
+            dify_error = _safe_parse_dify_error(error_body)
+            logger.error(
+                "Dify 客服 Agent 返回 HTTP %s | Dify code=%s message=%s | query=%s visitor_id=%s conversation_id=%s | 响应体: %s",
+                status_code,
+                dify_error.get("code", "N/A"),
+                dify_error.get("message", "N/A"),
+                query[:200],
+                visitor_id,
+                conversation_id,
+                error_body[:1000],
+            )
+            dify_msg = dify_error.get("message", "") or error_body[:300] or "未知错误"
+            dify_code = dify_error.get("code", "unknown")
+            if status_code in (401, 403):
+                raise RuntimeError(
+                    f"Dify 客服 Agent API Key 无效或未授权 (HTTP {status_code})"
+                    f"{' - ' + dify_msg if dify_msg else ''}"
+                )
+            elif status_code in (400, 404):
+                if conversation_id and _is_conversation_id_error(dify_msg, dify_code):
+                    logger.warning(
+                        "Dify 返回 conversation_id 相关错误，尝试不带 conversation_id 重试 | "
+                        "conversation_id=%s | error=%s",
+                        conversation_id, dify_msg,
+                    )
+                    return self.call_service_agent(
+                        query=query,
+                        conversation_id=None,
+                        visitor_id=visitor_id,
+                        trace_id=trace_id,
+                    )
+                raise RuntimeError(
+                    f"Dify 客服 Agent 请求参数错误 (HTTP {status_code}, code={dify_code}): {dify_msg}"
+                )
+            elif status_code >= 500:
+                raise RuntimeError(
+                    f"Dify 客服 Agent 返回服务端错误 (HTTP {status_code})"
+                    f"{' - ' + dify_msg if dify_msg else ''}"
+                )
+            else:
+                raise RuntimeError(
+                    f"Dify 客服 Agent 返回客户端错误 (HTTP {status_code})"
+                    f"{' - ' + dify_msg if dify_msg else ''}"
+                )
         data = response.json()
+        logger.info(
+            "Dify 客服 Agent 成功 | conversation_id=%s | message_id=%s | answer_length=%d",
+            data.get("conversation_id") or data.get("data", {}).get("conversation_id"),
+            data.get("message_id") or data.get("data", {}).get("message_id"),
+            len(data.get("answer") or data.get("data", {}).get("answer") or ""),
+        )
         answer = data.get("answer") or data.get("data", {}).get("answer") or ""
         outputs = data.get("data", {}).get("outputs", {}) if isinstance(data.get("data"), dict) else {}
         parsed_outputs = outputs if isinstance(outputs, dict) else {}
@@ -150,6 +217,7 @@ class DifyClient:
             "intent": parsed_outputs.get("intent"),
             "suggested_actions": parsed_outputs.get("suggested_actions", []),
             "references": parsed_outputs.get("references", []),
+            "suggested_questions": parsed_outputs.get("suggested_questions") or outputs.get("suggested_questions", []),
             "raw": data,
         }
 
@@ -1161,6 +1229,53 @@ def _parse_llm_json(text: str) -> dict[str, Any]:
             lines = lines[:-1]
         text = "\n".join(lines).strip()
     return json.loads(text)
+
+
+def _safe_extract_response_text(response: httpx.Response | None) -> str:
+    """安全提取 Dify 响应体文本，任何异常都返回空字符串。"""
+    if response is None:
+        return ""
+    try:
+        return response.text or ""
+    except Exception:
+        return ""
+
+
+def _safe_parse_dify_error(text: str) -> dict[str, Any]:
+    """解析 Dify 错误响应体。
+
+    Dify 的 400 响应通常格式为：
+    {"code": "invalid_param", "message": "xxx is required", "status": 400}
+    解析失败返回空 dict。
+    """
+    if not text:
+        return {}
+    try:
+        data = json.loads(text)
+        if isinstance(data, dict):
+            return {
+                "code": str(data.get("code", "")),
+                "message": str(data.get("message", "")),
+                "status": data.get("status"),
+            }
+        return {}
+    except (json.JSONDecodeError, TypeError, ValueError):
+        return {}
+
+
+def _is_conversation_id_error(dify_message: str, dify_code: str) -> bool:
+    """判断 Dify 错误是否与 conversation_id 相关。"""
+    conversation_error_keywords = [
+        "conversation_id", "conversation",
+        "not_found", "not found",
+        "对话", "会话",
+    ]
+    msg_lower = dify_message.lower()
+    code_lower = dify_code.lower()
+    return any(
+        kw in msg_lower or kw in code_lower
+        for kw in conversation_error_keywords
+    )
 
 
 def _mock_customer_judgement_result() -> dict[str, Any]:
