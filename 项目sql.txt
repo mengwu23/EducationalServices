@@ -514,12 +514,16 @@ CREATE TABLE IF NOT EXISTS student_application_progress (
     progress_desc TEXT COMMENT '进度说明',
     handler_employee_id BIGINT DEFAULT NULL COMMENT '负责人员工ID',
     expected_finish_time DATETIME DEFAULT NULL COMMENT '预计完成时间',
+    crm_record_id VARCHAR(100) DEFAULT NULL COMMENT 'CRM系统记录ID',
+    crm_sync_status VARCHAR(30) NOT NULL DEFAULT 'not_synced' COMMENT 'CRM同步状态：not_synced/syncing/synced/failed',
+    crm_last_sync_time DATETIME DEFAULT NULL COMMENT '最近CRM同步时间',
     create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     KEY idx_progress_student_id (student_id),
     KEY idx_progress_stage (progress_stage),
     KEY idx_progress_status (progress_status),
     KEY idx_progress_handler (handler_employee_id),
+    KEY idx_progress_crm_record (crm_record_id),
     CONSTRAINT fk_progress_student FOREIGN KEY (student_id) REFERENCES student_profile(id),
     CONSTRAINT fk_progress_handler FOREIGN KEY (handler_employee_id) REFERENCES employee_profile(id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='学生申请进度表';

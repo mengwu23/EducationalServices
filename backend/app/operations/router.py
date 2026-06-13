@@ -8,7 +8,7 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
-from backend.app.core.security import CurrentUser, get_current_user
+from backend.app.core.security import CurrentUser, require_permissions
 from backend.app.database import get_db
 
 from .dependence import get_orchestrator
@@ -86,7 +86,7 @@ def _commit(db: Session) -> None:
 """)
 def execute_operation(
     req: ExecuteRequest,
-    user: CurrentUser = Depends(get_current_user),
+    user: CurrentUser = Depends(require_permissions("enterprise_operation:execute")),
     orchestrator: OperationOrchestrator = Depends(get_orchestrator),
     db: Session = Depends(get_db),
 ):
@@ -100,7 +100,7 @@ def execute_operation(
 @router.post("/confirm", summary="确认或拒绝操作草稿",description='confirm确认，reject拒绝')
 def confirm_operation(
     req: ConfirmRequest,
-    user: CurrentUser = Depends(get_current_user),
+    user: CurrentUser = Depends(require_permissions("enterprise_operation:execute")),
     orchestrator: OperationOrchestrator = Depends(get_orchestrator),
     db: Session = Depends(get_db),
 ):

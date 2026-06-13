@@ -1,21 +1,22 @@
 from datetime import date, datetime
+from pathlib import Path
 from typing import Any
 from uuid import uuid4
 
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
-from app.common.enums import DraftStatus, ExportStatus, ExportType, ReportStatus
-from app.common.exceptions import BusinessError, NotFoundError, ReportGenerationError
-from app.core.config import Settings, get_settings
-from app.core.security import CurrentUser, require_roles
-from app.daos.report_dao import ReportDAO
-from app.integrations.dify_client import DifyClient
-from app.models.report import AiReport, ReportExportRecord
-from app.schemas.report_schema import ReportGenerateDraftRequest
-from app.services.audit_log_service import AuditLogService
-from app.services.draft_service import DraftService
-from app.services.report_export_service import ReportExportService
+from backend.app.common.enums import DraftStatus, ExportStatus, ExportType, ReportStatus
+from backend.app.common.exceptions import BusinessError, NotFoundError, ReportGenerationError
+from backend.app.core.config import Settings, get_settings
+from backend.app.core.security import CurrentUser
+from backend.app.daos.report_dao import ReportDAO
+from backend.app.integrations.dify_client import DifyClient
+from backend.app.models.report import AiReport, ReportExportRecord
+from backend.app.schemas.report_schema import ReportGenerateDraftRequest
+from backend.app.services.audit_log_service import AuditLogService
+from backend.app.services.draft_service import DraftService
+from backend.app.services.report_export_service import ReportExportService
 
 
 class ReportService:
@@ -34,7 +35,6 @@ class ReportService:
         self.export_service = ReportExportService(self.settings)
 
     def generate_draft(self, request: ReportGenerateDraftRequest, user: CurrentUser) -> dict[str, Any]:
-        require_roles(user, {"admin", "employee"})
         trace_id = request.trace_id or f"report-{uuid4().hex}"
         filters = {
             "date_start": request.date_start.isoformat(),
@@ -101,19 +101,16 @@ class ReportService:
             raise ReportGenerationError(f"报告草稿生成失败：{exc}") from exc
 
     def list_drafts(self, user: CurrentUser) -> list[dict[str, Any]]:
-        require_roles(user, {"admin", "employee"})
         drafts = self.draft_service.list_report_drafts()
         if user.role == "employee":
             drafts = [draft for draft in drafts if draft.created_by == user.id]
         return [self._draft_to_dict(draft) for draft in drafts]
 
     def get_draft(self, draft_id: int, user: CurrentUser) -> dict[str, Any]:
-        require_roles(user, {"admin", "employee"})
         draft = self._get_visible_draft(draft_id, user)
         return self._draft_to_dict(draft)
 
     def reject_draft(self, draft_id: int, reason: str, user: CurrentUser) -> dict[str, Any]:
-        require_roles(user, {"admin"})
         draft = self._get_visible_draft(draft_id, user)
         if draft.status != DraftStatus.PENDING_CONFIRM:
             raise BusinessError("只有待确认报告草稿可以驳回")
@@ -132,7 +129,6 @@ class ReportService:
         return self._draft_to_dict(draft)
 
     def confirm_draft(self, draft_id: int, user: CurrentUser) -> dict[str, Any]:
-        require_roles(user, {"admin"})
         draft = self._get_visible_draft(draft_id, user)
         if draft.status != DraftStatus.PENDING_CONFIRM:
             raise BusinessError("只有待确认报告草稿可以确认")
@@ -167,19 +163,16 @@ class ReportService:
         return self._report_to_dict(report)
 
     def list_reports(self, user: CurrentUser) -> list[dict[str, Any]]:
-        require_roles(user, {"admin", "employee"})
         reports = self.dao.list_reports()
         if user.role == "employee":
             reports = [report for report in reports if report.created_by == user.id]
         return [self._report_to_dict(report) for report in reports]
 
     def get_report(self, report_id: int, user: CurrentUser) -> dict[str, Any]:
-        require_roles(user, {"admin", "employee"})
         report = self._get_visible_report(report_id, user)
         return self._report_to_dict(report)
 
     def publish_report(self, report_id: int, user: CurrentUser) -> dict[str, Any]:
-        require_roles(user, {"admin"})
         report = self._get_visible_report(report_id, user)
         if report.status == ReportStatus.PUBLISHED:
             return self._report_to_dict(report)
@@ -199,7 +192,6 @@ class ReportService:
         return self._report_to_dict(report)
 
     def export_report(self, report_id: int, export_type: str, user: CurrentUser) -> dict[str, Any]:
-        require_roles(user, {"admin"})
         report = self._get_visible_report(report_id, user)
         if report.status != ReportStatus.PUBLISHED:
             raise BusinessError("只有已发布报告可以导出")
@@ -256,9 +248,61 @@ class ReportService:
             ) from exc
 
     def list_export_records(self, report_id: int, user: CurrentUser) -> list[dict[str, Any]]:
-        require_roles(user, {"admin", "employee"})
         self._get_visible_report(report_id, user)
         return [self._export_to_dict(record) for record in self.dao.list_export_records(report_id)]
+
+    def prepare_export_download(self, export_id: int, user: CurrentUser) -> dict[str, Any]:
+        record = self.dao.get_export_record(export_id)
+        if not record:
+            raise NotFoundError("导出记录不存在")
+        report = self._get_visible_report(record.report_id, user)
+        if record.status != ExportStatus.SUCCESS:
+            raise BusinessError("只有导出成功的文件可以下载")
+
+        try:
+            file_path = self._resolve_export_file_path(record.file_path)
+            if not file_path.is_file():
+                self.audit_service.record(
+                    user,
+                    action_type="download_export",
+                    biz_object_type="ai_report",
+                    biz_object_id=report.id,
+                    draft_id=report.source_draft_id,
+                    result="fail",
+                    error_message="导出文件不存在",
+                    after_json={"export_id": record.id, "file_name": record.file_name},
+                )
+                self.db.commit()
+                raise NotFoundError("导出文件不存在")
+        except HTTPException as exc:
+            if not isinstance(exc, NotFoundError):
+                self.audit_service.record(
+                    user,
+                    action_type="download_export",
+                    biz_object_type="ai_report",
+                    biz_object_id=report.id,
+                    draft_id=report.source_draft_id,
+                    result="fail",
+                    error_message=str(exc.detail),
+                    after_json={"export_id": record.id, "file_name": record.file_name},
+                )
+                self.db.commit()
+            raise
+
+        self.audit_service.record(
+            user,
+            action_type="download_export",
+            biz_object_type="ai_report",
+            biz_object_id=report.id,
+            draft_id=report.source_draft_id,
+            after_json={"export_id": record.id, "file_name": record.file_name},
+        )
+        self.db.commit()
+        return {
+            "file_path": file_path,
+            "file_name": record.file_name,
+            "media_type": self._download_media_type(record.export_type),
+        }
 
     def query_source_data_for_tool(
         self,
@@ -359,3 +403,22 @@ class ReportService:
 
     def _export_extension(self, export_type: str) -> str:
         return "pdf" if export_type == ExportType.PDF else "docx"
+
+    def _resolve_export_file_path(self, file_path: str) -> Path:
+        export_root = self.settings.export_dir_path.resolve()
+        resolved_file_path = Path(file_path).resolve()
+        try:
+            resolved_file_path.relative_to(export_root)
+        except ValueError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="导出文件路径非法",
+            ) from exc
+        return resolved_file_path
+
+    def _download_media_type(self, export_type: str) -> str:
+        if export_type == ExportType.PDF:
+            return "application/pdf"
+        if export_type == ExportType.WORD:
+            return "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        return "application/octet-stream"

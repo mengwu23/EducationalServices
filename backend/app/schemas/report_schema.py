@@ -1,9 +1,9 @@
 from datetime import date, datetime
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
-from app.common.enums import ExportType, ReportType
+from backend.app.common.enums import ExportType, ReportType
 
 
 class ReportGenerateDraftRequest(BaseModel):
@@ -81,3 +81,12 @@ class AiToolReportSourceDataRequest(BaseModel):
     conversation_id: str | None = None
     trace_id: str | None = None
     caller: Literal["dify", "other"] = "dify"
+
+    @field_validator("department_id", "owner_user_id", mode="before")
+    @classmethod
+    def blank_optional_int_to_none(cls, value):
+        if value is None:
+            return None
+        if isinstance(value, str) and value.strip().lower() in {"", "null", "none"}:
+            return None
+        return value

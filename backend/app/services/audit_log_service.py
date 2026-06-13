@@ -2,9 +2,9 @@ from typing import Any
 
 from sqlalchemy.orm import Session
 
-from app.core.security import CurrentUser
-from app.daos.report_dao import ReportDAO
-from app.models.audit_log import AiToolCallLog, AuditLog
+from backend.app.core.security import CurrentUser
+from backend.app.daos.report_dao import ReportDAO
+from backend.app.models.audit_log import AiToolCallLog, AuditLog
 
 
 class AuditLogService:
@@ -52,17 +52,22 @@ class AuditLogService:
         draft_id: int | None = None,
         status: str = "success",
         error_message: str | None = None,
-    ) -> AiToolCallLog:
-        return self.dao.add_tool_call_log(
-            AiToolCallLog(
-                tool_name=tool_name,
-                caller=caller,
-                conversation_id=conversation_id,
-                trace_id=trace_id,
-                arguments_summary=arguments_summary,
-                result_summary=result_summary,
-                draft_id=draft_id,
-                status=status,
-                error_message=error_message,
+    ) -> AiToolCallLog | None:
+        try:
+            return self.dao.add_tool_call_log(
+                AiToolCallLog(
+                    tool_name=tool_name,
+                    caller=caller,
+                    conversation_id=conversation_id,
+                    trace_id=trace_id,
+                    arguments_summary=arguments_summary,
+                    result_summary=result_summary,
+                    draft_id=draft_id,
+                    status=status,
+                    error_message=error_message,
+                )
             )
-        )
+        except Exception:
+            # ai_tool_call_log 表可能不存在，记录失败不影响主流程
+            self.dao.db.rollback()
+            return None
