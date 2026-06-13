@@ -642,6 +642,9 @@ button {
 
 .filter-row input,
 .filter-row select,
+.reject-comment input,
+.reject-comment select,
+.assistant-panel select,
 .reject-comment textarea {
   border: 1px solid var(--line);
   border-radius: 14px;
@@ -935,6 +938,37 @@ button {
 .psych-action-row .danger-button:disabled {
   cursor: not-allowed;
   opacity: 0.5;
+}
+
+.student-grid {
+  display: grid;
+  grid-template-columns: 1fr 380px;
+  gap: 20px;
+  align-items: start;
+}
+
+.reason-box pre {
+  overflow: auto;
+  margin: 8px 0 0;
+  white-space: pre-wrap;
+}
+
+.operation-card {
+  margin: 12px 0;
+  border-radius: 16px;
+  background: #fff3df;
+  padding: 14px;
+}
+
+.operation-card dl {
+  display: grid;
+  gap: 8px;
+}
+
+.operation-card dl div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
 }
 
 .progress-page {

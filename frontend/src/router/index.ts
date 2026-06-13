@@ -8,6 +8,12 @@ import StudentFeedbackView from "@/views/StudentFeedbackView.vue";
 import ReportView from "@/views/ReportView.vue";
 import CustomerJudgementView from "@/views/CustomerJudgementView.vue";
 import EnterpriseQueryView from "@/views/EnterpriseQueryView.vue";
+import StudentMyLeaveView from "@/views/StudentMyLeaveView.vue";
+import StudentPsychCareView from "@/views/StudentPsychCareView.vue";
+import StudentMyFeedbackView from "@/views/StudentMyFeedbackView.vue";
+import StudentAssistantView from "@/views/StudentAssistantView.vue";
+import AcademicEventView from "@/views/AcademicEventView.vue";
+import ServiceCenterView from "@/views/ServiceCenterView.vue";
 import { authState, bootstrapAuth } from "@/stores/authStore";
 
 const router = createRouter({
@@ -23,6 +29,12 @@ const router = createRouter({
     { path: "/reports", component: ReportView },
     { path: "/customer-judgement", component: CustomerJudgementView },
     { path: "/business-query", component: EnterpriseQueryView },
+    { path: "/student/leaves", component: StudentMyLeaveView },
+    { path: "/student/psych-care", component: StudentPsychCareView },
+    { path: "/student/feedback", component: StudentMyFeedbackView },
+    { path: "/student/assistant", component: StudentAssistantView },
+    { path: "/academic-events", component: AcademicEventView },
+    { path: "/service-center", component: ServiceCenterView },
   ],
 });
 

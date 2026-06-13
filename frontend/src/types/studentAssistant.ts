@@ -52,3 +52,28 @@ export interface PsychAlert {
   create_time: string;
   update_time: string;
 }
+
+export interface LifeSupportFaq {
+  id: number;
+  category: string | null;
+  question: string;
+  answer: string;
+  keywords: string | null;
+}
+
+export interface FaqListResult {
+  items: LifeSupportFaq[];
+  keyword: string | null;
+  total: number;
+}
+
+export interface AssistantChatResult {
+  answer: string;
+  conversation_id: string | null;
+}
+
+export interface EmotionCheckinResult {
+  profile: PsychProfile;
+  alert?: PsychAlert | null;
+  emotion?: Record<string, unknown>;
+}
