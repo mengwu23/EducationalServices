@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from "vue";
+import { computed, onMounted, onUnmounted, ref } from "vue";
 import { useRouter } from "vue-router";
 import AppSidebar from "@/components/common/AppSidebar.vue";
 import {
@@ -12,6 +12,8 @@ import {
   summarizeStatistics,
   summarizeTodos,
 } from "@/api/enterpriseAssistant";
+import { uploadVoiceForRecognition } from "@/api/voice";
+import type { VoiceRecognizeResult } from "@/types/voice";
 import { authState, logout, roleLabelMap } from "@/stores/authStore";
 import type {
   LeadItem,
@@ -22,6 +24,35 @@ import type {
   StudentProfileItem,
   TodoSummaryResult,
 } from "@/types/enterpriseAssistant";
+
+interface SpeechRecognitionEvent extends Event {
+  readonly resultIndex: number;
+  readonly results: SpeechRecognitionResultList;
+}
+
+interface SpeechRecognitionErrorEvent extends Event {
+  readonly error: string;
+  readonly message: string;
+}
+
+interface SpeechRecognition extends EventTarget {
+  lang: string;
+  continuous: boolean;
+  interimResults: boolean;
+  start(): void;
+  stop(): void;
+  abort(): void;
+  onresult: ((event: SpeechRecognitionEvent) => void) | null;
+  onerror: ((event: SpeechRecognitionErrorEvent) => void) | null;
+  onend: (() => void) | null;
+}
+
+declare global {
+  interface Window {
+    SpeechRecognition?: new () => SpeechRecognition;
+    webkitSpeechRecognition?: new () => SpeechRecognition;
+  }
+}
 
 const router = useRouter();
 const loading = ref(false);
@@ -45,6 +76,20 @@ const guideResult = ref<OnboardingGuideResult | null>(null);
 const operationQuery = ref("新增客户，王一鸣，本科大三，想去英国读硕士，预算30万，电话13700030001，来源官网咨询");
 const operationResult = ref<OperationResponse | null>(null);
 const rejectReason = ref("信息不完整，暂不执行。");
+
+// Voice input state
+const voiceMode = ref<"none" | "browser" | "upload">("none");
+const isListening = ref(false);
+const voiceUploadLoading = ref(false);
+const selectedFileName = ref("");
+const selectedFileBlob = ref<Blob | null>(null);
+const audioFormat = ref("wav");
+const sampleRate = ref(16000);
+const isDragging = ref(false);
+const recordingSeconds = ref(0);
+const browserVoiceSupported = ref(false);
+let recordingTimer: ReturnType<typeof setInterval> | null = null;
+let recognitionInstance: SpeechRecognition | null = null;
 const selectedLead = ref<LeadItem | null>(null);
 const selectedStudent = ref<StudentProfileItem | null>(null);
 
@@ -189,12 +234,150 @@ async function handleOperationConfirm(action: "confirm" | "reject") {
   }
 }
 
+// ====== Voice input helpers ======
+
+function formatDuration(seconds: number): string {
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return `${m}:${String(s).padStart(2, "0")}`;
+}
+
+function startRecordingTimer() {
+  recordingSeconds.value = 0;
+  recordingTimer = setInterval(() => {
+    recordingSeconds.value++;
+  }, 1000);
+}
+
+function clearRecordingTimer() {
+  if (recordingTimer) {
+    clearInterval(recordingTimer);
+    recordingTimer = null;
+  }
+}
+
+function initRecognition(): SpeechRecognition | null {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) return null;
+  const r = new SR();
+  r.lang = "zh-CN";
+  r.continuous = false;
+  r.interimResults = false;
+  r.onresult = (event: SpeechRecognitionEvent) => {
+    const last = event.results[event.resultIndex];
+    if (last && last[0]) {
+      operationQuery.value = last[0].transcript;
+    }
+  };
+  r.onerror = (event: SpeechRecognitionErrorEvent) => {
+    if (event.error !== "no-speech" && event.error !== "aborted") {
+      message.value = `语音识别错误：${event.message || event.error}`;
+    }
+    isListening.value = false;
+    clearRecordingTimer();
+  };
+  r.onend = () => {
+    isListening.value = false;
+    clearRecordingTimer();
+  };
+  return r;
+}
+
+function startListening() {
+  message.value = "";
+  const rec = initRecognition();
+  if (!rec) {
+    message.value = "当前浏览器不支持语音识别，请使用 Chrome 或 Edge，或切换到「上传」模式。";
+    return;
+  }
+  recognitionInstance = rec;
+  try {
+    rec.start();
+    isListening.value = true;
+    startRecordingTimer();
+  } catch {
+    message.value = "启动语音识别失败，请检查麦克风权限。";
+  }
+}
+
+function stopListening() {
+  recognitionInstance?.stop();
+  isListening.value = false;
+  clearRecordingTimer();
+}
+
+function onFileChange(event: Event) {
+  const input = event.target as HTMLInputElement;
+  const file = input.files?.[0];
+  if (file) {
+    selectedFileName.value = file.name;
+    selectedFileBlob.value = file;
+    message.value = "";
+    const ext = file.name.split(".").pop()?.toLowerCase();
+    if (ext && ["wav", "pcm", "opus", "mp3", "m4a", "webm", "aac"].includes(ext)) {
+      audioFormat.value = ext === "m4a" ? "m4a" : ext;
+    }
+  }
+}
+
+function onDragOver(e: DragEvent) {
+  e.preventDefault();
+  isDragging.value = true;
+}
+
+function onDragLeave() {
+  isDragging.value = false;
+}
+
+function onDrop(e: DragEvent) {
+  e.preventDefault();
+  isDragging.value = false;
+  const file = e.dataTransfer?.files?.[0];
+  if (file && file.type.startsWith("audio/")) {
+    selectedFileName.value = file.name;
+    selectedFileBlob.value = file;
+    message.value = "";
+    const ext = file.name.split(".").pop()?.toLowerCase();
+    if (ext && ["wav", "pcm", "opus", "mp3", "m4a", "webm", "aac"].includes(ext)) {
+      audioFormat.value = ext === "m4a" ? "m4a" : ext;
+    }
+  } else if (file) {
+    message.value = "请上传音频文件（wav/pcm/opus/mp3/m4a/webm/aac）";
+  }
+}
+
+async function handleVoiceUpload() {
+  if (!selectedFileBlob.value) {
+    message.value = "请先选择音频文件";
+    return;
+  }
+  voiceUploadLoading.value = true;
+  message.value = "";
+  try {
+    const result = await uploadVoiceForRecognition(selectedFileBlob.value, audioFormat.value, sampleRate.value);
+    operationQuery.value = result.text;
+  } catch (error) {
+    message.value = error instanceof Error ? error.message : "语音识别失败";
+  } finally {
+    voiceUploadLoading.value = false;
+  }
+}
+
 function handleLogout() {
   logout();
   router.push("/login");
 }
 
-onMounted(loadData);
+onMounted(() => {
+  loadData();
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  browserVoiceSupported.value = !!SR;
+});
+
+onUnmounted(() => {
+  recognitionInstance?.abort();
+  clearRecordingTimer();
+});
 </script>
 
 <template>
@@ -404,8 +587,73 @@ onMounted(loadData);
           </template>
 
           <template v-if="activeTab === 'operation'">
+            <div class="voice-mode-tabs">
+              <button :class="{ active: voiceMode === 'none' }" type="button" @click="voiceMode = 'none'; stopListening()">文本输入</button>
+              <button :class="{ active: voiceMode === 'browser' }" type="button" @click="voiceMode = 'browser'">
+                <svg class="voice-tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg>
+                麦克风
+              </button>
+              <button :class="{ active: voiceMode === 'upload' }" type="button" @click="voiceMode = 'upload'; stopListening()">
+                <svg class="voice-tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                上传
+              </button>
+            </div>
+
+            <!-- Browser mic mode -->
+            <div v-if="voiceMode === 'browser'" class="voice-mic-inline">
+              <button
+                class="voice-mic-btn"
+                :class="{ listening: isListening }"
+                type="button"
+                @click="isListening ? stopListening() : startListening()"
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" />
+                  <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+                  <line x1="12" y1="19" x2="12" y2="22" />
+                </svg>
+              </button>
+              <span v-if="isListening" class="voice-mic-status listening">
+                <span class="voice-rec-dot" />正在聆听… {{ formatDuration(recordingSeconds) }}
+              </span>
+              <span v-else class="voice-mic-status">点击麦克风，说出业务内容</span>
+            </div>
+
+            <!-- Upload mode -->
+            <div v-if="voiceMode === 'upload'" class="voice-upload-inline">
+              <div
+                class="voice-dropzone-sm"
+                :class="{ dragging: isDragging }"
+                @dragover="onDragOver"
+                @dragleave="onDragLeave"
+                @drop="onDrop"
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                <span>{{ selectedFileName || "拖拽音频到此处，或点击选择" }}</span>
+                <input type="file" accept="audio/*" @change="onFileChange" />
+              </div>
+              <div class="voice-upload-opts">
+                <label>格式 <select v-model="audioFormat">
+                  <option value="wav">WAV</option>
+                  <option value="mp3">MP3</option>
+                  <option value="webm">WebM</option>
+                  <option value="m4a">M4A</option>
+                  <option value="aac">AAC</option>
+                  <option value="opus">OPUS</option>
+                  <option value="pcm">PCM</option>
+                </select></label>
+                <label>采样率 <select v-model="sampleRate">
+                  <option :value="16000">16k</option>
+                  <option :value="8000">8k</option>
+                </select></label>
+                <button class="primary-button compact-button" type="button" :disabled="voiceUploadLoading || !selectedFileBlob" @click="handleVoiceUpload">
+                  {{ voiceUploadLoading ? "识别中…" : "开始识别" }}
+                </button>
+              </div>
+            </div>
+
             <div class="enterprise-query-box">
-              <textarea v-model="operationQuery" rows="4" />
+              <textarea v-model="operationQuery" rows="4" placeholder="例如：新增客户，王一鸣，本科大三，想去英国读硕士，预算30万，电话13700030001，来源官网咨询" />
               <button class="primary-button compact-button" :disabled="queryLoading" type="button" @click="handleOperationExecute">
                 解析办理
               </button>
