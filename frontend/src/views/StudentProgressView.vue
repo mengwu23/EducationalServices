@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from "vue";
 import { useRouter } from "vue-router";
+import AppSidebar from "@/components/common/AppSidebar.vue";
 import {
   getApplicationProgressStages,
   getMyApplicationTimeline,
@@ -194,25 +195,7 @@ onMounted(loadData);
 
 <template>
   <div class="app-frame">
-    <aside class="sidebar">
-      <div class="sidebar-brand">
-        <div class="brand-mark">留</div>
-        <div>
-          <strong>教育服务系统</strong>
-          <span>留学服务运营中台</span>
-        </div>
-      </div>
-      <nav>
-        <RouterLink to="/dashboard">工作台</RouterLink>
-        <RouterLink to="/students/leaves">请假审批</RouterLink>
-        <RouterLink to="/students/psych">心理预警</RouterLink>
-        <a class="active">申请进度</a>
-        <RouterLink to="/students/feedback">反馈工单</RouterLink>
-        <RouterLink to="/reports">智能报告</RouterLink>
-        <RouterLink to="/customer-judgement">客户研判</RouterLink>
-        <RouterLink to="/business-query">企业查询</RouterLink>
-      </nav>
-    </aside>
+    <AppSidebar active-key="application-progress" />
 
     <main class="dashboard progress-page">
       <header class="topbar">

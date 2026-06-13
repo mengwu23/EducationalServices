@@ -4,6 +4,7 @@ import type {
   LeadItem,
   Nl2SqlResult,
   OnboardingGuideResult,
+  OperationResponse,
   StatisticsSummaryResult,
   StudentProfileItem,
   TodoSummaryResult,
@@ -53,4 +54,18 @@ export function queryNl2Sql(queryText: string): Promise<Nl2SqlResult> {
 export function queryOnboardingGuide(question: string): Promise<OnboardingGuideResult> {
   const query = toQuery({ question });
   return request<OnboardingGuideResult>(`/enterprise/api/v1/enterprise-query/onboarding/guide?${query}`);
+}
+
+export function executeEnterpriseOperation(query: string, draftId?: number | null): Promise<OperationResponse> {
+  return request<OperationResponse>("/enterprise/api/v1/enterprise-operation/execute", {
+    method: "POST",
+    body: JSON.stringify({ query, draft_id: draftId || undefined }),
+  });
+}
+
+export function confirmEnterpriseOperation(draftId: number, action: "confirm" | "reject", rejectReason = ""): Promise<OperationResponse> {
+  return request<OperationResponse>("/enterprise/api/v1/enterprise-operation/confirm", {
+    method: "POST",
+    body: JSON.stringify({ draft_id: draftId, action, reject_reason: rejectReason || undefined }),
+  });
 }

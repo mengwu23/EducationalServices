@@ -1,7 +1,10 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
+import AppSidebar from "@/components/common/AppSidebar.vue";
 import {
+  confirmEnterpriseOperation,
+  executeEnterpriseOperation,
   queryNl2Sql,
   queryOnboardingGuide,
   searchLeads,
@@ -14,6 +17,7 @@ import type {
   LeadItem,
   Nl2SqlResult,
   OnboardingGuideResult,
+  OperationResponse,
   StatisticsSummaryResult,
   StudentProfileItem,
   TodoSummaryResult,
@@ -23,7 +27,7 @@ const router = useRouter();
 const loading = ref(false);
 const queryLoading = ref(false);
 const message = ref("");
-const activeTab = ref<"leads" | "students" | "todos" | "statistics" | "nl2sql" | "guide">("leads");
+const activeTab = ref<"leads" | "students" | "todos" | "statistics" | "nl2sql" | "operation" | "guide">("leads");
 const leads = ref<LeadItem[]>([]);
 const students = ref<StudentProfileItem[]>([]);
 const leadTotal = ref(0);
@@ -38,6 +42,9 @@ const nlQuery = ref("统计各线索状态的客户数量，按数量倒序");
 const nlResult = ref<Nl2SqlResult | null>(null);
 const guideQuestion = ref("新人入职后如何提交日报？");
 const guideResult = ref<OnboardingGuideResult | null>(null);
+const operationQuery = ref("新增客户，王一鸣，本科大三，想去英国读硕士，预算30万，电话13700030001，来源官网咨询");
+const operationResult = ref<OperationResponse | null>(null);
+const rejectReason = ref("信息不完整，暂不执行。");
 const selectedLead = ref<LeadItem | null>(null);
 const selectedStudent = ref<StudentProfileItem | null>(null);
 
@@ -155,6 +162,33 @@ async function handleGuideQuery() {
   }
 }
 
+async function handleOperationExecute() {
+  if (!operationQuery.value.trim()) return;
+  queryLoading.value = true;
+  message.value = "";
+  try {
+    operationResult.value = await executeEnterpriseOperation(operationQuery.value.trim(), operationResult.value?.draft_id);
+  } catch (error) {
+    message.value = error instanceof Error ? error.message : "业务办理解析失败";
+  } finally {
+    queryLoading.value = false;
+  }
+}
+
+async function handleOperationConfirm(action: "confirm" | "reject") {
+  if (!operationResult.value?.draft_id) return;
+  queryLoading.value = true;
+  message.value = "";
+  try {
+    operationResult.value = await confirmEnterpriseOperation(operationResult.value.draft_id, action, rejectReason.value);
+    message.value = action === "confirm" ? "业务操作已确认执行" : "业务操作已拒绝";
+  } catch (error) {
+    message.value = error instanceof Error ? error.message : "业务办理确认失败";
+  } finally {
+    queryLoading.value = false;
+  }
+}
+
 function handleLogout() {
   logout();
   router.push("/login");
@@ -165,25 +199,7 @@ onMounted(loadData);
 
 <template>
   <div class="app-frame">
-    <aside class="sidebar">
-      <div class="sidebar-brand">
-        <div class="brand-mark">留</div>
-        <div>
-          <strong>教育服务系统</strong>
-          <span>留学服务运营中台</span>
-        </div>
-      </div>
-      <nav>
-        <RouterLink to="/dashboard">工作台</RouterLink>
-        <RouterLink to="/students/leaves">请假审批</RouterLink>
-        <RouterLink to="/students/psych">心理预警</RouterLink>
-        <RouterLink to="/students/progress">申请进度</RouterLink>
-        <RouterLink to="/students/feedback">反馈工单</RouterLink>
-        <RouterLink to="/reports">智能报告</RouterLink>
-        <RouterLink to="/customer-judgement">客户研判</RouterLink>
-        <a class="active">企业查询</a>
-      </nav>
-    </aside>
+    <AppSidebar active-key="enterprise-query" />
 
     <main class="dashboard enterprise-page">
       <header class="topbar">
@@ -236,6 +252,7 @@ onMounted(loadData);
               <button :class="{ active: activeTab === 'todos' }" type="button" @click="activeTab = 'todos'">待办</button>
               <button :class="{ active: activeTab === 'statistics' }" type="button" @click="activeTab = 'statistics'">统计</button>
               <button :class="{ active: activeTab === 'nl2sql' }" type="button" @click="activeTab = 'nl2sql'">问数</button>
+              <button :class="{ active: activeTab === 'operation' }" type="button" @click="activeTab = 'operation'">办理</button>
               <button :class="{ active: activeTab === 'guide' }" type="button" @click="activeTab = 'guide'">指引</button>
             </div>
           </div>
@@ -383,6 +400,40 @@ onMounted(loadData);
             <div class="enterprise-result-box">
               <strong>{{ guideResult?.category || "入职指引" }}</strong>
               <p>{{ guideResult?.answer || guideResult?.message || "请输入制度或流程问题。" }}</p>
+            </div>
+          </template>
+
+          <template v-if="activeTab === 'operation'">
+            <div class="enterprise-query-box">
+              <textarea v-model="operationQuery" rows="4" />
+              <button class="primary-button compact-button" :disabled="queryLoading" type="button" @click="handleOperationExecute">
+                解析办理
+              </button>
+            </div>
+            <div class="enterprise-result-box">
+              <strong>办理结果</strong>
+              <p v-if="!operationResult">输入自然语言业务操作后，系统会返回确认卡片或追问信息。</p>
+              <template v-else>
+                <p>{{ operationResult.message }}</p>
+                <div v-if="operationResult.confirmation_card" class="operation-card">
+                  <strong>{{ operationResult.confirmation_card.title }}</strong>
+                  <p>{{ operationResult.confirmation_card.summary }}</p>
+                  <dl>
+                    <div v-for="field in operationResult.confirmation_card.fields" :key="field.key">
+                      <dt>{{ field.label }}</dt>
+                      <dd>{{ field.value ?? "-" }}</dd>
+                    </div>
+                  </dl>
+                </div>
+                <div v-if="operationResult.draft_id" class="action-row">
+                  <button class="primary-button" :disabled="queryLoading" type="button" @click="handleOperationConfirm('confirm')">
+                    确认执行
+                  </button>
+                  <button class="danger-button" :disabled="queryLoading" type="button" @click="handleOperationConfirm('reject')">
+                    拒绝
+                  </button>
+                </div>
+              </template>
             </div>
           </template>
         </div>

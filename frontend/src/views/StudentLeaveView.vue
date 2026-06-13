@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
+import AppSidebar from "@/components/common/AppSidebar.vue";
 import {
   approveLeave,
   getPendingLeaveCount,
@@ -113,25 +114,7 @@ onMounted(loadData);
 
 <template>
   <div class="app-frame">
-    <aside class="sidebar">
-      <div class="sidebar-brand">
-        <div class="brand-mark">留</div>
-        <div>
-          <strong>教育服务系统</strong>
-          <span>留学服务运营中台</span>
-        </div>
-      </div>
-      <nav>
-        <RouterLink to="/dashboard">工作台</RouterLink>
-        <a class="active">请假审批</a>
-        <RouterLink to="/students/psych">心理预警</RouterLink>
-        <RouterLink to="/students/progress">申请进度</RouterLink>
-        <RouterLink to="/students/feedback">反馈工单</RouterLink>
-        <RouterLink to="/reports">智能报告</RouterLink>
-        <RouterLink to="/customer-judgement">客户研判</RouterLink>
-        <RouterLink to="/business-query">企业查询</RouterLink>
-      </nav>
-    </aside>
+    <AppSidebar active-key="leave-approval" />
 
     <main class="dashboard leave-page">
       <header class="topbar">

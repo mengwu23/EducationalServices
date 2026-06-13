@@ -154,3 +154,32 @@ export interface OnboardingGuideResult {
   message_id: string | null;
   metadata: Record<string, unknown>;
 }
+
+export interface OperationFieldItem {
+  key: string;
+  label: string;
+  value: unknown;
+  required: boolean;
+  editable: boolean;
+}
+
+export interface OperationConfirmationCard {
+  title: string;
+  intent: string;
+  fields: OperationFieldItem[];
+  summary: string | null;
+}
+
+export interface OperationResponse {
+  status: string;
+  message: string;
+  draft_id: number | null;
+  intent: string | null;
+  confirmation_card: OperationConfirmationCard | null;
+  missing_fields: Array<Record<string, unknown>>;
+  candidates: Array<Record<string, unknown>>;
+  selection_type: string | null;
+  question: string | null;
+  conversation_id: string | null;
+  error: string | null;
+}

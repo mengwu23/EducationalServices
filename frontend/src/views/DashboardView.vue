@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { useRouter } from "vue-router";
+import AppSidebar from "@/components/common/AppSidebar.vue";
 import { authState, hasPermission, logout, roleLabelMap } from "@/stores/authStore";
 
 const router = useRouter();
@@ -8,27 +9,68 @@ const router = useRouter();
 const user = computed(() => authState.user);
 const roleLabel = computed(() => roleLabelMap[user.value?.role || ""] || user.value?.role || "-");
 
-const modules = computed(() => [
+const modules = computed(() => {
+  const role = user.value?.role || "";
+  return [
+  {
+    title: "我的请假",
+    desc: "学生提交请假、查看审批进度和取消待审批申请",
+    roles: ["student", "admin"],
+    permission: "student_leave:own",
+    count: "自助",
+    tone: "amber",
+    route: "/student/leaves",
+  },
+  {
+    title: "学生助手",
+    desc: "生活支持、留学政策咨询和心理支持对话",
+    roles: ["student", "admin"],
+    permission: "student_psych:own",
+    count: "AI",
+    tone: "green",
+    route: "/student/assistant",
+  },
   {
     title: "请假审批",
     desc: "学生请假申请、审批历史与待处理统计",
+    roles: ["manager", "employee", "admin"],
     permission: "student_leave:read",
     count: "12",
     tone: "amber",
     route: "/students/leaves",
   },
   {
+    title: "学业事件",
+    desc: "考试、论文、课程 Deadline 与提醒管理",
+    roles: ["manager", "employee", "admin"],
+    permission: "student_psych:read",
+    count: "DDL",
+    tone: "sand",
+    route: "/academic-events",
+  },
+  {
     title: "心理预警",
     desc: "心理画像、风险预警、处理闭环",
+    roles: ["manager", "employee", "admin"],
     permission: "student_psych:read",
     count: "6",
     tone: "red",
     route: "/students/psych",
   },
   {
+    title: "客服中心",
+    desc: "访客咨询、FAQ、项目推荐和活动报名",
+    roles: ["manager", "employee", "admin"],
+    permission: "enterprise_operation:execute",
+    count: "客",
+    tone: "green",
+    route: "/service-center",
+  },
+  {
     title: "申请进度",
     desc: "文书、院校、签证、Offer 等关键节点追踪",
-    permission: "student_leave:read",
+    roles: ["student", "manager", "employee", "admin"],
+    permission: "",
     count: "32",
     tone: "sand",
     route: "/students/progress",
@@ -36,6 +78,7 @@ const modules = computed(() => [
   {
     title: "反馈工单",
     desc: "投诉、建议、咨询的分派处理与学生通知",
+    roles: ["manager", "employee", "admin"],
     permission: "enterprise_operation:execute",
     count: "11",
     tone: "clay",
@@ -44,6 +87,7 @@ const modules = computed(() => [
   {
     title: "智能报告",
     desc: "报告生成、草稿确认、发布与导出",
+    roles: ["manager", "employee", "admin"],
     permission: "report:read",
     count: "18",
     tone: "green",
@@ -52,6 +96,7 @@ const modules = computed(() => [
   {
     title: "客户研判",
     desc: "客户资料分析、匹配等级与跟进建议",
+    roles: ["manager", "employee", "admin"],
     permission: "customer_judgement:read",
     count: "24",
     tone: "clay",
@@ -60,12 +105,14 @@ const modules = computed(() => [
   {
     title: "企业查询",
     desc: "线索、日报、组织、学生与待办汇总",
+    roles: ["manager", "employee", "admin"],
     permission: "enterprise_operation:execute",
     count: "9",
     tone: "sand",
     route: "/business-query",
   },
-].filter((item) => hasPermission(item.permission)));
+  ].filter((item) => item.roles.includes(role) && (!item.permission || hasPermission(item.permission)));
+});
 
 const serviceItems = [
   { name: "张明", stage: "材料清单", status: "待补充成绩单", risk: "中" },
@@ -88,26 +135,7 @@ function openModule(route: string) {
 
 <template>
   <div class="app-frame">
-    <aside class="sidebar">
-      <div class="sidebar-brand">
-        <div class="brand-mark">留</div>
-        <div>
-          <strong>教育服务系统</strong>
-          <span>留学服务运营中台</span>
-        </div>
-      </div>
-      <nav>
-        <a class="active">工作台</a>
-        <a>学生服务</a>
-        <RouterLink to="/students/leaves">请假审批</RouterLink>
-        <RouterLink to="/students/psych">心理预警</RouterLink>
-        <RouterLink to="/students/progress">申请进度</RouterLink>
-        <RouterLink to="/students/feedback">反馈工单</RouterLink>
-        <RouterLink to="/reports">智能报告</RouterLink>
-        <RouterLink to="/customer-judgement">客户研判</RouterLink>
-        <RouterLink to="/business-query">企业查询</RouterLink>
-      </nav>
-    </aside>
+    <AppSidebar active-key="dashboard" />
 
     <main class="dashboard">
       <header class="topbar">

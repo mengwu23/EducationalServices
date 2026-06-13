@@ -44,7 +44,7 @@ class CustomerJudgementService:
         files: list[UploadFile] | None = None,
     ) -> dict[str, Any]:
         """提交客户信息进行智能画像研判，支持可选的附件上传。"""
-        require_roles(user, {"admin", "employee"})
+        require_roles(user, {"admin", "manager", "employee"})
         trace_id = f"cj-{uuid4().hex[:12]}"
         analysis_no = self.dao.generate_analysis_no()
 
@@ -191,7 +191,7 @@ class CustomerJudgementService:
 
     def get_analysis_record(self, record_id: int, user: CurrentUser) -> dict[str, Any]:
         """获取单条研判记录详情。"""
-        require_roles(user, {"admin", "employee"})
+        require_roles(user, {"admin", "manager", "employee"})
         record = self.dao.get_by_id(record_id)
         if not record:
             raise NotFoundError("研判记录不存在")
@@ -199,7 +199,7 @@ class CustomerJudgementService:
 
     def list_analysis_records(self, request: JudgementListRequest, user: CurrentUser) -> dict[str, Any]:
         """分页查询研判记录列表。"""
-        require_roles(user, {"admin", "employee"})
+        require_roles(user, {"admin", "manager", "employee"})
         rows, total = self.dao.list_records(
             page=request.page,
             page_size=request.page_size,
