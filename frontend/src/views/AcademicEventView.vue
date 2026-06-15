@@ -27,10 +27,31 @@ const form = ref({
 
 const user = computed(() => authState.user);
 const roleLabel = computed(() => roleLabelMap[user.value?.role || ""] || user.value?.role || "-");
+const eventTypeLabelMap: Record<string, string> = {
+  paper_deadline: "论文截止",
+  exam: "考试",
+  course_deadline: "课程截止",
+  other: "其他",
+};
+const statusLabelMap: Record<string, string> = {
+  active: "进行中",
+  completed: "已完成",
+  cancelled: "已取消",
+};
 
 function formatDateTime(value?: string | null): string {
   if (!value) return "-";
   return value.replace("T", " ").slice(0, 16);
+}
+
+function eventTypeLabel(value?: string | null): string {
+  if (!value) return "-";
+  return eventTypeLabelMap[value] || value;
+}
+
+function statusLabel(value?: string | null): string {
+  if (!value) return "-";
+  return statusLabelMap[value] || value;
 }
 
 async function loadData() {
@@ -138,7 +159,7 @@ onMounted(loadData);
         </article>
         <article>
           <span>选中状态</span>
-          <strong>{{ selectedEvent?.status || "-" }}</strong>
+          <strong>{{ statusLabel(selectedEvent?.status) }}</strong>
           <p>可完成或取消当前事件</p>
         </article>
       </section>
@@ -148,7 +169,7 @@ onMounted(loadData);
           <div class="section-heading">
             <div>
               <p class="eyebrow">事件列表</p>
-              <h2>考试与 Deadline</h2>
+              <h2>考试与截止日期</h2>
             </div>
             <button class="ghost-button" type="button" @click="loadData">刷新</button>
           </div>
@@ -167,10 +188,10 @@ onMounted(loadData);
               <tr v-for="item in events" :key="item.id" :class="{ selected: selectedEvent?.id === item.id }" @click="selectedEvent = item">
                 <td>
                   <strong>{{ item.title }}</strong>
-                  <span>{{ item.course_name || item.event_type }}</span>
+                  <span>{{ item.course_name || eventTypeLabel(item.event_type) }}</span>
                 </td>
                 <td>{{ formatDateTime(item.deadline_time) }}</td>
-                <td><span :class="['status-chip', item.status]">{{ item.status }}</span></td>
+                <td><span :class="['status-chip', item.status]">{{ statusLabel(item.status) }}</span></td>
               </tr>
             </tbody>
           </table>
@@ -178,6 +199,15 @@ onMounted(loadData);
         <aside class="leave-detail-panel">
           <p class="eyebrow">新建事件</p>
           <h2>学业提醒</h2>
+          <label class="reject-comment">
+            <span>事件类型</span>
+            <select v-model="form.event_type">
+              <option value="course_deadline">课程截止</option>
+              <option value="exam">考试</option>
+              <option value="paper_deadline">论文截止</option>
+              <option value="other">其他</option>
+            </select>
+          </label>
           <label class="reject-comment"><span>学生 ID</span><input v-model="form.student_id" /></label>
           <label class="reject-comment"><span>标题</span><input v-model="form.title" /></label>
           <label class="reject-comment"><span>课程</span><input v-model="form.course_name" /></label>

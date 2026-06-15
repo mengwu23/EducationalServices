@@ -32,7 +32,7 @@ def test_classify_maps_valid_category_and_root_cause():
     fake = FakeLlm(result={"category": "visa", "root_cause": "签证材料反复补交导致延误"})
     svc = TicketClassifierService(fake)
     result = svc.classify("签证问题", "我的签证一直办不下来")
-    assert result["category"] == "visa"
+    assert result["category"] == "签证办理"
     assert result["content_summary"] == "签证材料反复补交导致延误"
     assert "签证" in fake.calls[0]
 
@@ -41,8 +41,15 @@ def test_classify_falls_back_to_other_for_unknown_category():
     fake = FakeLlm(result={"category": "不存在的分类", "root_cause": "xx"})
     svc = TicketClassifierService(fake)
     result = svc.classify("t", "d")
-    assert result["category"] == "other"
-    assert result["category"] in TICKET_CATEGORIES
+    assert result["category"] == "其他"
+    assert result["category"] in TICKET_CATEGORIES.values()
+
+
+def test_classify_accepts_chinese_category_label():
+    fake = FakeLlm(result={"category": "教学课程", "root_cause": "课程进度不匹配"})
+    svc = TicketClassifierService(fake)
+    result = svc.classify("课程问题", "老师讲得太快")
+    assert result["category"] == "教学课程"
 
 
 def test_classify_truncates_long_root_cause():

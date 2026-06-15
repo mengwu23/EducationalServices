@@ -521,6 +521,11 @@ button {
   padding: 18px;
 }
 
+.service-summary-result {
+  display: grid;
+  gap: 10px;
+}
+
 .secondary-button {
   background: var(--text);
 }
