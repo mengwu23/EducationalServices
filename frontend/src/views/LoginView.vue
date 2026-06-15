@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
 import { useRouter } from "vue-router";
-import { login } from "@/stores/authStore";
+import { login, loginAsVisitor } from "@/stores/authStore";
 
 const router = useRouter();
 const username = ref("");
@@ -28,6 +28,18 @@ async function handleLogin() {
     await router.push("/dashboard");
   } catch (error) {
     errorMessage.value = error instanceof Error ? error.message : "登录失败，请稍后重试";
+  } finally {
+    submitting.value = false;
+  }
+}
+
+async function handleVisitorLogin() {
+  errorMessage.value = "";
+  submitting.value = true;
+  try {
+    loginAsVisitor();
+    localStorage.removeItem("education_service_remembered_username");
+    await router.push("/service-center");
   } finally {
     submitting.value = false;
   }
@@ -107,6 +119,9 @@ function useDemoAccount(account: "manager" | "student" | "admin") {
 
         <button class="primary-button" :disabled="!canSubmit" type="submit">
           {{ submitting ? "登录中..." : "登录" }}
+        </button>
+        <button class="secondary-button visitor-login-button" :disabled="submitting" type="button" @click="handleVisitorLogin">
+          游客进入客服中心
         </button>
       </form>
 

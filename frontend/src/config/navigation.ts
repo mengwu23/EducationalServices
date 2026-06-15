@@ -136,7 +136,7 @@ export const navigationItems: NavigationItem[] = [
     key: "service-center",
     label: "客服中心",
     route: "/service-center",
-    roles: ["admin", "manager", "employee", "student"],
+    roles: ["admin", "manager", "employee", "student", "visitor"],
     description: "访客咨询、FAQ、项目推荐和活动报名",
     count: "客",
     tone: "green",

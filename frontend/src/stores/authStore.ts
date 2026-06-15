@@ -1,5 +1,5 @@
 import { reactive } from "vue";
-import { clearStoredToken, getStoredToken } from "@/api/request";
+import { clearStoredToken, getStoredToken, setStoredToken } from "@/api/request";
 import { getCurrentPermissions, getCurrentUser, login as loginApi } from "@/api/auth";
 import type { CurrentUser } from "@/types/auth";
 
@@ -22,7 +22,25 @@ export const roleLabelMap: Record<string, string> = {
   manager: "主管",
   employee: "员工",
   student: "学生",
+  visitor: "游客",
 };
+
+const VISITOR_TOKEN = "visitor-session";
+
+function createVisitorUser(): CurrentUser {
+  return {
+    id: 0,
+    role: "visitor",
+    username: "visitor",
+    real_name: "游客",
+    user_type: "customer",
+    role_code: null,
+    employee_id: null,
+    student_id: null,
+    department_id: null,
+    permissions: [],
+  };
+}
 
 export async function login(username: string, password: string): Promise<void> {
   authState.loading = true;
@@ -37,8 +55,21 @@ export async function login(username: string, password: string): Promise<void> {
   }
 }
 
+export function loginAsVisitor(): void {
+  const visitorUser = createVisitorUser();
+  setStoredToken(VISITOR_TOKEN);
+  authState.token = VISITOR_TOKEN;
+  authState.user = visitorUser;
+  authState.permissions = [];
+}
+
 export async function bootstrapAuth(): Promise<void> {
   if (!authState.token || authState.user) {
+    return;
+  }
+  if (authState.token === VISITOR_TOKEN) {
+    authState.user = createVisitorUser();
+    authState.permissions = [];
     return;
   }
   authState.loading = true;

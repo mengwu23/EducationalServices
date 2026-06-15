@@ -224,6 +224,11 @@ button {
   box-shadow: 0 16px 30px rgba(143, 63, 31, 0.28);
 }
 
+.visitor-login-button {
+  margin-top: 10px;
+  background: linear-gradient(135deg, #6a8b95, #4f6f78);
+}
+
 .primary-button:disabled {
   cursor: not-allowed;
   opacity: 0.55;
