@@ -794,7 +794,7 @@ onUnmounted(() => {
           <template v-else-if="activeTab === 'students' && selectedStudent">
             <p class="eyebrow">学生详情</p>
             <h2>{{ selectedStudent.student_name }}</h2>
-            <span class="status-chip resolved">{{ selectedStudent.status }}</span>
+            <span class="status-chip resolved">{{ studentStatusLabel(selectedStudent.status) }}</span>
             <dl>
               <div><dt>电话</dt><dd>{{ selectedStudent.phone || "-" }}</dd></div>
               <div><dt>邮箱</dt><dd>{{ selectedStudent.email || "-" }}</dd></div>
