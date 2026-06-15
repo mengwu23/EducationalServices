@@ -29,50 +29,14 @@ print('=' * 60)
 print('  New Feature Tests')
 print('=' * 60)
 
-# ---- AI Emotion Analysis ----
-print('\n[AI Emotion Analysis]')
-
-def t_ai_high():
-    from backend.app.services.student_psych_service import StudentPsychService
-    from backend.app.schemas.student_psych_schema import AIEmotionAnalysisRequest
-    from backend.app.common.enums import PsychRiskLevel
-    db = Session()
-    try:
-        service = StudentPsychService(db)
-        data = AIEmotionAnalysisRequest(
-            student_id=1, emotion_tag='anxiety', emotion_score=25,
-            risk_level=PsychRiskLevel.HIGH,
-            trigger_reason='Student shows strong anxiety and loss of confidence',
-            summary='Exam stress causing emotional decline',
-        )
-        result = service.analyze_emotion(current_user_id=1, current_user_type='employee', data=data)
-        assert result['alert_created'] is True
-        assert result['alert'] is not None
-        assert result['profile'].risk_level == 'high'
-        print(f'      Alert created: {result["alert"].alert_no}, risk={result["profile"].risk_level}')
-    finally:
-        db.rollback(); db.close()
-
-def t_ai_low():
-    from backend.app.services.student_psych_service import StudentPsychService
-    from backend.app.schemas.student_psych_schema import AIEmotionAnalysisRequest
-    from backend.app.common.enums import PsychRiskLevel
-    db = Session()
-    try:
-        service = StudentPsychService(db)
-        data = AIEmotionAnalysisRequest(
-            student_id=1, emotion_tag='calm', emotion_score=75,
-            risk_level=PsychRiskLevel.LOW, summary='Emotion stable',
-        )
-        result = service.analyze_emotion(current_user_id=1, current_user_type='employee', data=data)
-        assert result['alert_created'] is False
-        assert result['alert'] is None
-        print(f'      No alert: risk={result["profile"].risk_level}')
-    finally:
-        db.rollback(); db.close()
-
-run_test('AI high risk triggers alert', t_ai_high)
-run_test('AI low risk does not trigger alert', t_ai_low)
+# ---- AI Emotion Analysis (SKIPPED — writes real data to production DB via db.commit()) ----
+# NOTE: student_psych_service methods internally call db.commit(),
+# so the finally-block rollback() cannot undo writes to the real MySQL database.
+# print('\n[AI Emotion Analysis]')
+# def t_ai_high(): ...
+# def t_ai_low(): ...
+# run_test('AI high risk triggers alert', t_ai_high)
+# run_test('AI low risk does not trigger alert', t_ai_low)
 
 # ---- Enterprise Assistant Leave Approval ----
 print('\n[Enterprise Assistant - Leave Approval]')

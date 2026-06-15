@@ -339,22 +339,24 @@ def test_student_psych():
         finally:
             db.rollback(); db.close()
 
-    # 2.5: Create alert
-    def t2_5():
-        db = Session()
-        try:
-            service = StudentPsychService(db)
-            data = PsychAlertCreateRequest(
-                student_id=1, trigger_reason="Test alert - student low mood", risk_level=PsychRiskLevel.HIGH,
-            )
-            result = service.create_alert(
-                current_user_id=1, current_user_type=UserType.EMPLOYEE.value, data=data,
-            )
-            assert result.alert_no.startswith("PA")
-            assert result.status == PsychAlertStatus.PENDING.value
-            print(f"      Created: {result.alert_no}, risk={result.risk_level}")
-        finally:
-            db.rollback(); db.close()
+    # 2.5: Create alert (SKIPPED — writes real data to production DB via db.commit())
+    # NOTE: student_psych_service.create_alert() internally calls db.commit(),
+    # so the finally-block rollback() cannot undo it. Use a test DB or savepoint.
+    # def t2_5():
+    #     db = Session()
+    #     try:
+    #         service = StudentPsychService(db)
+    #         data = PsychAlertCreateRequest(
+    #             student_id=1, trigger_reason="Test alert - student low mood", risk_level=PsychRiskLevel.HIGH,
+    #         )
+    #         result = service.create_alert(
+    #             current_user_id=1, current_user_type=UserType.EMPLOYEE.value, data=data,
+    #         )
+    #         assert result.alert_no.startswith("PA")
+    #         assert result.status == PsychAlertStatus.PENDING.value
+    #         print(f"      Created: {result.alert_no}, risk={result.risk_level}")
+    #     finally:
+    #         db.rollback(); db.close()
 
     # 2.6: View pending alerts
     def t2_6():
@@ -484,7 +486,7 @@ def test_student_psych():
         finally:
             db.rollback(); db.close()
 
-    tests = [t2_1, t2_2, t2_3, t2_4, t2_5, t2_6, t2_7, t2_8, t2_9, t2_10, t2_11, t2_12]
+    tests = [t2_1, t2_2, t2_3, t2_4, t2_6, t2_7, t2_8, t2_9, t2_10, t2_11, t2_12]  # t2_5 skipped: writes real DB data
     for i, t in enumerate(tests):
         name = f"2.{i+1} {t.__doc__ or t.__name__}"
         run_test(name, t)

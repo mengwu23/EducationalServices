@@ -2,9 +2,17 @@
 import { computed, onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
 import AppSidebar from "@/components/common/AppSidebar.vue";
-import { chatPsychAssistant, emotionCheckin, getMyPsychProfile, listMyPsychAlerts } from "@/api/studentAssistant";
+import {
+  chatPsychAssistant,
+  confirmPsychDraft,
+  emotionCheckin,
+  getMyPsychProfile,
+  listMyPsychAlerts,
+  listPsychDrafts,
+  rejectPsychDraft,
+} from "@/api/studentAssistant";
 import { authState, logout, roleLabelMap } from "@/stores/authStore";
-import type { PsychAlert, PsychChatResult, PsychProfile } from "@/types/studentAssistant";
+import type { PsychAlert, PsychChatResult, PsychDraft, PsychProfile } from "@/types/studentAssistant";
 
 const router = useRouter();
 const loading = ref(false);
@@ -15,6 +23,9 @@ const alerts = ref<PsychAlert[]>([]);
 const checkinText = ref("最近申请压力比较大，担心材料准备不够充分。");
 const chatMessage = ref("我最近因为申请结果很焦虑，应该怎么调整？");
 const chatResult = ref<PsychChatResult | null>(null);
+const drafts = ref<PsychDraft[]>([]);
+const rejectReason = ref("");
+const rejectingDraftId = ref<number | null>(null);
 
 const user = computed(() => authState.user);
 const roleLabel = computed(() => roleLabelMap[user.value?.role || ""] || user.value?.role || "-");
@@ -29,6 +40,11 @@ const statusLabelMap: Record<string, string> = {
   processing: "跟进中",
   resolved: "已解除",
   closed: "已关闭",
+};
+const draftStatusLabelMap: Record<string, string> = {
+  pending_confirm: "待确认",
+  confirmed: "已确认",
+  rejected: "已驳回",
 };
 const emotionTagLabelMap: Record<string, string> = {
   anxious: "焦虑",
@@ -52,18 +68,33 @@ function statusLabel(value?: string | null): string {
   return statusLabelMap[value] || value;
 }
 
+function draftStatusLabel(value?: string | null): string {
+  if (!value) return "-";
+  return draftStatusLabelMap[value] || value;
+}
+
 function emotionTagLabel(value?: string | null): string {
   if (!value) return "暂无情绪标签";
   return emotionTagLabelMap[value] || value;
+}
+
+function formatTime(value?: string | null): string {
+  if (!value) return "-";
+  return new Date(value).toLocaleString("zh-CN");
 }
 
 async function loadData() {
   loading.value = true;
   message.value = "";
   try {
-    const [profileResult, alertResult] = await Promise.all([getMyPsychProfile(), listMyPsychAlerts(1, 8)]);
+    const [profileResult, alertResult, draftResult] = await Promise.all([
+      getMyPsychProfile(),
+      listMyPsychAlerts(1, 8),
+      listPsychDrafts(1, 20),
+    ]);
     profile.value = profileResult;
     alerts.value = alertResult.items || [];
+    drafts.value = draftResult.items || [];
   } catch (error) {
     message.value = error instanceof Error ? error.message : "心理关怀数据加载失败";
   } finally {
@@ -72,12 +103,19 @@ async function loadData() {
 }
 
 async function handleCheckin() {
+  const content = checkinText.value.trim();
+  if (!content) {
+    message.value = "请输入情绪打卡内容";
+    return;
+  }
   actionLoading.value = true;
   message.value = "";
   try {
-    await emotionCheckin(checkinText.value);
+    const result = await emotionCheckin(content);
+    profile.value = result.profile;
     message.value = "情绪打卡已完成";
-    await loadData();
+    const alertResult = await listMyPsychAlerts(1, 8);
+    alerts.value = alertResult.items || [];
   } catch (error) {
     message.value = error instanceof Error ? error.message : "情绪打卡失败";
   } finally {
@@ -95,9 +133,60 @@ async function handleChat() {
   message.value = "";
   try {
     chatResult.value = await chatPsychAssistant(question);
-    await loadData();
+    if (!chatResult.value.need_confirm) {
+      await loadData();
+    } else {
+      const draftResult = await listPsychDrafts(1, 20);
+      drafts.value = draftResult.items || [];
+      if (chatResult.value.low_confidence) {
+        message.value = chatResult.value.warning || "AI 对本次判断的置信度较低，请仔细确认后再提交";
+      } else {
+        message.value = "AI 回复已生成，请确认情绪分析结果是否准确";
+      }
+    }
   } catch (error) {
     message.value = error instanceof Error ? error.message : "心理对话失败";
+  } finally {
+    actionLoading.value = false;
+  }
+}
+
+async function handleConfirm(draftId: number) {
+  actionLoading.value = true;
+  message.value = "";
+  try {
+    const result = await confirmPsychDraft(draftId);
+    chatResult.value = result;
+    message.value = "情绪记录已确认，心理画像已更新";
+    await loadData();
+  } catch (error) {
+    message.value = error instanceof Error ? error.message : "确认失败";
+  } finally {
+    actionLoading.value = false;
+  }
+}
+
+function showRejectInput(draftId: number) {
+  rejectingDraftId.value = draftId;
+  rejectReason.value = "";
+}
+
+function cancelReject() {
+  rejectingDraftId.value = null;
+  rejectReason.value = "";
+}
+
+async function handleReject(draftId: number) {
+  actionLoading.value = true;
+  message.value = "";
+  try {
+    await rejectPsychDraft(draftId, rejectReason.value);
+    message.value = "情绪记录已驳回，不更新心理画像";
+    rejectingDraftId.value = null;
+    rejectReason.value = "";
+    await loadData();
+  } catch (error) {
+    message.value = error instanceof Error ? error.message : "驳回失败";
   } finally {
     actionLoading.value = false;
   }
@@ -169,32 +258,111 @@ onMounted(loadData);
             <textarea v-model="chatMessage" rows="5" />
           </label>
           <button class="primary-button" :disabled="actionLoading" type="button" @click="handleChat">发送</button>
-          <div class="reason-box">
-            <strong>回复</strong>
-            <template v-if="chatResult">
-              <p>{{ chatResult.reply }}</p>
-              <dl class="psych-meta-list psych-meta-list--compact">
-                <div>
-                  <dt>情绪标签</dt>
-                  <dd>{{ emotionTagLabel(chatResult.emotion_tag) }}</dd>
+
+          <!-- 最新对话结果 -->
+          <div v-if="chatResult" class="reason-box">
+            <strong>最新回复</strong>
+            <p>{{ chatResult.reply }}</p>
+            <dl class="psych-meta-list psych-meta-list--compact">
+              <div>
+                <dt>情绪标签</dt>
+                <dd>{{ emotionTagLabel(chatResult.emotion_tag) }}</dd>
+              </div>
+              <div>
+                <dt>风险等级</dt>
+                <dd>{{ riskLabel(chatResult.risk_level) }}</dd>
+              </div>
+              <div>
+                <dt>情绪分</dt>
+                <dd>{{ chatResult.emotion_score }}</dd>
+              </div>
+              <div v-if="chatResult.confidence != null">
+                <dt>置信度</dt>
+                <dd>{{ (chatResult.confidence * 100).toFixed(0) }}%</dd>
+              </div>
+            </dl>
+            <!-- 确认/驳回操作 -->
+            <div v-if="chatResult.need_confirm && chatResult.draft_id" class="confirm-actions">
+              <p class="confirm-hint">请确认以上 AI 情绪分析结果是否准确：</p>
+              <div class="confirm-buttons">
+                <button class="primary-button confirm-btn" :disabled="actionLoading" type="button" @click="handleConfirm(chatResult.draft_id)">确认并更新画像</button>
+                <button class="secondary-button reject-btn" :disabled="actionLoading" type="button" @click="showRejectInput(chatResult.draft_id)">驳回</button>
+              </div>
+              <div v-if="rejectingDraftId === chatResult.draft_id" class="reject-input-area">
+                <label class="reject-comment">
+                  <span>驳回原因（可选）</span>
+                  <textarea v-model="rejectReason" rows="3" placeholder="请说明为什么 AI 的判断不准确…" />
+                </label>
+                <div class="confirm-buttons">
+                  <button class="secondary-button" :disabled="actionLoading" type="button" @click="handleReject(chatResult.draft_id!)">确认驳回</button>
+                  <button class="text-button" type="button" @click="cancelReject">取消</button>
                 </div>
-                <div>
-                  <dt>风险等级</dt>
-                  <dd>{{ riskLabel(chatResult.risk_level) }}</dd>
-                </div>
-                <div>
-                  <dt>情绪分</dt>
-                  <dd>{{ chatResult.emotion_score }}</dd>
-                </div>
-              </dl>
-              <p v-if="chatResult.alert_created">系统已自动创建心理预警。</p>
-              <p v-if="chatResult.assigned_teacher">已分配老师：{{ chatResult.assigned_teacher }}</p>
-              <p v-if="chatResult.degraded" class="module-message">{{ chatResult.warning }}</p>
-            </template>
-            <pre v-else>暂无回复</pre>
+              </div>
+            </div>
+            <p v-if="chatResult.low_confidence" class="module-message low-conf-warning">⚠ AI 置信度较低，请仔细确认情绪标签和风险等级是否准确</p>
+            <p v-if="chatResult.alert_created">系统已自动创建心理预警。</p>
+            <p v-if="chatResult.assigned_teacher">已分配老师：{{ chatResult.assigned_teacher }}</p>
+            <p v-if="chatResult.degraded" class="module-message">{{ chatResult.warning }}</p>
           </div>
         </aside>
       </section>
+
+      <!-- 对话历史 -->
+      <section class="table-section">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">对话记录</p>
+            <h2>历史对话</h2>
+          </div>
+        </div>
+        <table v-if="drafts.length > 0">
+          <thead>
+            <tr>
+              <th>时间</th>
+              <th>学生输入</th>
+              <th>情绪标签</th>
+              <th>风险等级</th>
+              <th>置信度</th>
+              <th>状态</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="item in drafts" :key="item.id">
+              <td>{{ formatTime(item.create_time) }}</td>
+              <td class="text-ellipsis">{{ (item.user_message || "").substring(0, 50) }}{{ (item.user_message || "").length > 50 ? "…" : "" }}</td>
+              <td>{{ emotionTagLabel(item.emotion_tag) }}</td>
+              <td><span :class="['risk-tag', item.risk_level || 'low']">{{ riskLabel(item.risk_level) }}</span></td>
+              <td>{{ item.confidence != null ? (item.confidence * 100).toFixed(0) + "%" : "-" }}</td>
+              <td><span :class="['status-chip', item.status]">{{ draftStatusLabel(item.status) }}</span></td>
+              <td>
+                <div v-if="item.status === 'pending_confirm'" class="inline-actions">
+                  <button class="small-primary-btn" :disabled="actionLoading" type="button" @click="handleConfirm(item.id)">确认</button>
+                  <button class="small-secondary-btn" :disabled="actionLoading" type="button" @click="showRejectInput(item.id)">驳回</button>
+                </div>
+                <span v-else>-</span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <p v-else class="empty-hint">暂无对话记录</p>
+      </section>
+
+      <!-- 驳回原因弹窗（历史记录用） -->
+      <div v-if="rejectingDraftId && (!chatResult || !chatResult.draft_id || rejectingDraftId !== chatResult.draft_id)" class="reject-overlay">
+        <div class="reject-dialog">
+          <p class="eyebrow">驳回情绪记录</p>
+          <label class="reject-comment">
+            <span>驳回原因（可选）</span>
+            <textarea v-model="rejectReason" rows="3" placeholder="请说明为什么 AI 的判断不准确…" />
+          </label>
+          <div class="confirm-buttons">
+            <button class="primary-button" :disabled="actionLoading" type="button" @click="handleReject(rejectingDraftId!)">确认驳回</button>
+            <button class="secondary-button" type="button" @click="cancelReject">取消</button>
+          </div>
+        </div>
+      </div>
+
       <section class="table-section">
         <div class="section-heading">
           <div>
@@ -202,7 +370,7 @@ onMounted(loadData);
             <h2>我的预警</h2>
           </div>
         </div>
-        <table>
+        <table v-if="alerts.length > 0">
           <thead>
             <tr>
               <th>预警编号</th>
@@ -218,6 +386,7 @@ onMounted(loadData);
             </tr>
           </tbody>
         </table>
+        <p v-else class="empty-hint">暂无预警记录</p>
       </section>
     </main>
   </div>

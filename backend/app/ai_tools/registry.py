@@ -133,13 +133,17 @@ def process_student_psych_alert(db, payload: PsychAlertProcessToolArgs) -> dict:
 
     service = StudentPsychService(db)
 
+    msg_map = {
+        "process": "已开始跟进",
+        "resolve": "已解除",
+        "close": "已关闭",
+    }
     if payload.action == "process":
         result = service.process_alert(
             current_user_id=payload.employee_id,
             current_user_type="employee",
             alert_id=payload.alert_id,
         )
-        msg = f"Alert {result.alert_no} is now processing"
     elif payload.action == "resolve":
         result = service.resolve_alert(
             current_user_id=payload.employee_id,
@@ -147,16 +151,16 @@ def process_student_psych_alert(db, payload: PsychAlertProcessToolArgs) -> dict:
             alert_id=payload.alert_id,
             handle_result=payload.handle_result,
         )
-        msg = f"Alert {result.alert_no} resolved"
     elif payload.action == "close":
         result = service.close_alert(
             current_user_id=payload.employee_id,
             current_user_type="employee",
             alert_id=payload.alert_id,
         )
-        msg = f"Alert {result.alert_no} closed"
     else:
-        raise ValueError(f"Unsupported action: {payload.action}")
+        raise ValueError(f"不支持的操作类型：{payload.action}")
+
+    msg = f"预警 {result.alert_no} {msg_map[payload.action]}"
 
     return {
         "success": True,
