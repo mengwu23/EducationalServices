@@ -136,10 +136,23 @@ onMounted(loadData);
             </div>
             <span :class="['risk-tag', profile?.risk_level || 'low']">{{ riskLabel(profile?.risk_level) }}</span>
           </div>
-          <p>{{ profile?.emotion_summary || "暂无画像摘要" }}</p>
-          <div class="score-line">
-            <span>情绪分</span>
-            <strong>{{ profile?.emotion_score ?? "-" }}</strong>
+          <dl class="psych-meta-list">
+            <div>
+              <dt>情绪标签</dt>
+              <dd>{{ emotionTagLabel(profile?.latest_emotion_tag) }}</dd>
+            </div>
+            <div>
+              <dt>风险等级</dt>
+              <dd>{{ riskLabel(profile?.risk_level) }}</dd>
+            </div>
+            <div>
+              <dt>情绪分</dt>
+              <dd>{{ profile?.emotion_score ?? "-" }}</dd>
+            </div>
+          </dl>
+          <div class="reason-box">
+            <strong>画像摘要</strong>
+            <p>{{ profile?.emotion_summary || "暂无画像摘要" }}</p>
           </div>
           <label class="reject-comment">
             <span>情绪打卡</span>
@@ -160,11 +173,20 @@ onMounted(loadData);
             <strong>回复</strong>
             <template v-if="chatResult">
               <p>{{ chatResult.reply }}</p>
-              <div class="detail-tags">
-                <span>{{ emotionTagLabel(chatResult.emotion_tag) }}</span>
-                <span>{{ riskLabel(chatResult.risk_level) }}</span>
-                <span>情绪分 {{ chatResult.emotion_score }}</span>
-              </div>
+              <dl class="psych-meta-list psych-meta-list--compact">
+                <div>
+                  <dt>情绪标签</dt>
+                  <dd>{{ emotionTagLabel(chatResult.emotion_tag) }}</dd>
+                </div>
+                <div>
+                  <dt>风险等级</dt>
+                  <dd>{{ riskLabel(chatResult.risk_level) }}</dd>
+                </div>
+                <div>
+                  <dt>情绪分</dt>
+                  <dd>{{ chatResult.emotion_score }}</dd>
+                </div>
+              </dl>
               <p v-if="chatResult.alert_created">系统已自动创建心理预警。</p>
               <p v-if="chatResult.assigned_teacher">已分配老师：{{ chatResult.assigned_teacher }}</p>
               <p v-if="chatResult.degraded" class="module-message">{{ chatResult.warning }}</p>
@@ -181,6 +203,13 @@ onMounted(loadData);
           </div>
         </div>
         <table>
+          <thead>
+            <tr>
+              <th>预警编号</th>
+              <th>触发原因</th>
+              <th>状态</th>
+            </tr>
+          </thead>
           <tbody>
             <tr v-for="item in alerts" :key="item.id">
               <td>{{ item.alert_no }}</td>

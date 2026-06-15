@@ -126,6 +126,13 @@ onMounted(loadData);
           </div>
           <div v-if="loading" class="empty-state">正在加载...</div>
           <table v-else class="leave-table">
+            <thead>
+              <tr>
+                <th>工单信息</th>
+                <th>类型</th>
+                <th>状态</th>
+              </tr>
+            </thead>
             <tbody>
               <tr v-for="item in tickets" :key="item.id" :class="{ selected: selectedTicket?.id === item.id }" @click="selectedTicket = item">
                 <td>
@@ -161,6 +168,8 @@ onMounted(loadData);
           <div class="reason-box">
             <strong>处理结果</strong>
             <p v-if="selectedTicket">分类：{{ categoryLabel(selectedTicket.category) }}</p>
+            <p v-if="selectedTicket">状态：{{ statusLabel(selectedTicket.status) }}</p>
+            <p v-if="selectedTicket">类型：{{ ticketTypeLabel(selectedTicket.ticket_type) }}</p>
             <p>{{ selectedTicket?.solution || selectedTicket?.content_summary || "请选择一条反馈记录查看处理结果" }}</p>
           </div>
         </aside>
