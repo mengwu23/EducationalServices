@@ -41,6 +41,9 @@ const riskLabelMap: Record<string, string> = {
   high: "高",
   critical: "危急",
 };
+const summaryLabelMap: Record<string, string> = {
+  "test emotion summary": "测试情绪摘要",
+};
 
 const statusLabelMap: Record<string, string> = {
   pending: "待处理",
@@ -60,6 +63,12 @@ function riskLabel(value: string): string {
 
 function statusLabel(value: string): string {
   return statusLabelMap[value] || value;
+}
+
+function summaryLabel(value?: string | null): string {
+  if (!value) return "暂无长期情绪摘要";
+  const normalized = value.trim().toLowerCase().replace(/\s+/g, " ");
+  return summaryLabelMap[normalized] || value;
 }
 
 async function loadData() {
@@ -167,7 +176,7 @@ onMounted(loadData);
                 <strong>{{ profile.student_name || `学生 ${profile.student_id}` }}</strong>
                 <span :class="['risk-tag', riskLabel(profile.risk_level)]">{{ riskLabel(profile.risk_level) }}</span>
               </div>
-              <p>{{ profile.emotion_summary || "暂无长期情绪摘要" }}</p>
+              <p>{{ summaryLabel(profile.emotion_summary) }}</p>
               <div class="score-line">
                 <span>情绪分</span>
                 <strong>{{ profile.emotion_score ?? "-" }}</strong>

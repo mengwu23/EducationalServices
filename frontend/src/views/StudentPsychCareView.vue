@@ -48,6 +48,8 @@ const draftStatusLabelMap: Record<string, string> = {
 };
 const emotionTagLabelMap: Record<string, string> = {
   anxious: "焦虑",
+  anxiety: "焦虑",
+  test_anxiety: "焦虑",
   stable: "平稳",
   depressed: "低落",
   excited: "兴奋",
@@ -56,6 +58,9 @@ const emotionTagLabelMap: Record<string, string> = {
   happy: "积极",
   neutral: "平静",
   cultural_conflict: "文化冲突",
+};
+const summaryLabelMap: Record<string, string> = {
+  "test emotion summary": "测试情绪摘要",
 };
 
 function riskLabel(value?: string | null): string {
@@ -75,7 +80,14 @@ function draftStatusLabel(value?: string | null): string {
 
 function emotionTagLabel(value?: string | null): string {
   if (!value) return "暂无情绪标签";
-  return emotionTagLabelMap[value] || value;
+  const normalized = value.trim().toLowerCase().replace(/[\s-]+/g, "_");
+  return emotionTagLabelMap[normalized] || emotionTagLabelMap[value] || value;
+}
+
+function summaryLabel(value?: string | null): string {
+  if (!value) return "暂无画像摘要";
+  const normalized = value.trim().toLowerCase().replace(/\s+/g, " ");
+  return summaryLabelMap[normalized] || value;
 }
 
 function formatTime(value?: string | null): string {
@@ -241,7 +253,7 @@ onMounted(loadData);
           </dl>
           <div class="reason-box">
             <strong>画像摘要</strong>
-            <p>{{ profile?.emotion_summary || "暂无画像摘要" }}</p>
+            <p>{{ summaryLabel(profile?.emotion_summary) }}</p>
           </div>
           <label class="reject-comment">
             <span>情绪打卡</span>
