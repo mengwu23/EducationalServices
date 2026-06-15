@@ -137,7 +137,7 @@ export interface Nl2SqlResult {
   query?: string;
   sql?: string;
   columns?: string[];
-  rows?: Array<Record<string, unknown>>;
+  rows?: Array<Record<string, unknown> | unknown[]>;
   row_count?: number;
   summary?: string;
   error?: string;

@@ -130,6 +130,8 @@ const leadStatusCount = computed(() => {
   const source = statistics.value?.lead_count_by_status || {};
   return Object.values(source).reduce((sum, item) => sum + Number(item), 0);
 });
+const nlColumns = computed(() => nlResult.value?.columns || []);
+const nlRows = computed(() => nlResult.value?.rows || []);
 
 const leadStatusMap: Record<string, string> = {
   new: "新增",
@@ -145,6 +147,69 @@ const studentStatusMap: Record<string, string> = {
   inactive: "停用",
 };
 
+const nlColumnLabelMap: Record<string, string> = {
+  id: "ID",
+  user_id: "用户ID",
+  student_id: "学生ID",
+  student_no: "学生编号",
+  student_name: "学生姓名",
+  employee_id: "员工ID",
+  employee_no: "员工编号",
+  employee_name: "员工姓名",
+  department_id: "部门ID",
+  department_name: "部门名称",
+  lead_id: "线索ID",
+  lead_no: "线索编号",
+  customer_name: "客户姓名",
+  phone: "手机号",
+  email: "邮箱",
+  source_channel: "来源渠道",
+  school_name: "学校名称",
+  major: "专业",
+  current_school: "当前学校",
+  current_grade: "当前年级",
+  target_country: "目标国家",
+  target_program: "目标项目",
+  budget_range: "预算区间",
+  owner_employee_id: "负责员工ID",
+  counselor_employee_id: "顾问员工ID",
+  teacher_employee_id: "老师员工ID",
+  status: "状态",
+  report_status: "日报状态",
+  create_time: "创建时间",
+  update_time: "更新时间",
+  course_name: "课程名称",
+  score: "成绩",
+  avg_score: "平均成绩",
+  exam_type: "考试类型",
+  semester: "学期",
+  exam_date: "考试日期",
+  leave_type: "请假类型",
+  reason: "请假原因",
+  start_time: "开始时间",
+  end_time: "结束时间",
+  ticket_no: "工单编号",
+  ticket_type: "工单类型",
+  category: "分类",
+  title: "标题",
+  priority_level: "优先级",
+  handler_employee_id: "处理员工ID",
+  progress_stage: "进度阶段",
+  progress_status: "进度状态",
+  progress_desc: "进度说明",
+  program_name: "申请项目",
+  count: "数量",
+  total: "总数",
+  total_count: "总数",
+  lead_count: "线索数量",
+  student_count: "学生数量",
+  employee_count: "员工数量",
+  report_count: "日报数量",
+  ticket_count: "工单数量",
+  leave_count: "请假数量",
+  progress_count: "进度数量",
+};
+
 function statusLabel(value?: string | null): string {
   if (!value) return "-";
   return leadStatusMap[value] || value;
@@ -153,6 +218,25 @@ function statusLabel(value?: string | null): string {
 function studentStatusLabel(value?: string | null): string {
   if (!value) return "-";
   return studentStatusMap[value] || value;
+}
+
+function nlCellValue(row: Record<string, unknown> | unknown[], column: string, index: number): string {
+  const value = Array.isArray(row) ? row[index] : row[column];
+  if (value === null || value === undefined || value === "") return "-";
+  if (typeof value === "object") return JSON.stringify(value);
+  return String(value);
+}
+
+function nlColumnLabel(column: string): string {
+  const key = column.includes(".") ? column.split(".").pop() || column : column;
+  const normalized = key.trim().replace(/`/g, "").toLowerCase();
+  if (nlColumnLabelMap[normalized]) return nlColumnLabelMap[normalized];
+  if (/^count\(/i.test(normalized) || normalized.includes("count")) return "数量";
+  if (/^avg\(/i.test(normalized) || normalized.includes("avg")) return "平均值";
+  if (/^sum\(/i.test(normalized) || normalized.includes("sum")) return "合计";
+  if (/^max\(/i.test(normalized) || normalized.includes("max")) return "最大值";
+  if (/^min\(/i.test(normalized) || normalized.includes("min")) return "最小值";
+  return column;
 }
 
 function formatDateTime(value?: string | null): string {
@@ -658,7 +742,29 @@ onUnmounted(() => {
             <div class="enterprise-result-box">
               <strong>查询结果</strong>
               <p v-if="!nlResult">请输入自然语言问题并执行。</p>
-              <pre v-else>{{ JSON.stringify(nlResult, null, 2) }}</pre>
+              <template v-else>
+                <div class="nl-sql-block">
+                  <span>SQL 语句</span>
+                  <pre>{{ nlResult.sql || "未返回 SQL" }}</pre>
+                </div>
+                <div v-if="nlColumns.length && nlRows.length" class="nl-table-wrap">
+                  <table class="nl-result-table">
+                    <thead>
+                      <tr>
+                        <th v-for="column in nlColumns" :key="column">{{ nlColumnLabel(column) }}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr v-for="(row, rowIndex) in nlRows" :key="rowIndex">
+                        <td v-for="(column, columnIndex) in nlColumns" :key="column">
+                          {{ nlCellValue(row, column, columnIndex) }}
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+                <p v-else>查询成功，暂无数据。</p>
+              </template>
             </div>
           </template>
 

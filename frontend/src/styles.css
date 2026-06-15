@@ -1848,6 +1848,50 @@ button {
   white-space: pre-wrap;
 }
 
+.nl-sql-block {
+  margin-top: 12px;
+}
+
+.nl-sql-block span {
+  display: inline-block;
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.nl-table-wrap {
+  margin-top: 14px;
+  max-width: 100%;
+  overflow-x: auto;
+  border: 1px solid #efd7b7;
+  border-radius: 14px;
+  background: #fff;
+}
+
+.nl-result-table {
+  width: 100%;
+  min-width: 560px;
+  border-collapse: collapse;
+}
+
+.nl-result-table th,
+.nl-result-table td {
+  border-bottom: 1px solid #f0dfc9;
+  padding: 11px 12px;
+  text-align: left;
+  vertical-align: top;
+  white-space: nowrap;
+}
+
+.nl-result-table th {
+  background: #fffaf3;
+  color: var(--primary-dark);
+  font-size: 12px;
+}
+
+.nl-result-table tr:last-child td {
+  border-bottom: 0;
+}
+
 .enterprise-detail-panel {
   position: sticky;
   top: 24px;
