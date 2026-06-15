@@ -3,6 +3,9 @@
 import json
 import logging
 import re
+import socket
+import urllib.error
+import urllib.request
 from datetime import datetime
 from uuid import uuid4
 
@@ -10,6 +13,7 @@ import httpx
 
 from sqlalchemy.orm import Session
 
+from backend.app.common.exceptions import AppException
 from backend.app.core.config import get_settings
 
 settings = get_settings()
@@ -68,6 +72,14 @@ class StudentAssistantService:
     @staticmethod
     def _call_dify(key: str, query: str, user: str = "student") -> dict:
         """调用 Dify API。"""
+        if settings.dify_mock_enabled:
+            return StudentAssistantService._mock_dify_reply(query)
+        if not key:
+            raise AppException(
+                code=50301,
+                message="Dify 学生助手 API Key 未配置",
+                status_code=503,
+            )
         body = json.dumps({
             "inputs": {}, "query": query, "response_mode": "blocking", "user": user,
         }).encode("utf-8")
@@ -75,9 +87,39 @@ class StudentAssistantService:
             settings.dify_api_url, data=body,
             headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
         )
-        with urllib.request.urlopen(req, timeout=60) as resp:
-            data = json.loads(resp.read())
-            return {"answer": data.get("answer", ""), "conversation_id": data.get("conversation_id", "")}
+        try:
+            with urllib.request.urlopen(req, timeout=60) as resp:
+                data = json.loads(resp.read())
+        except urllib.error.HTTPError as exc:
+            detail = exc.read().decode("utf-8", errors="ignore")[:300]
+            if exc.code in (401, 403):
+                message = "Dify 学生助手 API Key 无效或未授权"
+            else:
+                message = f"Dify 学生助手返回 HTTP {exc.code}"
+            if detail:
+                message = f"{message}: {detail}"
+            raise AppException(code=50302, message=message, status_code=503) from exc
+        except (urllib.error.URLError, TimeoutError, socket.timeout) as exc:
+            raise AppException(
+                code=50303,
+                message="Dify 学生助手服务不可用，请检查 Dify 是否运行",
+                status_code=503,
+            ) from exc
+        except json.JSONDecodeError as exc:
+            raise AppException(
+                code=50304,
+                message="Dify 学生助手响应格式异常",
+                status_code=503,
+            ) from exc
+
+        return {"answer": data.get("answer", ""), "conversation_id": data.get("conversation_id", "")}
+
+    @staticmethod
+    def _mock_dify_reply(query: str) -> dict:
+        return {
+            "answer": f"这是学生助手本地模拟回复：已收到你的问题“{query}”。请结合学校通知和顾问建议进一步确认。",
+            "conversation_id": "mock-student-assistant-conversation",
+        }
 
     @staticmethod
     def _call_deepseek(messages: list) -> dict:
