@@ -21,6 +21,41 @@ const form = ref({
 
 const user = computed(() => authState.user);
 const roleLabel = computed(() => roleLabelMap[user.value?.role || ""] || user.value?.role || "-");
+const ticketTypeLabelMap: Record<string, string> = {
+  complaint: "投诉",
+  suggestion: "建议",
+  consult: "咨询",
+};
+const statusLabelMap: Record<string, string> = {
+  pending: "待处理",
+  processing: "处理中",
+  resolved: "已解决",
+  closed: "已关闭",
+};
+const categoryLabelMap: Record<string, string> = {
+  course: "教学课程",
+  service: "服务顾问",
+  visa: "签证办理",
+  school: "院校申请",
+  life: "生活服务",
+  finance: "财务费用",
+  other: "其他",
+};
+
+function ticketTypeLabel(value?: string | null): string {
+  if (!value) return "-";
+  return ticketTypeLabelMap[value] || value;
+}
+
+function statusLabel(value?: string | null): string {
+  if (!value) return "-";
+  return statusLabelMap[value] || value;
+}
+
+function categoryLabel(value?: string | null): string {
+  if (!value) return "未分类";
+  return categoryLabelMap[value] || value;
+}
 
 async function loadData() {
   loading.value = true;
@@ -97,8 +132,8 @@ onMounted(loadData);
                   <strong>{{ item.title }}</strong>
                   <span>{{ item.ticket_no }}</span>
                 </td>
-                <td>{{ item.ticket_type }}</td>
-                <td><span :class="['status-chip', item.status]">{{ item.status }}</span></td>
+                <td>{{ ticketTypeLabel(item.ticket_type) }}</td>
+                <td><span :class="['status-chip', item.status]">{{ statusLabel(item.status) }}</span></td>
               </tr>
             </tbody>
           </table>
@@ -125,6 +160,7 @@ onMounted(loadData);
           <button class="primary-button" :disabled="actionLoading" type="button" @click="handleCreate">提交反馈</button>
           <div class="reason-box">
             <strong>处理结果</strong>
+            <p v-if="selectedTicket">分类：{{ categoryLabel(selectedTicket.category) }}</p>
             <p>{{ selectedTicket?.solution || selectedTicket?.content_summary || "请选择一条反馈记录查看处理结果" }}</p>
           </div>
         </aside>
