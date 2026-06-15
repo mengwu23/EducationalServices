@@ -12,7 +12,7 @@
     - LeaveListQuery：请假列表的查询参数（含分页 + 筛选）
 """
 
-from datetime import datetime
+from datetime import date, datetime
 from typing import Optional
 
 from pydantic import BaseModel, Field, field_validator
@@ -54,8 +54,15 @@ class LeaveCreateRequest(BaseModel):
         注意：Pydantic v2 中通过 info.data 获取其他字段的值。
         """
         start_time = info.data.get("start_time")
-        if start_time and v <= start_time:
+        if start_time and v.date() < start_time.date():
             raise ValueError("结束时间必须晚于开始时间")
+        return v
+
+    @field_validator("start_time")
+    @classmethod
+    def start_time_not_before_today(cls, v: datetime) -> datetime:
+        if v.date() < date.today():
+            raise ValueError("开始日期不能早于今天")
         return v
 
 
