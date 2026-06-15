@@ -73,8 +73,8 @@ const nlQuery = ref("统计各线索状态的客户数量，按数量倒序");
 const nlResult = ref<Nl2SqlResult | null>(null);
 const guideQuestion = ref("新人入职后如何提交日报？");
 const guideResult = ref<OnboardingGuideResult | null>(null);
-const operationQuery = ref("新增客户，王一鸣，本科大三，想去英国读硕士，预算30万，电话13700030001，来源官网咨询");
-const operationResult = ref<OperationResponse | null>(null);
+const operationQueries = ref<Record<string, string>>({});
+const operationResults = ref<Record<string, OperationResponse | null>>({});
 const rejectReason = ref("信息不完整，暂不执行。");
 const dropdownOpen = ref(false);
 
@@ -112,6 +112,93 @@ const sampleRate = ref(16000);
 const isDragging = ref(false);
 const recordingSeconds = ref(0);
 const browserVoiceSupported = ref(false);
+
+interface OpFunction {
+  value: string;
+  label: string;
+  icon: string;
+  voice: boolean;
+  example: string;
+  required: string;
+  placeholder: string;
+}
+
+const operationFunctions: OpFunction[] = [
+  {
+    value: "create_lead",
+    label: "意向客户录入",
+    icon: "👤",
+    voice: true,
+    example: "新增客户，王一鸣，手机13812345678，本科大三，计算机科学，意向英国硕士，预算30万，来源官网咨询，微信wx_wang01",
+    required: "客户姓名、手机号（必填）\n选填：微信号、邮箱、来源渠道、学历、学校、专业、年级、意向国家、意向项目、预算",
+    placeholder: "描述客户信息，姓名和手机号为必填…",
+  },
+  {
+    value: "update_lead_status",
+    label: "客户状态更新",
+    icon: "🔄",
+    voice: true,
+    example: "把王一鸣改为已签约，最近跟进：家长确认意向，下周签约",
+    required: "客户姓名、目标状态（必填）\n可选状态：new 新增 / following 跟进中 / signed 已签约 / lost 已流失 / invalid 无效\n改为 lost 时需补充流失原因",
+    placeholder: "如：把王一鸣改为已签约、把李思琪改为已流失，原因预算不足…",
+  },
+  {
+    value: "submit_daily_report",
+    label: "口述日报提交",
+    icon: "📝",
+    voice: true,
+    example: "日报：今天跟进了5个客户，王一鸣已签约，处理了王璐的投诉。风险是李思琪转化慢需重点跟进。明日计划推进张明的申请材料。",
+    required: "日报内容、关键进展、风险问题、明日计划（均为必填）",
+    placeholder: "口述今日工作内容、进展、风险和明日计划…",
+  },
+  {
+    value: "enter_student_score",
+    label: "学生成绩录入",
+    icon: "📊",
+    voice: true,
+    example: "给张明录入成绩，科目雅思听力，分数7.5，考试类型模考，学期2026春季，考试日期2026-06-10，备注表现稳定",
+    required: "学生姓名、课程名称、成绩分数、考试类型、学期、考试日期、备注（均为必填）\n支持一条指令录入多科：数学90分，英语85分",
+    placeholder: "如：给张明录入雅思听力7.5分，学期2026春季…",
+  },
+  {
+    value: "approve_leave",
+    label: "请假审批",
+    icon: "✅",
+    voice: true,
+    example: "同意周琪的请假，审批意见：情况属实，批准",
+    required: "学生姓名、审批操作（必填：同意/驳回）\n选填：审批意见、请假类型",
+    placeholder: "如：同意周琪的请假、驳回孙悦的请假，理由不符规定…",
+  },
+  {
+    value: "handle_complaint",
+    label: "投诉反馈处理",
+    icon: "🔧",
+    voice: true,
+    example: "将王璐的投诉改为处理中，处理方案是已联系学生了解情况并发送材料清单",
+    required: "学生姓名、操作动作（必填）\n可选操作：处理中 / 已解决 / 关闭\n选填：处理方案、内容摘要",
+    placeholder: "如：将王璐的投诉改为处理中，处理方案是…",
+  },
+];
+
+const operationSubTab = ref(operationFunctions[0].value);
+const currentOpFunc = computed(() => operationFunctions.find((f) => f.value === operationSubTab.value)!);
+
+const operationQuery = computed({
+  get: () => operationQueries.value[operationSubTab.value] || "",
+  set: (val: string) => { operationQueries.value[operationSubTab.value] = val; },
+});
+
+const operationResult = computed({
+  get: () => operationResults.value[operationSubTab.value] || null,
+  set: (val: OperationResponse | null) => { operationResults.value[operationSubTab.value] = val; },
+});
+
+function selectOpFunc(value: string) {
+  operationSubTab.value = value;
+  operationResult.value = null;
+  voiceMode.value = "none";
+  stopListening();
+}
 let recordingTimer: ReturnType<typeof setInterval> | null = null;
 let recognitionInstance: SpeechRecognition | null = null;
 const selectedLead = ref<LeadItem | null>(null);
@@ -290,7 +377,8 @@ function initRecognition(): SpeechRecognition | null {
   r.onresult = (event: SpeechRecognitionEvent) => {
     const last = event.results[event.resultIndex];
     if (last && last[0]) {
-      operationQuery.value = last[0].transcript;
+      const prev = operationQuery.value.trimEnd();
+      operationQuery.value = prev ? `${prev}\n${last[0].transcript}` : last[0].transcript;
     }
   };
   r.onerror = (event: SpeechRecognitionErrorEvent) => {
@@ -379,7 +467,8 @@ async function handleVoiceUpload() {
   message.value = "";
   try {
     const result = await uploadVoiceForRecognition(selectedFileBlob.value, audioFormat.value, sampleRate.value);
-    operationQuery.value = result.text;
+    const prev = operationQuery.value.trimEnd();
+    operationQuery.value = prev ? `${prev}\n${result.text}` : result.text;
   } catch (error) {
     message.value = error instanceof Error ? error.message : "语音识别失败";
   } finally {
@@ -627,82 +716,125 @@ onUnmounted(() => {
           </template>
 
           <template v-if="activeTab === 'operation'">
-            <div class="voice-mode-tabs">
-              <button :class="{ active: voiceMode === 'none' }" type="button" @click="voiceMode = 'none'; stopListening()">文本输入</button>
-              <button :class="{ active: voiceMode === 'browser' }" type="button" @click="voiceMode = 'browser'">
-                <svg class="voice-tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg>
-                麦克风
-              </button>
-              <button :class="{ active: voiceMode === 'upload' }" type="button" @click="voiceMode = 'upload'; stopListening()">
-                <svg class="voice-tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-                上传
-              </button>
-            </div>
-
-            <!-- Browser mic mode -->
-            <div v-if="voiceMode === 'browser'" class="voice-mic-inline">
+            <!-- 6-function sub-tabs -->
+            <div class="op-func-tabs">
               <button
-                class="voice-mic-btn"
-                :class="{ listening: isListening }"
+                v-for="func in operationFunctions"
+                :key="func.value"
+                :class="{ active: operationSubTab === func.value }"
                 type="button"
-                @click="isListening ? stopListening() : startListening()"
+                @click="selectOpFunc(func.value)"
               >
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" />
-                  <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
-                  <line x1="12" y1="19" x2="12" y2="22" />
-                </svg>
+                <span class="op-func-tab-icon">{{ func.icon }}</span>
+                <span>{{ func.label }}</span>
               </button>
-              <span v-if="isListening" class="voice-mic-status listening">
-                <span class="voice-rec-dot" />正在聆听… {{ formatDuration(recordingSeconds) }}
-              </span>
-              <span v-else class="voice-mic-status">点击麦克风，说出业务内容</span>
             </div>
 
-            <!-- Upload mode -->
-            <div v-if="voiceMode === 'upload'" class="voice-upload-inline">
-              <div
-                class="voice-dropzone-sm"
-                :class="{ dragging: isDragging }"
-                @dragover="onDragOver"
-                @dragleave="onDragLeave"
-                @drop="onDrop"
-              >
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-                <span>{{ selectedFileName || "拖拽音频到此处，或点击选择" }}</span>
-                <input type="file" accept="audio/*" @change="onFileChange" />
+            <!-- Function guide card -->
+            <div class="op-func-card">
+              <span class="op-func-icon">{{ currentOpFunc.icon }}</span>
+              <div>
+                <strong>{{ currentOpFunc.label }}</strong>
+                <p class="op-func-example">示例：{{ currentOpFunc.example }}</p>
+                <p class="op-func-required">必填：{{ currentOpFunc.required }}</p>
               </div>
-              <div class="voice-upload-opts">
-                <label>格式 <select v-model="audioFormat">
-                  <option value="wav">WAV</option>
-                  <option value="mp3">MP3</option>
-                  <option value="webm">WebM</option>
-                  <option value="m4a">M4A</option>
-                  <option value="aac">AAC</option>
-                  <option value="opus">OPUS</option>
-                  <option value="pcm">PCM</option>
-                </select></label>
-                <label>采样率 <select v-model="sampleRate">
-                  <option :value="16000">16k</option>
-                  <option :value="8000">8k</option>
-                </select></label>
-                <button class="primary-button compact-button" type="button" :disabled="voiceUploadLoading || !selectedFileBlob" @click="handleVoiceUpload">
-                  {{ voiceUploadLoading ? "识别中…" : "开始识别" }}
+            </div>
+
+            <!-- Voice input (only for voice-supported functions) -->
+            <template v-if="currentOpFunc.voice">
+              <div class="voice-mode-tabs">
+                <button :class="{ active: voiceMode === 'none' }" type="button" @click="voiceMode = 'none'; stopListening()">文本输入</button>
+                <button :class="{ active: voiceMode === 'browser' }" type="button" @click="voiceMode = 'browser'">
+                  <svg class="voice-tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg>
+                  麦克风
+                </button>
+                <button :class="{ active: voiceMode === 'upload' }" type="button" @click="voiceMode = 'upload'; stopListening()">
+                  <svg class="voice-tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                  上传
                 </button>
               </div>
-            </div>
+
+              <div v-if="voiceMode === 'browser'" class="voice-mic-inline">
+                <button
+                  class="voice-mic-btn"
+                  :class="{ listening: isListening }"
+                  type="button"
+                  @click="isListening ? stopListening() : startListening()"
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" />
+                    <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+                    <line x1="12" y1="19" x2="12" y2="22" />
+                  </svg>
+                </button>
+                <span v-if="isListening" class="voice-mic-status listening"><span class="voice-rec-dot" />正在聆听… {{ formatDuration(recordingSeconds) }}</span>
+                <span v-else class="voice-mic-status">点击麦克风说话，结果自动填入文本框</span>
+              </div>
+
+              <div v-if="voiceMode === 'upload'" class="voice-upload-inline">
+                <div
+                  class="voice-dropzone-sm"
+                  :class="{ dragging: isDragging }"
+                  @dragover="onDragOver"
+                  @dragleave="onDragLeave"
+                  @drop="onDrop"
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                  <span>{{ selectedFileName || "拖拽音频到此处，或点击选择" }}</span>
+                  <input type="file" accept="audio/*" @change="onFileChange" />
+                </div>
+                <div class="voice-upload-opts">
+                  <label>格式 <select v-model="audioFormat">
+                    <option value="wav">WAV</option><option value="mp3">MP3</option><option value="webm">WebM</option>
+                    <option value="m4a">M4A</option><option value="aac">AAC</option><option value="opus">OPUS</option><option value="pcm">PCM</option>
+                  </select></label>
+                  <label>采样率 <select v-model="sampleRate"><option :value="16000">16k</option><option :value="8000">8k</option></select></label>
+                  <button class="primary-button compact-button" type="button" :disabled="voiceUploadLoading || !selectedFileBlob" @click="handleVoiceUpload">
+                    {{ voiceUploadLoading ? "识别中…" : "开始识别" }}
+                  </button>
+                </div>
+              </div>
+            </template>
 
             <div class="enterprise-query-box">
-              <textarea v-model="operationQuery" rows="4" placeholder="例如：新增客户，王一鸣，本科大三，想去英国读硕士，预算30万，电话13700030001，来源官网咨询" />
-              <button class="primary-button compact-button" :disabled="queryLoading" type="button" @click="handleOperationExecute">
-                解析办理
-              </button>
+              <textarea v-model="operationQuery" rows="4" :placeholder="currentOpFunc.placeholder" />
+              <div class="enterprise-query-actions">
+                <button class="ghost-button" type="button" @click="operationQuery = ''">清空</button>
+                <button class="primary-button compact-button" :disabled="queryLoading" type="button" @click="handleOperationExecute">
+                  解析办理
+                </button>
+              </div>
             </div>
             <div class="enterprise-result-box">
               <strong>办理结果</strong>
               <p v-if="!operationResult">输入自然语言业务操作后，系统会返回确认卡片或追问信息。</p>
               <template v-else>
-                <p>{{ operationResult.message }}</p>
+                <p :class="operationResult.status === 'failed' ? 'op-result-error' : 'op-result-msg'">{{ operationResult.message }}</p>
+
+                <!-- missing fields -->
+                <div v-if="operationResult.missing_fields?.length" class="op-missing-card">
+                  <strong>⚠️ 请补充以下信息</strong>
+                  <ul>
+                    <li v-for="f in operationResult.missing_fields" :key="f.key">
+                      <span class="op-missing-label">{{ f.label }}</span>
+                      <span class="op-missing-question">{{ f.question }}</span>
+                    </li>
+                  </ul>
+                  <p class="op-hint">请在文本框中补充缺失信息后，再次点击「解析办理」</p>
+                </div>
+
+                <!-- candidate selection -->
+                <div v-if="operationResult.candidates?.length" class="op-candidate-card">
+                  <strong>{{ operationResult.question || "请选择" }}</strong>
+                  <ul>
+                    <li v-for="c in operationResult.candidates" :key="c.id">
+                      <button type="button" @click="operationQuery = `第${operationResult.candidates?.indexOf(c) + 1}个`; handleOperationExecute()">
+                        {{ c.label }}
+                      </button>
+                    </li>
+                  </ul>
+                </div>
+
                 <div v-if="operationResult.confirmation_card" class="operation-card">
                   <strong>{{ operationResult.confirmation_card.title }}</strong>
                   <p>{{ operationResult.confirmation_card.summary }}</p>
@@ -713,7 +845,7 @@ onUnmounted(() => {
                     </div>
                   </dl>
                 </div>
-                <div v-if="operationResult.draft_id" class="action-row">
+                <div v-if="operationResult.draft_id && (operationResult.status === 'pending_confirm' || operationResult.status === 'missing_fields')" class="action-row">
                   <button class="primary-button" :disabled="queryLoading" type="button" @click="handleOperationConfirm('confirm')">
                     确认执行
                   </button>

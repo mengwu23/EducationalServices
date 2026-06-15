@@ -90,10 +90,10 @@ SUBMIT_DAILY_REPORT_SCHEMA = IntentSchema(
     description="提交日报",
     fields=[
         FieldDef(key="raw_content", label="原始内容", required=True, description="日报原始口述内容", example="今天跟进了5个客户..."),
-        FieldDef(key="summary", label="AI摘要", required=False, description="日报工作总结摘要", example="跟进5个客户，处理1个投诉"),
-        FieldDef(key="key_progress", label="关键进展", required=False, description="今日关键进展", example="王同学已约下周面谈"),
-        FieldDef(key="risks", label="风险问题", required=False, description="风险与问题", example="李同学转化意愿不稳定"),
-        FieldDef(key="tomorrow_plan", label="明日计划", required=False, description="明日工作计划", example="重点推进英国项目客户"),
+        FieldDef(key="summary", label="AI摘要", required=True, description="日报工作总结摘要", example="跟进5个客户，处理1个投诉"),
+        FieldDef(key="key_progress", label="关键进展", required=True, description="今日关键进展", example="王同学已约下周面谈"),
+        FieldDef(key="risks", label="风险问题", required=True, description="风险与问题", example="李同学转化意愿不稳定"),
+        FieldDef(key="tomorrow_plan", label="明日计划", required=True, description="明日工作计划", example="重点推进英国项目客户"),
     ],
 )
 
@@ -109,10 +109,10 @@ ENTER_STUDENT_SCORE_SCHEMA = IntentSchema(
         FieldDef(key="student_name", label="学生姓名", required=True, description="学生姓名", example="张同学"),
         FieldDef(key="course_name", label="课程名称", required=True, description="课程或科目名称", example="雅思听力"),
         FieldDef(key="score", label="成绩", required=True, description="成绩分数（0-100）", example="7"),
-        FieldDef(key="exam_type", label="考试类型", required=False, description="考试类型：模考/期中/期末等", example="模考"),
-        FieldDef(key="semester", label="学期", required=False, description="学期", example="2026春季"),
-        FieldDef(key="exam_date", label="考试日期", required=False, description="考试日期", example="2026-06-10"),
-        FieldDef(key="remark", label="备注", required=False, description="备注", example="雅思模考成绩"),
+        FieldDef(key="exam_type", label="考试类型", required=True, description="考试类型：模考/期中/期末等", example="模考"),
+        FieldDef(key="semester", label="学期", required=True, description="学期", example="2026春季"),
+        FieldDef(key="exam_date", label="考试日期", required=True, description="考试日期", example="2026-06-10"),
+        FieldDef(key="remark", label="备注", required=True, description="备注", example="雅思模考成绩"),
     ],
 )
 
@@ -126,7 +126,7 @@ APPROVE_LEAVE_SCHEMA = IntentSchema(
     description="审批学生请假",
     fields=[
         FieldDef(key="action", label="操作", required=True, description="query/approve/reject", example="approve"),
-        FieldDef(key="student_name", label="学生姓名", required=False, description="要审批的学生名", example="张三"),
+        FieldDef(key="student_name", label="学生姓名", required=True, description="要审批的学生名", example="张三"),
         FieldDef(key="approval_comment", label="审批意见", required=False, description="审批备注", example="同意请假"),
         FieldDef(key="leave_type", label="请假类型", required=False, description="sick/personal/other", example="sick"),
     ],
@@ -142,7 +142,7 @@ HANDLE_COMPLAINT_SCHEMA = IntentSchema(
     description="处理投诉反馈",
     fields=[
         FieldDef(key="action", label="操作", required=True, description="query/process/resolve/close/notify", example="process"),
-        FieldDef(key="student_name", label="学生姓名", required=False, description="投诉学生名", example="张同学"),
+        FieldDef(key="student_name", label="学生姓名", required=True, description="投诉学生名", example="张同学"),
         FieldDef(key="status", label="目标状态", required=False, description="processing/resolved/closed", example="processing"),
         FieldDef(key="solution", label="处理方案", required=False, description="处理方案或结果", example="已联系学生了解情况"),
         FieldDef(key="content_summary", label="摘要", required=False, description="内容摘要", example="投诉宿舍维修慢"),

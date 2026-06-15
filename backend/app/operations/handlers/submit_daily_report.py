@@ -256,17 +256,16 @@ class SubmitDailyReportHandler(OperationHandler):
     # ==================== 内部方法 ====================
 
     def _check_required(self, params: Dict[str, Any]) -> List[MissingField]:
-        """检查必填字段。"""
+        """检查必填字段（仅 raw_content，其余字段 AI 提取后再校验）。"""
         missing: List[MissingField] = []
-        for key in self.schema.required_keys:
-            value = params.get(key)
-            if not value or (isinstance(value, str) and not value.strip()):
-                missing.append(
-                    MissingField(
-                        key=key, label=self.get_field_label(key),
-                        question=f"请输入{self.get_field_label(key)}",
-                    )
+        value = params.get("raw_content")
+        if not value or (isinstance(value, str) and not value.strip()):
+            missing.append(
+                MissingField(
+                    key="raw_content", label="原始内容",
+                    question="请输入日报内容",
                 )
+            )
         return missing
 
     def _build_confirm_response(

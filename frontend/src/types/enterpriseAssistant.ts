@@ -170,14 +170,26 @@ export interface OperationConfirmationCard {
   summary: string | null;
 }
 
+export interface MissingFieldItem {
+  key: string;
+  label: string;
+  question: string;
+}
+
+export interface CandidateItem {
+  id: number;
+  label: string;
+  description: string | null;
+}
+
 export interface OperationResponse {
   status: string;
   message: string;
   draft_id: number | null;
   intent: string | null;
   confirmation_card: OperationConfirmationCard | null;
-  missing_fields: Array<Record<string, unknown>>;
-  candidates: Array<Record<string, unknown>>;
+  missing_fields: MissingFieldItem[];
+  candidates: CandidateItem[];
   selection_type: string | null;
   question: string | null;
   conversation_id: string | null;
