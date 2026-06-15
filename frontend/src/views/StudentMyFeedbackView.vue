@@ -2,6 +2,7 @@
 import { computed, onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
 import AppSidebar from "@/components/common/AppSidebar.vue";
+import PaginationBar from "@/components/common/PaginationBar.vue";
 import { createMyStudentFeedbackTicket, listMyStudentFeedbackTickets } from "@/api/studentFeedback";
 import { authState, logout, roleLabelMap } from "@/stores/authStore";
 import type { StudentFeedbackTicket } from "@/types/studentFeedback";
@@ -12,6 +13,9 @@ const actionLoading = ref(false);
 const message = ref("");
 const tickets = ref<StudentFeedbackTicket[]>([]);
 const selectedTicket = ref<StudentFeedbackTicket | null>(null);
+const page = ref(1);
+const pageSize = 10;
+const total = ref(0);
 const form = ref({
   ticket_type: "consult",
   title: "",
@@ -61,14 +65,20 @@ async function loadData() {
   loading.value = true;
   message.value = "";
   try {
-    const result = await listMyStudentFeedbackTickets({ page: 1, size: 20 });
+    const result = await listMyStudentFeedbackTickets({ page: page.value, size: pageSize });
     tickets.value = result.items || [];
+    total.value = result.total || 0;
     selectedTicket.value = tickets.value[0] || null;
   } catch (error) {
     message.value = error instanceof Error ? error.message : "我的反馈加载失败";
   } finally {
     loading.value = false;
   }
+}
+
+function handlePageChange(nextPage: number) {
+  page.value = nextPage;
+  loadData();
 }
 
 async function handleCreate() {
@@ -84,6 +94,7 @@ async function handleCreate() {
     message.value = "反馈已提交";
     form.value.title = "";
     form.value.detail = "";
+    page.value = 1;
     await loadData();
   } catch (error) {
     message.value = error instanceof Error ? error.message : "反馈提交失败";
@@ -144,6 +155,13 @@ onMounted(loadData);
               </tr>
             </tbody>
           </table>
+          <PaginationBar
+            :page="page"
+            :page-size="pageSize"
+            :total="total"
+            :disabled="loading"
+            @change="handlePageChange"
+          />
         </div>
         <aside class="leave-detail-panel">
           <p class="eyebrow">提交反馈</p>

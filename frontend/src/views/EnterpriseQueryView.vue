@@ -2,6 +2,7 @@
 import { computed, onMounted, onUnmounted, ref } from "vue";
 import { useRouter } from "vue-router";
 import AppSidebar from "@/components/common/AppSidebar.vue";
+import PaginationBar from "@/components/common/PaginationBar.vue";
 import {
   confirmEnterpriseOperation,
   executeEnterpriseOperation,
@@ -63,6 +64,9 @@ const leads = ref<LeadItem[]>([]);
 const students = ref<StudentProfileItem[]>([]);
 const leadTotal = ref(0);
 const studentTotal = ref(0);
+const leadPage = ref(1);
+const studentPage = ref(1);
+const pageSize = 10;
 const leadKeyword = ref("");
 const studentKeyword = ref("");
 const leadStatus = ref("");
@@ -161,8 +165,8 @@ async function loadLeads() {
     customer_name: leadKeyword.value,
     status: leadStatus.value,
     target_country: targetCountry.value,
-    page: 1,
-    page_size: 10,
+    page: leadPage.value,
+    page_size: pageSize,
   });
   leads.value = result.items || [];
   leadTotal.value = result.total;
@@ -173,12 +177,32 @@ async function loadStudents() {
   const result = await searchStudents({
     student_name: studentKeyword.value,
     target_country: targetCountry.value,
-    page: 1,
-    page_size: 10,
+    page: studentPage.value,
+    page_size: pageSize,
   });
   students.value = result.items || [];
   studentTotal.value = result.total;
   selectedStudent.value = students.value[0] || null;
+}
+
+function reloadCurrentListFromFirstPage() {
+  if (activeTab.value === "leads") {
+    leadPage.value = 1;
+  }
+  if (activeTab.value === "students") {
+    studentPage.value = 1;
+  }
+  refreshCurrentTab();
+}
+
+function handleLeadPageChange(nextPage: number) {
+  leadPage.value = nextPage;
+  refreshCurrentTab();
+}
+
+function handleStudentPageChange(nextPage: number) {
+  studentPage.value = nextPage;
+  refreshCurrentTab();
 }
 
 async function loadSummaries() {
@@ -493,8 +517,8 @@ onUnmounted(() => {
 
           <template v-if="activeTab === 'leads'">
             <div class="filter-row enterprise-filter">
-              <input v-model="leadKeyword" placeholder="客户姓名" @keyup.enter="refreshCurrentTab" />
-              <select v-model="leadStatus" @change="refreshCurrentTab">
+              <input v-model="leadKeyword" placeholder="客户姓名" @keyup.enter="reloadCurrentListFromFirstPage" />
+              <select v-model="leadStatus" @change="reloadCurrentListFromFirstPage">
                 <option value="">全部状态</option>
                 <option value="new">新增</option>
                 <option value="following">跟进中</option>
@@ -502,8 +526,8 @@ onUnmounted(() => {
                 <option value="lost">已流失</option>
                 <option value="invalid">无效</option>
               </select>
-              <input v-model="targetCountry" placeholder="目标国家" @keyup.enter="refreshCurrentTab" />
-              <button class="ghost-button" type="button" @click="refreshCurrentTab">查询</button>
+              <input v-model="targetCountry" placeholder="目标国家" @keyup.enter="reloadCurrentListFromFirstPage" />
+              <button class="ghost-button" type="button" @click="reloadCurrentListFromFirstPage">查询</button>
             </div>
             <div v-if="loading" class="empty-state">正在加载客户线索...</div>
             <table v-else class="leave-table">
@@ -531,13 +555,20 @@ onUnmounted(() => {
                 </tr>
               </tbody>
             </table>
+            <PaginationBar
+              :page="leadPage"
+              :page-size="pageSize"
+              :total="leadTotal"
+              :disabled="loading"
+              @change="handleLeadPageChange"
+            />
           </template>
 
           <template v-if="activeTab === 'students'">
             <div class="filter-row enterprise-filter">
-              <input v-model="studentKeyword" placeholder="学生姓名" @keyup.enter="refreshCurrentTab" />
-              <input v-model="targetCountry" placeholder="目标国家" @keyup.enter="refreshCurrentTab" />
-              <button class="ghost-button" type="button" @click="refreshCurrentTab">查询</button>
+              <input v-model="studentKeyword" placeholder="学生姓名" @keyup.enter="reloadCurrentListFromFirstPage" />
+              <input v-model="targetCountry" placeholder="目标国家" @keyup.enter="reloadCurrentListFromFirstPage" />
+              <button class="ghost-button" type="button" @click="reloadCurrentListFromFirstPage">查询</button>
             </div>
             <div v-if="loading" class="empty-state">正在加载学生档案...</div>
             <table v-else class="leave-table">
@@ -570,6 +601,13 @@ onUnmounted(() => {
                 </tr>
               </tbody>
             </table>
+            <PaginationBar
+              :page="studentPage"
+              :page-size="pageSize"
+              :total="studentTotal"
+              :disabled="loading"
+              @change="handleStudentPageChange"
+            />
           </template>
 
           <template v-if="activeTab === 'todos'">

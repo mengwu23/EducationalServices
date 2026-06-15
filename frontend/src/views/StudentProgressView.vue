@@ -2,6 +2,7 @@
 import { computed, onMounted, ref, watch } from "vue";
 import { useRouter } from "vue-router";
 import AppSidebar from "@/components/common/AppSidebar.vue";
+import PaginationBar from "@/components/common/PaginationBar.vue";
 import {
   getApplicationProgressStages,
   getMyApplicationTimeline,
@@ -21,6 +22,8 @@ const stageFilter = ref("");
 const statusFilter = ref("");
 const records = ref<ProgressRecord[]>([]);
 const total = ref(0);
+const page = ref(1);
+const pageSize = 10;
 const timeline = ref<ProgressTimelineItem[]>([]);
 const timelineSummary = ref("");
 const selectedRecord = ref<ProgressRecord | null>(null);
@@ -131,8 +134,8 @@ async function loadData() {
   try {
     await loadReference();
     const params = {
-      page: 1,
-      page_size: 50,
+      page: page.value,
+      page_size: pageSize,
       progress_stage: stageFilter.value,
       progress_status: statusFilter.value,
     };
@@ -160,6 +163,16 @@ async function loadData() {
   } finally {
     loading.value = false;
   }
+}
+
+function reloadFromFirstPage() {
+  page.value = 1;
+  loadData();
+}
+
+function handlePageChange(nextPage: number) {
+  page.value = nextPage;
+  loadData();
 }
 
 async function handleUpdateStatus() {
@@ -268,11 +281,11 @@ onMounted(loadData);
 
             <div class="filter-row progress-filter">
               <input v-model="keyword" placeholder="搜索学生、院校、项目或说明" />
-              <select v-model="stageFilter" @change="loadData">
+              <select v-model="stageFilter" @change="reloadFromFirstPage">
                 <option value="">全部阶段</option>
                 <option v-for="[value, label] in stageOptions" :key="value" :value="value">{{ label }}</option>
               </select>
-              <select v-model="statusFilter" @change="loadData">
+              <select v-model="statusFilter" @change="reloadFromFirstPage">
                 <option value="">全部状态</option>
                 <option v-for="[value, label] in statusOptions" :key="value" :value="value">{{ label }}</option>
               </select>
@@ -317,6 +330,13 @@ onMounted(loadData);
                 </tr>
               </tbody>
             </table>
+            <PaginationBar
+              :page="page"
+              :page-size="pageSize"
+              :total="total"
+              :disabled="loading"
+              @change="handlePageChange"
+            />
           </div>
         </div>
 

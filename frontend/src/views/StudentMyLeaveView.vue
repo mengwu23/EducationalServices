@@ -2,6 +2,7 @@
 import { computed, onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
 import AppSidebar from "@/components/common/AppSidebar.vue";
+import PaginationBar from "@/components/common/PaginationBar.vue";
 import { cancelLeave, createLeave, listMyLeaves } from "@/api/studentAssistant";
 import { authState, logout, roleLabelMap } from "@/stores/authStore";
 import type { LeaveRecord } from "@/types/studentAssistant";
@@ -13,6 +14,9 @@ const message = ref("");
 const statusFilter = ref("");
 const leaves = ref<LeaveRecord[]>([]);
 const selectedLeave = ref<LeaveRecord | null>(null);
+const page = ref(1);
+const pageSize = 10;
+const total = ref(0);
 const form = ref({
   leave_type: "personal",
   reason: "",
@@ -45,14 +49,25 @@ async function loadData() {
   loading.value = true;
   message.value = "";
   try {
-    const result = await listMyLeaves(1, 20, statusFilter.value);
+    const result = await listMyLeaves(page.value, pageSize, statusFilter.value);
     leaves.value = result.items || [];
+    total.value = result.total || 0;
     selectedLeave.value = leaves.value.find((item) => item.id === selectedLeave.value?.id) || leaves.value[0] || null;
   } catch (error) {
     message.value = error instanceof Error ? error.message : "我的请假加载失败";
   } finally {
     loading.value = false;
   }
+}
+
+function reloadFromFirstPage() {
+  page.value = 1;
+  loadData();
+}
+
+function handlePageChange(nextPage: number) {
+  page.value = nextPage;
+  loadData();
 }
 
 async function handleCreate() {
@@ -123,7 +138,7 @@ onMounted(loadData);
               <p class="eyebrow">申请记录</p>
               <h2>请假列表</h2>
             </div>
-            <select v-model="statusFilter" @change="loadData">
+            <select v-model="statusFilter" @change="reloadFromFirstPage">
               <option value="">全部状态</option>
               <option value="pending">待审批</option>
               <option value="approved">已通过</option>
@@ -152,6 +167,13 @@ onMounted(loadData);
               </tr>
             </tbody>
           </table>
+          <PaginationBar
+            :page="page"
+            :page-size="pageSize"
+            :total="total"
+            :disabled="loading"
+            @change="handlePageChange"
+          />
         </div>
 
         <aside class="leave-detail-panel">

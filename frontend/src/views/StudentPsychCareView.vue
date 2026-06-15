@@ -2,6 +2,7 @@
 import { computed, onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
 import AppSidebar from "@/components/common/AppSidebar.vue";
+import PaginationBar from "@/components/common/PaginationBar.vue";
 import {
   chatPsychAssistant,
   confirmPsychDraft,
@@ -26,6 +27,11 @@ const chatResult = ref<PsychChatResult | null>(null);
 const drafts = ref<PsychDraft[]>([]);
 const rejectReason = ref("");
 const rejectingDraftId = ref<number | null>(null);
+const alertPage = ref(1);
+const draftPage = ref(1);
+const pageSize = 8;
+const alertTotal = ref(0);
+const draftTotal = ref(0);
 
 const user = computed(() => authState.user);
 const roleLabel = computed(() => roleLabelMap[user.value?.role || ""] || user.value?.role || "-");
@@ -101,17 +107,29 @@ async function loadData() {
   try {
     const [profileResult, alertResult, draftResult] = await Promise.all([
       getMyPsychProfile(),
-      listMyPsychAlerts(1, 8),
-      listPsychDrafts(1, 20),
+      listMyPsychAlerts(alertPage.value, pageSize),
+      listPsychDrafts(draftPage.value, pageSize),
     ]);
     profile.value = profileResult;
     alerts.value = alertResult.items || [];
     drafts.value = draftResult.items || [];
+    alertTotal.value = alertResult.total || 0;
+    draftTotal.value = draftResult.total || 0;
   } catch (error) {
     message.value = error instanceof Error ? error.message : "心理关怀数据加载失败";
   } finally {
     loading.value = false;
   }
+}
+
+function handleDraftPageChange(nextPage: number) {
+  draftPage.value = nextPage;
+  loadData();
+}
+
+function handleAlertPageChange(nextPage: number) {
+  alertPage.value = nextPage;
+  loadData();
 }
 
 async function handleCheckin() {
@@ -126,8 +144,10 @@ async function handleCheckin() {
     const result = await emotionCheckin(content);
     profile.value = result.profile;
     message.value = "情绪打卡已完成";
-    const alertResult = await listMyPsychAlerts(1, 8);
+    alertPage.value = 1;
+    const alertResult = await listMyPsychAlerts(alertPage.value, pageSize);
     alerts.value = alertResult.items || [];
+    alertTotal.value = alertResult.total || 0;
   } catch (error) {
     message.value = error instanceof Error ? error.message : "情绪打卡失败";
   } finally {
@@ -148,8 +168,10 @@ async function handleChat() {
     if (!chatResult.value.need_confirm) {
       await loadData();
     } else {
-      const draftResult = await listPsychDrafts(1, 20);
+      draftPage.value = 1;
+      const draftResult = await listPsychDrafts(draftPage.value, pageSize);
       drafts.value = draftResult.items || [];
+      draftTotal.value = draftResult.total || 0;
       if (chatResult.value.low_confidence) {
         message.value = chatResult.value.warning || "AI 对本次判断的置信度较低，请仔细确认后再提交";
       } else {
@@ -358,6 +380,13 @@ onMounted(loadData);
           </tbody>
         </table>
         <p v-else class="empty-hint">暂无对话记录</p>
+        <PaginationBar
+          :page="draftPage"
+          :page-size="pageSize"
+          :total="draftTotal"
+          :disabled="loading"
+          @change="handleDraftPageChange"
+        />
       </section>
 
       <!-- 驳回原因弹窗（历史记录用） -->
@@ -399,6 +428,13 @@ onMounted(loadData);
           </tbody>
         </table>
         <p v-else class="empty-hint">暂无预警记录</p>
+        <PaginationBar
+          :page="alertPage"
+          :page-size="pageSize"
+          :total="alertTotal"
+          :disabled="loading"
+          @change="handleAlertPageChange"
+        />
       </section>
     </main>
   </div>

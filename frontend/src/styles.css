@@ -702,6 +702,42 @@ button {
   background: #fff4e4;
 }
 
+.pagination-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-top: 16px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.pagination-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pagination-actions button {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: #fffaf3;
+  color: var(--primary-dark);
+  padding: 7px 12px;
+  font-weight: 700;
+}
+
+.pagination-actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.pagination-actions strong {
+  min-width: 64px;
+  color: var(--text);
+  text-align: center;
+}
+
 .leave-table td span {
   display: block;
   margin-top: 4px;
