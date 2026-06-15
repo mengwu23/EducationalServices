@@ -18,6 +18,28 @@ const chatResult = ref<PsychChatResult | null>(null);
 
 const user = computed(() => authState.user);
 const roleLabel = computed(() => roleLabelMap[user.value?.role || ""] || user.value?.role || "-");
+const riskLabelMap: Record<string, string> = {
+  low: "低",
+  medium: "中",
+  high: "高",
+  critical: "危急",
+};
+const statusLabelMap: Record<string, string> = {
+  pending: "待处理",
+  processing: "跟进中",
+  resolved: "已解除",
+  closed: "已关闭",
+};
+
+function riskLabel(value?: string | null): string {
+  if (!value) return "-";
+  return riskLabelMap[value] || value;
+}
+
+function statusLabel(value?: string | null): string {
+  if (!value) return "-";
+  return statusLabelMap[value] || value;
+}
 
 async function loadData() {
   loading.value = true;
@@ -96,7 +118,7 @@ onMounted(loadData);
               <p class="eyebrow">心理画像</p>
               <h2>{{ profile?.latest_emotion_tag || "暂无情绪标签" }}</h2>
             </div>
-            <span :class="['risk-tag', profile?.risk_level || '低']">{{ profile?.risk_level || "-" }}</span>
+            <span :class="['risk-tag', profile?.risk_level || 'low']">{{ riskLabel(profile?.risk_level) }}</span>
           </div>
           <p>{{ profile?.emotion_summary || "暂无画像摘要" }}</p>
           <div class="score-line">
@@ -124,7 +146,7 @@ onMounted(loadData);
               <p>{{ chatResult.reply }}</p>
               <div class="detail-tags">
                 <span>{{ chatResult.emotion_tag }}</span>
-                <span>{{ chatResult.risk_level }}</span>
+                <span>{{ riskLabel(chatResult.risk_level) }}</span>
                 <span>情绪分 {{ chatResult.emotion_score }}</span>
               </div>
               <p v-if="chatResult.alert_created">系统已自动创建心理预警。</p>
@@ -147,7 +169,7 @@ onMounted(loadData);
             <tr v-for="item in alerts" :key="item.id">
               <td>{{ item.alert_no }}</td>
               <td>{{ item.trigger_reason }}</td>
-              <td><span :class="['status-chip', item.status]">{{ item.status }}</span></td>
+              <td><span :class="['status-chip', item.status]">{{ statusLabel(item.status) }}</span></td>
             </tr>
           </tbody>
         </table>

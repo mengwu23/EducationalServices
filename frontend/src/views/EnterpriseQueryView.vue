@@ -135,9 +135,20 @@ const leadStatusMap: Record<string, string> = {
   invalid: "无效",
 };
 
+const studentStatusMap: Record<string, string> = {
+  active: "服务中",
+  graduated: "已结课",
+  inactive: "停用",
+};
+
 function statusLabel(value?: string | null): string {
   if (!value) return "-";
   return leadStatusMap[value] || value;
+}
+
+function studentStatusLabel(value?: string | null): string {
+  if (!value) return "-";
+  return studentStatusMap[value] || value;
 }
 
 function formatDateTime(value?: string | null): string {
@@ -555,7 +566,7 @@ onUnmounted(() => {
                   <td>{{ item.current_grade || "-" }}</td>
                   <td>{{ item.target_country || "-" }}</td>
                   <td>{{ item.target_program || "-" }}</td>
-                  <td><span class="status-chip resolved">{{ item.status }}</span></td>
+                  <td><span class="status-chip resolved">{{ studentStatusLabel(item.status) }}</span></td>
                 </tr>
               </tbody>
             </table>
