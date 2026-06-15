@@ -77,7 +77,7 @@ const completedRate = computed(() => {
 });
 
 const timelineItems = computed(() => {
-  if (timeline.value.length) return timeline.value;
+  if (timeline.value.length) return timeline.value.slice(0, 5);
   const latestByStage = new Map<string, ProgressRecord>();
   records.value.forEach((record) => {
     const current = latestByStage.get(record.progress_stage);
@@ -85,7 +85,7 @@ const timelineItems = computed(() => {
       latestByStage.set(record.progress_stage, record);
     }
   });
-  return Array.from(latestByStage.values()).map((record) => ({
+  return Array.from(latestByStage.values()).slice(0, 5).map((record) => ({
     id: record.id,
     stage: record.progress_stage,
     stage_label: stageLabel(record.progress_stage),
