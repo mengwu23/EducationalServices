@@ -9,6 +9,10 @@ const password = ref("");
 const remember = ref(false);
 const errorMessage = ref("");
 const submitting = ref(false);
+const employeeDemoAccount = {
+  username: "emp002",
+  password: "123456",
+};
 
 const canSubmit = computed(() => username.value.trim() && password.value.trim() && !submitting.value);
 
@@ -45,9 +49,10 @@ async function handleVisitorLogin() {
   }
 }
 
-function useDemoAccount(account: "manager" | "student" | "admin") {
+function useDemoAccount(account: "manager" | "employee" | "student" | "admin") {
   const map = {
     manager: "emp001",
+    employee: employeeDemoAccount.username,
     student: "stu001",
     admin: "emp008",
   };
@@ -109,6 +114,7 @@ function useDemoAccount(account: "manager" | "student" | "admin") {
             <span>记住账号</span>
           </label>
           <div class="demo-actions">
+            <button type="button" @click="useDemoAccount('employee')">员工</button>
             <button type="button" @click="useDemoAccount('manager')">主管</button>
             <button type="button" @click="useDemoAccount('student')">学生</button>
             <button type="button" @click="useDemoAccount('admin')">管理员</button>

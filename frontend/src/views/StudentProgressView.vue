@@ -150,7 +150,10 @@ async function loadData() {
       timeline.value = timelineResult.stages || [];
       timelineSummary.value = timelineResult.summary;
     } else {
-      const listResult = await listApplicationProgress(params);
+      const listResult = await listApplicationProgress({
+        ...params,
+        handler_employee_id: user.value?.role === "employee" ? user.value.employee_id || undefined : undefined,
+      });
       records.value = listResult.items || [];
       total.value = listResult.total;
       timeline.value = [];
