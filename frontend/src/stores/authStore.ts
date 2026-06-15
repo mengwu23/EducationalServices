@@ -1,6 +1,7 @@
 import { reactive } from "vue";
 import { clearStoredToken, getStoredToken, setStoredToken } from "@/api/request";
 import { getCurrentPermissions, getCurrentUser, login as loginApi } from "@/api/auth";
+import { getEffectivePermissions } from "@/stores/permissionStore";
 import type { CurrentUser } from "@/types/auth";
 
 interface AuthState {
@@ -49,7 +50,7 @@ export async function login(username: string, password: string): Promise<void> {
     authState.token = result.access_token;
     authState.user = result.user;
     const permissionResult = await getCurrentPermissions();
-    authState.permissions = permissionResult.permissions;
+    authState.permissions = getEffectivePermissions(result.user.role, permissionResult.permissions);
   } finally {
     authState.loading = false;
   }
@@ -75,7 +76,8 @@ export async function bootstrapAuth(): Promise<void> {
   authState.loading = true;
   try {
     authState.user = await getCurrentUser();
-    authState.permissions = (await getCurrentPermissions()).permissions;
+    const permissionResult = await getCurrentPermissions();
+    authState.permissions = getEffectivePermissions(authState.user.role, permissionResult.permissions);
   } catch {
     logout();
   } finally {
@@ -92,4 +94,9 @@ export function logout(): void {
 
 export function hasPermission(permission: string): boolean {
   return authState.permissions.includes("*") || authState.permissions.includes(permission);
+}
+
+export function refreshCurrentRolePermissions(): void {
+  if (!authState.user) return;
+  authState.permissions = getEffectivePermissions(authState.user.role, authState.permissions);
 }

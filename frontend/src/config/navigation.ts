@@ -133,6 +133,15 @@ export const navigationItems: NavigationItem[] = [
     tone: "sand",
   },
   {
+    key: "permission-admin",
+    label: "权限调整",
+    route: "/admin/permissions",
+    roles: ["admin"],
+    description: "调整各角色可访问的业务权限和菜单范围",
+    count: "Admin",
+    tone: "clay",
+  },
+  {
     key: "service-center",
     label: "客服中心",
     route: "/service-center",
