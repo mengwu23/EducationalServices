@@ -30,6 +30,17 @@ const statusLabelMap: Record<string, string> = {
   resolved: "已解除",
   closed: "已关闭",
 };
+const emotionTagLabelMap: Record<string, string> = {
+  anxious: "焦虑",
+  stable: "平稳",
+  depressed: "低落",
+  excited: "兴奋",
+  lonely: "孤独",
+  stressed: "压力大",
+  happy: "积极",
+  neutral: "平静",
+  cultural_conflict: "文化冲突",
+};
 
 function riskLabel(value?: string | null): string {
   if (!value) return "-";
@@ -39,6 +50,11 @@ function riskLabel(value?: string | null): string {
 function statusLabel(value?: string | null): string {
   if (!value) return "-";
   return statusLabelMap[value] || value;
+}
+
+function emotionTagLabel(value?: string | null): string {
+  if (!value) return "暂无情绪标签";
+  return emotionTagLabelMap[value] || value;
 }
 
 async function loadData() {
@@ -116,7 +132,7 @@ onMounted(loadData);
           <div class="section-heading">
             <div>
               <p class="eyebrow">心理画像</p>
-              <h2>{{ profile?.latest_emotion_tag || "暂无情绪标签" }}</h2>
+              <h2>{{ emotionTagLabel(profile?.latest_emotion_tag) }}</h2>
             </div>
             <span :class="['risk-tag', profile?.risk_level || 'low']">{{ riskLabel(profile?.risk_level) }}</span>
           </div>
@@ -145,7 +161,7 @@ onMounted(loadData);
             <template v-if="chatResult">
               <p>{{ chatResult.reply }}</p>
               <div class="detail-tags">
-                <span>{{ chatResult.emotion_tag }}</span>
+                <span>{{ emotionTagLabel(chatResult.emotion_tag) }}</span>
                 <span>{{ riskLabel(chatResult.risk_level) }}</span>
                 <span>情绪分 {{ chatResult.emotion_score }}</span>
               </div>
