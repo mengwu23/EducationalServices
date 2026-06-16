@@ -2,6 +2,7 @@
 import { computed, onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
 import AppSidebar from "@/components/common/AppSidebar.vue";
+import PaginationBar from "@/components/common/PaginationBar.vue";
 import { createMyStudentFeedbackTicket, listMyStudentFeedbackTickets } from "@/api/studentFeedback";
 import { authState, logout, roleLabelMap } from "@/stores/authStore";
 import type { StudentFeedbackTicket } from "@/types/studentFeedback";
@@ -12,6 +13,9 @@ const actionLoading = ref(false);
 const message = ref("");
 const tickets = ref<StudentFeedbackTicket[]>([]);
 const selectedTicket = ref<StudentFeedbackTicket | null>(null);
+const page = ref(1);
+const pageSize = 10;
+const total = ref(0);
 const form = ref({
   ticket_type: "consult",
   title: "",
@@ -21,19 +25,60 @@ const form = ref({
 
 const user = computed(() => authState.user);
 const roleLabel = computed(() => roleLabelMap[user.value?.role || ""] || user.value?.role || "-");
+const ticketTypeLabelMap: Record<string, string> = {
+  complaint: "投诉",
+  suggestion: "建议",
+  consult: "咨询",
+};
+const statusLabelMap: Record<string, string> = {
+  pending: "待处理",
+  processing: "处理中",
+  resolved: "已解决",
+  closed: "已关闭",
+};
+const categoryLabelMap: Record<string, string> = {
+  course: "教学课程",
+  service: "服务顾问",
+  visa: "签证办理",
+  school: "院校申请",
+  life: "生活服务",
+  finance: "财务费用",
+  other: "其他",
+};
+
+function ticketTypeLabel(value?: string | null): string {
+  if (!value) return "-";
+  return ticketTypeLabelMap[value] || value;
+}
+
+function statusLabel(value?: string | null): string {
+  if (!value) return "-";
+  return statusLabelMap[value] || value;
+}
+
+function categoryLabel(value?: string | null): string {
+  if (!value) return "未分类";
+  return categoryLabelMap[value] || value;
+}
 
 async function loadData() {
   loading.value = true;
   message.value = "";
   try {
-    const result = await listMyStudentFeedbackTickets({ page: 1, size: 20 });
+    const result = await listMyStudentFeedbackTickets({ page: page.value, size: pageSize });
     tickets.value = result.items || [];
+    total.value = result.total || 0;
     selectedTicket.value = tickets.value[0] || null;
   } catch (error) {
     message.value = error instanceof Error ? error.message : "我的反馈加载失败";
   } finally {
     loading.value = false;
   }
+}
+
+function handlePageChange(nextPage: number) {
+  page.value = nextPage;
+  loadData();
 }
 
 async function handleCreate() {
@@ -49,6 +94,7 @@ async function handleCreate() {
     message.value = "反馈已提交";
     form.value.title = "";
     form.value.detail = "";
+    page.value = 1;
     await loadData();
   } catch (error) {
     message.value = error instanceof Error ? error.message : "反馈提交失败";
@@ -91,17 +137,31 @@ onMounted(loadData);
           </div>
           <div v-if="loading" class="empty-state">正在加载...</div>
           <table v-else class="leave-table">
+            <thead>
+              <tr>
+                <th>工单信息</th>
+                <th>类型</th>
+                <th>状态</th>
+              </tr>
+            </thead>
             <tbody>
               <tr v-for="item in tickets" :key="item.id" :class="{ selected: selectedTicket?.id === item.id }" @click="selectedTicket = item">
                 <td>
                   <strong>{{ item.title }}</strong>
                   <span>{{ item.ticket_no }}</span>
                 </td>
-                <td>{{ item.ticket_type }}</td>
-                <td><span :class="['status-chip', item.status]">{{ item.status }}</span></td>
+                <td>{{ ticketTypeLabel(item.ticket_type) }}</td>
+                <td><span :class="['status-chip', item.status]">{{ statusLabel(item.status) }}</span></td>
               </tr>
             </tbody>
           </table>
+          <PaginationBar
+            :page="page"
+            :page-size="pageSize"
+            :total="total"
+            :disabled="loading"
+            @change="handlePageChange"
+          />
         </div>
         <aside class="leave-detail-panel">
           <p class="eyebrow">提交反馈</p>
@@ -125,6 +185,9 @@ onMounted(loadData);
           <button class="primary-button" :disabled="actionLoading" type="button" @click="handleCreate">提交反馈</button>
           <div class="reason-box">
             <strong>处理结果</strong>
+            <p v-if="selectedTicket">分类：{{ categoryLabel(selectedTicket.category) }}</p>
+            <p v-if="selectedTicket">状态：{{ statusLabel(selectedTicket.status) }}</p>
+            <p v-if="selectedTicket">类型：{{ ticketTypeLabel(selectedTicket.ticket_type) }}</p>
             <p>{{ selectedTicket?.solution || selectedTicket?.content_summary || "请选择一条反馈记录查看处理结果" }}</p>
           </div>
         </aside>

@@ -224,6 +224,11 @@ button {
   box-shadow: 0 16px 30px rgba(143, 63, 31, 0.28);
 }
 
+.visitor-login-button {
+  margin-top: 10px;
+  background: linear-gradient(135deg, #6a8b95, #4f6f78);
+}
+
 .primary-button:disabled {
   cursor: not-allowed;
   opacity: 0.55;
@@ -521,6 +526,11 @@ button {
   padding: 18px;
 }
 
+.service-summary-result {
+  display: grid;
+  gap: 10px;
+}
+
 .secondary-button {
   background: var(--text);
 }
@@ -697,6 +707,42 @@ button {
   background: #fff4e4;
 }
 
+.pagination-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-top: 16px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.pagination-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pagination-actions button {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: #fffaf3;
+  color: var(--primary-dark);
+  padding: 7px 12px;
+  font-weight: 700;
+}
+
+.pagination-actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.pagination-actions strong {
+  min-width: 64px;
+  color: var(--text);
+  text-align: center;
+}
+
 .leave-table td span {
   display: block;
   margin-top: 4px;
@@ -829,6 +875,38 @@ button {
 .profile-list {
   display: grid;
   gap: 12px;
+}
+
+.psych-meta-list {
+  display: grid;
+  gap: 10px;
+  margin: 14px 0;
+}
+
+.psych-meta-list div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  border-radius: 14px;
+  background: #fff7ea;
+  padding: 10px 12px;
+}
+
+.psych-meta-list dt {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.psych-meta-list dd {
+  margin: 0;
+  color: var(--text);
+  font-weight: 800;
+  text-align: right;
+}
+
+.psych-meta-list--compact {
+  margin-bottom: 0;
 }
 
 .profile-card {
@@ -1776,6 +1854,50 @@ button {
   white-space: pre-wrap;
 }
 
+.nl-sql-block {
+  margin-top: 12px;
+}
+
+.nl-sql-block span {
+  display: inline-block;
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.nl-table-wrap {
+  margin-top: 14px;
+  max-width: 100%;
+  overflow-x: auto;
+  border: 1px solid #efd7b7;
+  border-radius: 14px;
+  background: #fff;
+}
+
+.nl-result-table {
+  width: 100%;
+  min-width: 560px;
+  border-collapse: collapse;
+}
+
+.nl-result-table th,
+.nl-result-table td {
+  border-bottom: 1px solid #f0dfc9;
+  padding: 11px 12px;
+  text-align: left;
+  vertical-align: top;
+  white-space: nowrap;
+}
+
+.nl-result-table th {
+  background: #fffaf3;
+  color: var(--primary-dark);
+  font-size: 12px;
+}
+
+.nl-result-table tr:last-child td {
+  border-bottom: 0;
+}
+
 .enterprise-detail-panel {
   position: sticky;
   top: 24px;
@@ -1783,6 +1905,94 @@ button {
 
 .enterprise-detail-panel h2 {
   margin: 0 0 12px;
+}
+
+.permission-admin-layout {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 20px;
+}
+
+.permission-role-panel,
+.permission-matrix,
+.permission-group {
+  border-radius: 24px;
+  padding: 20px;
+  background: #fffaf3;
+}
+
+.permission-role-panel {
+  align-self: start;
+  display: grid;
+  gap: 10px;
+}
+
+.permission-role-panel button {
+  display: grid;
+  gap: 6px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: #fff;
+  padding: 14px;
+  text-align: left;
+}
+
+.permission-role-panel button.active {
+  border-color: var(--primary);
+  background: #fff1dc;
+  color: var(--primary-dark);
+}
+
+.permission-role-panel span,
+.permission-check em {
+  color: var(--muted);
+  font-size: 12px;
+  font-style: normal;
+}
+
+.permission-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.permission-actions .danger-button,
+.permission-actions .ghost-button {
+  width: auto;
+  padding: 9px 12px;
+}
+
+.permission-group-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.permission-group {
+  border: 1px solid var(--line);
+}
+
+.permission-group h3 {
+  margin: 0 0 12px;
+  font-size: 16px;
+}
+
+.permission-check {
+  display: grid;
+  grid-template-columns: 18px 1fr;
+  gap: 10px;
+  align-items: start;
+  padding: 10px 0;
+  border-top: 1px solid #f0dfc9;
+}
+
+.permission-check input {
+  margin-top: 3px;
+}
+
+.permission-check span {
+  display: grid;
+  gap: 3px;
 }
 
 .enterprise-detail-panel dl {

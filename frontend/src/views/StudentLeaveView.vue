@@ -2,6 +2,7 @@
 import { computed, onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
 import AppSidebar from "@/components/common/AppSidebar.vue";
+import PaginationBar from "@/components/common/PaginationBar.vue";
 import {
   approveLeave,
   getPendingLeaveCount,
@@ -25,6 +26,11 @@ const activeTab = ref<"pending" | "history">("pending");
 const filterStudentName = ref("");
 const filterLeaveType = ref("");
 const filterStatus = ref("");
+const pendingPage = ref(1);
+const historyPage = ref(1);
+const pageSize = 8;
+const pendingTotal = ref(0);
+const historyTotal = ref(0);
 
 const user = computed(() => authState.user);
 const roleLabel = computed(() => roleLabelMap[user.value?.role || ""] || user.value?.role || "-");
@@ -63,18 +69,35 @@ async function loadData() {
   try {
     const [countResult, pendingResult, historyResult] = await Promise.all([
       getPendingLeaveCount(),
-      listPendingLeaves(1, 8, filterLeaveType.value, filterStudentName.value),
-      listApprovalHistory(1, 6, filterStatus.value, filterLeaveType.value, filterStudentName.value),
+      listPendingLeaves(pendingPage.value, pageSize, filterLeaveType.value, filterStudentName.value),
+      listApprovalHistory(historyPage.value, pageSize, filterStatus.value, filterLeaveType.value, filterStudentName.value),
     ]);
     pendingCount.value = countResult.count;
     pendingLeaves.value = pendingResult.items || [];
     approvalHistory.value = historyResult.items || [];
+    pendingTotal.value = pendingResult.total || 0;
+    historyTotal.value = historyResult.total || 0;
     selectedLeave.value = pendingLeaves.value[0] || approvalHistory.value[0] || null;
   } catch (error) {
     message.value = error instanceof Error ? error.message : "请假数据加载失败";
   } finally {
     loading.value = false;
   }
+}
+
+function reloadFromFirstPage() {
+  pendingPage.value = 1;
+  historyPage.value = 1;
+  loadData();
+}
+
+function handlePageChange(nextPage: number) {
+  if (activeTab.value === "pending") {
+    pendingPage.value = nextPage;
+  } else {
+    historyPage.value = nextPage;
+  }
+  loadData();
 }
 
 async function handleApprove() {
@@ -170,14 +193,14 @@ onMounted(loadData);
           </div>
 
           <div class="filter-row">
-            <input v-model="filterStudentName" placeholder="搜索学生姓名" @change="loadData" />
-            <select v-model="filterLeaveType" @change="loadData">
+            <input v-model="filterStudentName" placeholder="搜索学生姓名" @change="reloadFromFirstPage" />
+            <select v-model="filterLeaveType" @change="reloadFromFirstPage">
               <option value="">全部类型</option>
               <option value="sick">病假</option>
               <option value="personal">事假</option>
               <option value="other">其他</option>
             </select>
-            <select v-model="filterStatus" @change="loadData">
+            <select v-model="filterStatus" @change="reloadFromFirstPage">
               <option value="">全部状态</option>
               <option value="pending">待审批</option>
               <option value="approved">已通过</option>
@@ -217,6 +240,13 @@ onMounted(loadData);
               </tr>
             </tbody>
           </table>
+          <PaginationBar
+            :page="activeTab === 'pending' ? pendingPage : historyPage"
+            :page-size="pageSize"
+            :total="activeTab === 'pending' ? pendingTotal : historyTotal"
+            :disabled="loading"
+            @change="handlePageChange"
+          />
         </div>
 
         <aside class="leave-detail-panel">

@@ -7,6 +7,7 @@ import type {
   PagedResult,
   PsychAlert,
   PsychChatResult,
+  PsychDraft,
   PsychProfile,
 } from "@/types/studentAssistant";
 
@@ -185,5 +186,27 @@ export function chatPsychAssistant(message: string): Promise<PsychChatResult> {
   return plainRequest<PsychChatResult>("/api/v1/student-assistant/psych/chat", {
     method: "POST",
     body: JSON.stringify({ message }),
+  });
+}
+
+export function listPsychDrafts(page = 1, pageSize = 20): Promise<PagedResult<PsychDraft>> {
+  const params = new URLSearchParams({
+    page: String(page),
+    page_size: String(pageSize),
+  });
+  return plainRequest<PagedResult<PsychDraft>>(`/api/v1/student-assistant/psych/drafts?${params.toString()}`);
+}
+
+export function confirmPsychDraft(draftId: number): Promise<PsychChatResult> {
+  return plainRequest<PsychChatResult>(`/api/v1/student-assistant/psych/drafts/${draftId}/confirm`, {
+    method: "POST",
+    body: JSON.stringify({}),
+  });
+}
+
+export function rejectPsychDraft(draftId: number, reason = ""): Promise<{ draft_id: number; status: string; message: string }> {
+  return plainRequest<{ draft_id: number; status: string; message: string }>(`/api/v1/student-assistant/psych/drafts/${draftId}/reject`, {
+    method: "POST",
+    body: JSON.stringify({ reason: reason || undefined }),
   });
 }

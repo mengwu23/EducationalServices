@@ -2,6 +2,7 @@
 import { computed, onMounted, ref, watch } from "vue";
 import { useRouter } from "vue-router";
 import AppSidebar from "@/components/common/AppSidebar.vue";
+import PaginationBar from "@/components/common/PaginationBar.vue";
 import {
   getApplicationProgressStages,
   getMyApplicationTimeline,
@@ -21,6 +22,8 @@ const stageFilter = ref("");
 const statusFilter = ref("");
 const records = ref<ProgressRecord[]>([]);
 const total = ref(0);
+const page = ref(1);
+const pageSize = 10;
 const timeline = ref<ProgressTimelineItem[]>([]);
 const timelineSummary = ref("");
 const selectedRecord = ref<ProgressRecord | null>(null);
@@ -74,7 +77,7 @@ const completedRate = computed(() => {
 });
 
 const timelineItems = computed(() => {
-  if (timeline.value.length) return timeline.value;
+  if (timeline.value.length) return timeline.value.slice(0, 5);
   const latestByStage = new Map<string, ProgressRecord>();
   records.value.forEach((record) => {
     const current = latestByStage.get(record.progress_stage);
@@ -82,7 +85,7 @@ const timelineItems = computed(() => {
       latestByStage.set(record.progress_stage, record);
     }
   });
-  return Array.from(latestByStage.values()).map((record) => ({
+  return Array.from(latestByStage.values()).slice(0, 5).map((record) => ({
     id: record.id,
     stage: record.progress_stage,
     stage_label: stageLabel(record.progress_stage),
@@ -131,8 +134,8 @@ async function loadData() {
   try {
     await loadReference();
     const params = {
-      page: 1,
-      page_size: 50,
+      page: page.value,
+      page_size: pageSize,
       progress_stage: stageFilter.value,
       progress_status: statusFilter.value,
     };
@@ -147,7 +150,10 @@ async function loadData() {
       timeline.value = timelineResult.stages || [];
       timelineSummary.value = timelineResult.summary;
     } else {
-      const listResult = await listApplicationProgress(params);
+      const listResult = await listApplicationProgress({
+        ...params,
+        handler_employee_id: user.value?.role === "employee" ? user.value.employee_id || undefined : undefined,
+      });
       records.value = listResult.items || [];
       total.value = listResult.total;
       timeline.value = [];
@@ -160,6 +166,16 @@ async function loadData() {
   } finally {
     loading.value = false;
   }
+}
+
+function reloadFromFirstPage() {
+  page.value = 1;
+  loadData();
+}
+
+function handlePageChange(nextPage: number) {
+  page.value = nextPage;
+  loadData();
 }
 
 async function handleUpdateStatus() {
@@ -268,11 +284,11 @@ onMounted(loadData);
 
             <div class="filter-row progress-filter">
               <input v-model="keyword" placeholder="搜索学生、院校、项目或说明" />
-              <select v-model="stageFilter" @change="loadData">
+              <select v-model="stageFilter" @change="reloadFromFirstPage">
                 <option value="">全部阶段</option>
                 <option v-for="[value, label] in stageOptions" :key="value" :value="value">{{ label }}</option>
               </select>
-              <select v-model="statusFilter" @change="loadData">
+              <select v-model="statusFilter" @change="reloadFromFirstPage">
                 <option value="">全部状态</option>
                 <option v-for="[value, label] in statusOptions" :key="value" :value="value">{{ label }}</option>
               </select>
@@ -317,6 +333,13 @@ onMounted(loadData);
                 </tr>
               </tbody>
             </table>
+            <PaginationBar
+              :page="page"
+              :page-size="pageSize"
+              :total="total"
+              :disabled="loading"
+              @change="handlePageChange"
+            />
           </div>
         </div>
 

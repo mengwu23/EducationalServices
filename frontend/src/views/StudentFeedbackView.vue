@@ -2,6 +2,7 @@
 import { computed, onMounted, ref, watch } from "vue";
 import { useRouter } from "vue-router";
 import AppSidebar from "@/components/common/AppSidebar.vue";
+import PaginationBar from "@/components/common/PaginationBar.vue";
 import {
   assignStudentFeedbackTicket,
   classifyStudentFeedbackTicket,
@@ -23,6 +24,8 @@ const priorityFilter = ref("");
 const typeFilter = ref("");
 const tickets = ref<StudentFeedbackTicket[]>([]);
 const total = ref(0);
+const page = ref(1);
+const pageSize = 10;
 const selectedTicket = ref<StudentFeedbackTicket | null>(null);
 const solutionText = ref("");
 const notifyStudent = ref(true);
@@ -96,8 +99,8 @@ async function loadData() {
   message.value = "";
   try {
     const result = await listStudentFeedbackTickets({
-      page: 1,
-      size: 50,
+      page: page.value,
+      size: pageSize,
       status: statusFilter.value,
       priority_level: priorityFilter.value,
       keyword: keyword.value,
@@ -114,6 +117,16 @@ async function loadData() {
   } finally {
     loading.value = false;
   }
+}
+
+function reloadFromFirstPage() {
+  page.value = 1;
+  loadData();
+}
+
+function handlePageChange(nextPage: number) {
+  page.value = nextPage;
+  loadData();
 }
 
 async function handleAssignToMe() {
@@ -252,20 +265,20 @@ onMounted(loadData);
           </div>
 
           <div class="filter-row feedback-filter">
-            <input v-model="keyword" placeholder="搜索标题、编号、分类或处理方案" @keyup.enter="loadData" />
-            <select v-model="typeFilter" @change="loadData">
+            <input v-model="keyword" placeholder="搜索标题、编号、分类或处理方案" @keyup.enter="reloadFromFirstPage" />
+            <select v-model="typeFilter" @change="reloadFromFirstPage">
               <option value="">全部类型</option>
               <option value="complaint">投诉</option>
               <option value="suggestion">建议</option>
               <option value="consult">咨询</option>
             </select>
-            <select v-model="priorityFilter" @change="loadData">
+            <select v-model="priorityFilter" @change="reloadFromFirstPage">
               <option value="">全部优先级</option>
               <option value="normal">普通</option>
               <option value="urgent">紧急</option>
               <option value="severe">严重</option>
             </select>
-            <select v-model="statusFilter" @change="loadData">
+            <select v-model="statusFilter" @change="reloadFromFirstPage">
               <option value="">全部状态</option>
               <option value="pending">待处理</option>
               <option value="processing">处理中</option>
@@ -310,6 +323,13 @@ onMounted(loadData);
               </tr>
             </tbody>
           </table>
+          <PaginationBar
+            :page="page"
+            :page-size="pageSize"
+            :total="total"
+            :disabled="loading"
+            @change="handlePageChange"
+          />
         </div>
 
         <aside class="leave-detail-panel feedback-detail">

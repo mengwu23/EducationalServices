@@ -73,15 +73,34 @@ export interface AssistantChatResult {
 }
 
 export interface PsychChatResult {
+  draft_id: number | null;
   reply: string;
   emotion_tag: string;
   emotion_score: number;
   risk_level: string;
+  confidence?: number | null;
+  need_confirm: boolean;
+  low_confidence: boolean;
+  warning?: string | null;
+  degraded: boolean;
   alert_created: boolean;
   assigned_teacher?: string | null;
-  degraded?: boolean;
-  warning?: string;
   summary?: string;
+}
+
+export interface PsychDraft {
+  id: number;
+  draft_no: string;
+  user_message: string;
+  ai_reply: string;
+  emotion_tag: string | null;
+  emotion_score: number | null;
+  risk_level: string | null;
+  confidence: number | null;
+  status: string;
+  confirmed_time: string | null;
+  reject_reason: string | null;
+  create_time: string;
 }
 
 export interface EmotionCheckinResult {
