@@ -1,31 +1,192 @@
 # 教育服务系统
 
-本仓库用于教育/留学服务机构智能服务系统的需求、交付文档和后续代码实现。
+本仓库是面向教育/留学服务机构的智能服务系统，覆盖**客户营销、学生管理、员工协作、AI 智能助手、经营决策查询**五大业务板块，提供从获客到服务交付的全链路数字化解决方案。
 
-当前已完成：
+---
 
-- 产品需求设计：[docs/superpowers/specs/2026-06-09-education-service-system-prd-design.md](docs/superpowers/specs/2026-06-09-education-service-system-prd-design.md)
-- 团队交付文档：[docs/delivery/README.md](docs/delivery/README.md)
-- 智能报告后端第一版：报告草稿生成、确认、发布、Word/PDF 导出接口、审计日志和 AI Tools 日志。
+## 系统能做什么
 
-## 项目技术方向
+### 客户经营（CRM + AI 营销）
 
-- 后端：FastAPI + SQLAlchemy
-- 前端：Vue
-- 数据库：MySQL
-- AI 编排：Dify
-- 架构：MVC + 分层设计
-- 启动方式：本地脚本启动
+| 功能 | 说明 |
+|------|------|
+| **客户线索管理** | 线索录入、跟进记录、状态流转（意向→签约→服务中→完成） |
+| **AI 客户画像分析** | 上传客户资料，AI 自动输出匹配度评分、多维度分析和跟进建议 |
+| **活动/讲座运营** | 发布公开活动，支持在线报名，对接 Dify AI 推荐 |
+| **访客服务中心** | 对外服务门户：FAQ 检索、课程项目推荐、活动查询、在线报名 |
 
-## 团队协作说明
+### 学生服务（全生命周期管理）
 
-交付文档面向开发团队成员，主要用于统一项目目标、分层目录、接口约定、Dify 协作方式、测试验收和本地启动流程。
+| 功能 | 说明 |
+|------|------|
+| **申请进度追踪** | 覆盖选校→文书→递交→offer→签证全流程，支持时间线可视化 |
+| **学术事件管理** | 考试、作业截止日、重要提醒，到期/逾期自动预警 |
+| **请假管理** | 学生在线提交 → 员工审批/驳回 → 状态机流转（待审→通过→销假） |
+| **心理关怀** | 情绪打卡（AI 分析情绪标签+风险等级）、风险预警、处理机制 |
+| **投诉反馈工单** | 在线提单→AI 自动分类打标→指派处理→通知学生→闭环归档 |
 
-当前已进入后端开发阶段，已创建 `backend/` 并优先实现智能报告模块。`frontend/`、`dify/` 等目录后续按交付文档继续创建。
+### AI 智能助手（4 个 AI Agent）
 
-## 后端测试
+| 助手 | 服务对象 | 能力 |
+|------|---------|------|
+| **生活助手** | 学生 | 接 Dify 工作流，回答海外生活 FAQ |
+| **政策顾问** | 学生 | 接 Dify 工作流，解答留学政策问题 |
+| **心理咨询** | 学生 | 接 DeepSeek 大模型对话，自动情绪分析，高风险自动创建预警 |
+| **企业查询助手** | 员工/管理者 | NL2SQL 自然语言数据查询 + 智能搜索 + 经营统计 + 入职向导 |
+
+### 员工协作
+
+| 功能 | 说明 |
+|------|------|
+| **日报管理** | 员工提交日报，AI 总结 |
+| **代办汇总** | 跨模块待办事项聚合 |
+| **业务操作引擎** | 自然语言驱动业务操作（创建线索、更新状态、录入成绩等） |
+
+### 智能报告
+
+| 功能 | 说明 |
+|------|------|
+| **AI 草稿生成** | 接 Dify 工作流自动生成报告草稿（投诉周报、客户经营报告、员工日报/周报汇总、学生心理周报） |
+| **草稿确认工作流** | 生成→审核→确认/驳回→发布，全链路审计 |
+| **多格式导出** | 确认后的报告可导出 Word (.docx) 或 PDF |
+
+### 语音识别
+
+| 功能 | 说明 |
+|------|------|
+| **双引擎 ASR** | 本地 Whisper 离线识别 → 阿里云 Qwen ASR 云端兜底 |
+| **应用场景** | 会议录音转写、语音录入等 |
+
+---
+
+## 技术架构
+
+```
+Vue 3 前端  →  FastAPI 后端  →  MySQL 数据库
+                  ↕
+        Dify AI 编排平台
+        DeepSeek 大模型
+        Whisper / Qwen ASR
+```
+
+### 技术栈
+
+| 层级 | 技术选型 |
+|------|---------|
+| **后端框架** | Python FastAPI（异步高性能 Web 框架） |
+| **ORM** | SQLAlchemy + Alembic 数据库迁移 |
+| **数据库** | MySQL（生产），SQLite in-memory（测试） |
+| **前端框架** | Vue 3 + TypeScript + Pinia 状态管理 |
+| **AI 编排** | Dify 平台（工作流编排、RAG 检索、Agent 工具调用） |
+| **大语言模型** | DeepSeek（NL2SQL、文本分类、情绪识别、心理对话） |
+| **语音识别** | OpenAI Whisper（本地离线）+ 阿里云 Qwen ASR（云端） |
+| **鉴权** | JWT (HS256) + 基于角色的访问控制 (RBAC) |
+| **文档导出** | python-docx (Word) + xhtml2pdf (PDF) |
+| **文件存储** | 本地文件系统（报告导出、客户附件） |
+
+### 后端分层设计
+
+```
+controllers/   ← HTTP 路由，参数校验，统一响应封装
+services/      ← 核心业务逻辑，Dify AI 调用，工作流编排
+daos/          ← 数据访问层，SQLAlchemy 查询封装
+models/        ← ORM 实体（22 张业务表），软删除，审计字段
+schemas/       ← Pydantic 请求/响应模型
+common/        ← 统一响应格式 (ApiResponse)、自定义异常、枚举常量
+core/          ← 配置管理 (.env)、JWT 鉴权、RBAC 权限矩阵
+integrations/  ← Dify 客户端、DeepSeek LLM、Whisper/Qwen ASR
+nl2sql/        ← NL2SQL 引擎（Prompt 构建、Schema 上下文、SQL 安全校验、执行器）
+operations/    ← 自然语言业务操作引擎（意图识别→草稿→确认→执行）
+ai_tools/      ← Dify 可调用的 AI 工具适配器（16 个工具）
+```
+
+---
+
+## 技术亮点
+
+### 1. NL2SQL 自然语言数据查询
+
+非技术用户用日常语言即可查询经营数据。系统自动完成：表结构注入 → LLM 生成 SQL → **多层安全校验**（禁止 INSERT/UPDATE/DELETE/DROP、表名白名单、is_delete 自动注入、EXPLAIN 语法检查）→ 执行 → 结果返回。支持 9 张业务表的联合查询。
+
+### 2. 安全的多层 SQL 校验
+
+NL2SQL 和业务操作引擎均内置多层防护：关键词黑名单拒绝、表名白名单约束、软删除条件自动注入、MySQL EXPLAIN 预检、查询超时 10 秒 + 最大 1000 行限制。杜绝 SQL 注入和数据破坏风险。
+
+### 3. Dify AI 全链路集成
+
+- **工作流编排**：报告生成、客户画像分析、投诉分类均通过 Dify 工作流实现
+- **工具双向调用**：Dify 工作流可回调本系统 16 个 AI 工具获取实时数据
+- **Mock 模式**：本地开发时 `DIFY_MOCK_ENABLED=true` 跳过真实调用，使用预定义模板响应
+- **多 API Key 隔离**：不同业务场景使用独立的 Dify API Key
+
+### 4. 自然语言业务操作引擎
+
+员工说"创建客户线索张三，意向留学美国"即可自动完成：意图识别 → 提取参数 → 生成操作草稿 → 用户确认 → 执行写入。覆盖线索创建/更新、日报提交、成绩录入、请假审批、投诉处理等场景。
+
+### 5. 智能心理关怀体系
+
+学生情绪打卡 → DeepSeek 分析情绪标签+评分+风险等级 → 自动更新心理画像 → 高风险自动创建预警 → 员工介入处理形成闭环。心理咨询对话同样基于 DeepSeek，持续追踪情绪变化。
+
+### 6. 草稿-确认双阶段工作流
+
+AI 生成的内容（报告、业务操作）先进入草稿态（pending_confirm），用户审核确认后才写入正式数据表并发布。每步操作写入审计日志，支持追溯。
+
+### 7. 统一安全体系
+
+- **JWT 鉴权**：Bearer Token + 过期刷新
+- **RBAC 四角色**：admin / manager / employee / student，细粒度权限矩阵
+- **审计日志**：所有写操作写入 `audit_log`（操作人、动作、before/after JSON 快照）
+- **AI 工具鉴权**：Dify 回调通过共享密钥 `AI_TOOLS_SECRET` 验证
+- **软删除**：全表 `is_delete` + `deleted_at`，数据可恢复
+
+### 8. 双引擎语音识别
+
+优先本地 Whisper（离线免费），识别失败自动降级到阿里云 Qwen ASR。Whisper 模型懒加载，不影响启动速度。
+
+### 9. AI 文本能力复用
+
+基于 DeepSeek 的轻量 LLM 客户端提供了 `complete()` 和 `complete_json()` 两个通用方法，支持 JSON Schema 约束输出，复用于投诉分类、情绪识别、意图识别等场景。
+
+### 10. 完善的前端角色视图
+
+四套独立布局（Admin / Employee / Student / Visitor），路由级权限守卫，按角色动态展示导航和功能入口。
+
+---
+
+## 项目统计
+
+| 指标 | 数值 |
+|------|------|
+| 数据库表 | 22 张 |
+| REST API 端点 | 100+ |
+| 后端 Python 文件 | ~110 个，~16,800 行 |
+| 前端 Vue/TS 文件 | ~40 个，~6,000 行 |
+| 单元测试 + 集成测试 | 18 个文件，~3,800 行 |
+| AI 工具（供 Dify 调用） | 16 个 |
+| NL2SQL 可查询表 | 9 张 |
+| 用户角色 | 4 种（admin/manager/employee/student） |
+| AI 助手 Agent | 4 个 |
+
+
+---
+
+## 常用命令
 
 ```powershell
-cd backend
-python -m pytest -q
+# 启动后端
+cd backend && python app/main.py
+# 或
+uvicorn backend.app.main:app --host 0.0.0.0 --port 8000 --reload
+
+# 运行测试
+cd backend && python -m pytest -q              # 全部测试
+cd backend && python -m pytest tests/unit       # 单元测试
+cd backend && python -m pytest tests/integration # 集成测试
+
+# 数据库迁移
+cd backend && alembic upgrade head
+cd backend && alembic revision --autogenerate -m "描述"
+
+# API 文档（开发时）
+# http://localhost:8000/docs
 ```
