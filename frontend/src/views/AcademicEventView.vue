@@ -2,6 +2,7 @@
 import { computed, onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
 import AppSidebar from "@/components/common/AppSidebar.vue";
+import PaginationBar from "@/components/common/PaginationBar.vue";
 import { cancelAcademicEvent, completeAcademicEvent, createAcademicEvent, listAcademicEvents, listApproachingDeadlines } from "@/api/academicEvents";
 import { authState, logout, roleLabelMap } from "@/stores/authStore";
 import type { AcademicEvent } from "@/types/academicEvents";
@@ -14,6 +15,9 @@ const keyword = ref("");
 const statusFilter = ref("active");
 const events = ref<AcademicEvent[]>([]);
 const approaching = ref<AcademicEvent[]>([]);
+const page = ref(1);
+const pageSize = 10;
+const total = ref(0);
 const selectedEvent = ref<AcademicEvent | null>(null);
 const form = ref({
   student_id: "",
@@ -27,10 +31,31 @@ const form = ref({
 
 const user = computed(() => authState.user);
 const roleLabel = computed(() => roleLabelMap[user.value?.role || ""] || user.value?.role || "-");
+const eventTypeLabelMap: Record<string, string> = {
+  paper_deadline: "论文截止",
+  exam: "考试",
+  course_deadline: "课程截止",
+  other: "其他",
+};
+const statusLabelMap: Record<string, string> = {
+  active: "进行中",
+  completed: "已完成",
+  cancelled: "已取消",
+};
 
 function formatDateTime(value?: string | null): string {
   if (!value) return "-";
   return value.replace("T", " ").slice(0, 16);
+}
+
+function eventTypeLabel(value?: string | null): string {
+  if (!value) return "-";
+  return eventTypeLabelMap[value] || value;
+}
+
+function statusLabel(value?: string | null): string {
+  if (!value) return "-";
+  return statusLabelMap[value] || value;
 }
 
 async function loadData() {
@@ -38,10 +63,11 @@ async function loadData() {
   message.value = "";
   try {
     const [eventResult, approachingResult] = await Promise.all([
-      listAcademicEvents({ keyword: keyword.value, status: statusFilter.value, page: 1, size: 20 }),
+      listAcademicEvents({ keyword: keyword.value, status: statusFilter.value, page: page.value, size: pageSize }),
       listApproachingDeadlines(14),
     ]);
     events.value = eventResult.items || [];
+    total.value = eventResult.total || 0;
     approaching.value = approachingResult.items || [];
     selectedEvent.value = events.value.find((item) => item.id === selectedEvent.value?.id) || events.value[0] || null;
   } catch (error) {
@@ -49,6 +75,16 @@ async function loadData() {
   } finally {
     loading.value = false;
   }
+}
+
+function reloadFromFirstPage() {
+  page.value = 1;
+  loadData();
+}
+
+function handlePageChange(nextPage: number) {
+  page.value = nextPage;
+  loadData();
 }
 
 async function handleCreate() {
@@ -128,7 +164,7 @@ onMounted(loadData);
       <section class="leave-summary progress-summary">
         <article>
           <span>事件总数</span>
-          <strong>{{ events.length }}</strong>
+          <strong>{{ total }}</strong>
           <p>当前筛选范围内的学业节点</p>
         </article>
         <article>
@@ -138,7 +174,7 @@ onMounted(loadData);
         </article>
         <article>
           <span>选中状态</span>
-          <strong>{{ selectedEvent?.status || "-" }}</strong>
+          <strong>{{ statusLabel(selectedEvent?.status) }}</strong>
           <p>可完成或取消当前事件</p>
         </article>
       </section>
@@ -148,13 +184,13 @@ onMounted(loadData);
           <div class="section-heading">
             <div>
               <p class="eyebrow">事件列表</p>
-              <h2>考试与 Deadline</h2>
+              <h2>考试与截止日期</h2>
             </div>
             <button class="ghost-button" type="button" @click="loadData">刷新</button>
           </div>
           <div class="filter-row">
-            <input v-model="keyword" placeholder="搜索标题或课程" @keyup.enter="loadData" />
-            <select v-model="statusFilter" @change="loadData">
+            <input v-model="keyword" placeholder="搜索标题或课程" @keyup.enter="reloadFromFirstPage" />
+            <select v-model="statusFilter" @change="reloadFromFirstPage">
               <option value="">全部状态</option>
               <option value="active">进行中</option>
               <option value="completed">已完成</option>
@@ -167,17 +203,33 @@ onMounted(loadData);
               <tr v-for="item in events" :key="item.id" :class="{ selected: selectedEvent?.id === item.id }" @click="selectedEvent = item">
                 <td>
                   <strong>{{ item.title }}</strong>
-                  <span>{{ item.course_name || item.event_type }}</span>
+                  <span>{{ item.course_name || eventTypeLabel(item.event_type) }}</span>
                 </td>
                 <td>{{ formatDateTime(item.deadline_time) }}</td>
-                <td><span :class="['status-chip', item.status]">{{ item.status }}</span></td>
+                <td><span :class="['status-chip', item.status]">{{ statusLabel(item.status) }}</span></td>
               </tr>
             </tbody>
           </table>
+          <PaginationBar
+            :page="page"
+            :page-size="pageSize"
+            :total="total"
+            :disabled="loading"
+            @change="handlePageChange"
+          />
         </div>
         <aside class="leave-detail-panel">
           <p class="eyebrow">新建事件</p>
           <h2>学业提醒</h2>
+          <label class="reject-comment">
+            <span>事件类型</span>
+            <select v-model="form.event_type">
+              <option value="course_deadline">课程截止</option>
+              <option value="exam">考试</option>
+              <option value="paper_deadline">论文截止</option>
+              <option value="other">其他</option>
+            </select>
+          </label>
           <label class="reject-comment"><span>学生 ID</span><input v-model="form.student_id" /></label>
           <label class="reject-comment"><span>标题</span><input v-model="form.title" /></label>
           <label class="reject-comment"><span>课程</span><input v-model="form.course_name" /></label>

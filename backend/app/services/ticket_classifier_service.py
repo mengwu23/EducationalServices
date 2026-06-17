@@ -24,16 +24,17 @@ TICKET_CATEGORIES = {
     "finance": "财务费用",
     "other": "其他",
 }
+TICKET_CATEGORY_LABELS = set(TICKET_CATEGORIES.values())
 
 _SYSTEM_PROMPT = (
     "你是教育留学服务公司的投诉工单分类助手。根据用户提供的工单正文，"
     "完成两件事：\n"
-    "1. 从以下固定分类中选择最匹配的一个英文分类键：\n"
+    "1. 从以下固定分类中选择最匹配的一个中文分类标签：\n"
     "   course(教学课程)、service(服务顾问)、visa(签证办理)、school(院校申请)、"
     "life(生活服务)、finance(财务费用)、other(其他)。\n"
     "2. 用一句话（不超过60字）概括投诉的核心根因。\n"
     "只输出一个 JSON 对象，不要输出任何解释或代码块，格式：\n"
-    '{"category": "分类键", "root_cause": "根因摘要"}'
+    '{"category": "中文分类标签", "root_cause": "根因摘要"}'
 )
 
 
@@ -49,7 +50,7 @@ class TicketClassifierService:
     def classify(self, title: str, detail: str) -> dict[str, Any] | None:
         """对工单做分类与根因打标。
 
-        返回 {"category": <英文分类键>, "content_summary": <根因摘要>}；
+        返回 {"category": <中文分类标签>, "content_summary": <根因摘要>}；
         LLM 不可用或调用/解析失败时返回 None（调用方据此跳过写回）。
         """
         if not self.llm_client.is_available():
@@ -62,11 +63,18 @@ class TicketClassifierService:
             # AI 打标失败不影响工单主流程
             return None
 
-        category = result.get("category")
-        if category not in TICKET_CATEGORIES:
-            category = "other"
+        category = self._normalize_category(result.get("category"))
         root_cause = (result.get("root_cause") or "").strip()[:200]
         return {
             "category": category,
             "content_summary": root_cause or None,
         }
+
+    @staticmethod
+    def _normalize_category(category: Any) -> str:
+        value = str(category or "").strip()
+        if value in TICKET_CATEGORIES:
+            return TICKET_CATEGORIES[value]
+        if value in TICKET_CATEGORY_LABELS:
+            return value
+        return TICKET_CATEGORIES["other"]

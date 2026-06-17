@@ -2,6 +2,7 @@
 import { computed, onMounted, ref, watch } from "vue";
 import { useRouter } from "vue-router";
 import AppSidebar from "@/components/common/AppSidebar.vue";
+import PaginationBar from "@/components/common/PaginationBar.vue";
 import { analyzeCustomer, getCustomerJudgement, listCustomerJudgements } from "@/api/customerJudgement";
 import { authState, logout, roleLabelMap } from "@/stores/authStore";
 import type { JudgementRecordDetail, JudgementRecordItem } from "@/types/customerJudgement";
@@ -16,6 +17,8 @@ const dateStart = ref("");
 const dateEnd = ref("");
 const records = ref<JudgementRecordItem[]>([]);
 const total = ref(0);
+const page = ref(1);
+const pageSize = 10;
 const selectedRecord = ref<JudgementRecordItem | null>(null);
 const recordDetail = ref<JudgementRecordDetail | null>(null);
 const analyzeText = ref("学员王明，22岁，南京大学软件工程本科大四在读，GPA 3.6，雅思6.5。意向申请新加坡国立大学计算机硕士，预算25-30万/年，有一段腾讯实习经历。");
@@ -90,8 +93,8 @@ async function loadData() {
   message.value = "";
   try {
     const result = await listCustomerJudgements({
-      page: 1,
-      page_size: 50,
+      page: page.value,
+      page_size: pageSize,
       status: statusFilter.value,
       match_level: levelFilter.value,
       date_start: dateStart.value,
@@ -105,6 +108,16 @@ async function loadData() {
   } finally {
     loading.value = false;
   }
+}
+
+function reloadFromFirstPage() {
+  page.value = 1;
+  loadData();
+}
+
+function handlePageChange(nextPage: number) {
+  page.value = nextPage;
+  loadData();
 }
 
 async function handleAnalyze() {
@@ -236,20 +249,20 @@ onMounted(loadData);
             </div>
 
             <div class="filter-row judgement-filter">
-              <select v-model="statusFilter" @change="loadData">
+              <select v-model="statusFilter" @change="reloadFromFirstPage">
                 <option value="">全部状态</option>
                 <option value="pending">待研判</option>
                 <option value="completed">已完成</option>
                 <option value="failed">失败</option>
               </select>
-              <select v-model="levelFilter" @change="loadData">
+              <select v-model="levelFilter" @change="reloadFromFirstPage">
                 <option value="">全部等级</option>
                 <option value="high">高匹配</option>
                 <option value="medium">中匹配</option>
                 <option value="low">低匹配</option>
               </select>
-              <input v-model="dateStart" type="date" @change="loadData" />
-              <input v-model="dateEnd" type="date" @change="loadData" />
+              <input v-model="dateStart" type="date" @change="reloadFromFirstPage" />
+              <input v-model="dateEnd" type="date" @change="reloadFromFirstPage" />
             </div>
 
             <div v-if="loading" class="empty-state">正在加载客户研判记录...</div>
@@ -284,6 +297,13 @@ onMounted(loadData);
                 </tr>
               </tbody>
             </table>
+            <PaginationBar
+              :page="page"
+              :page-size="pageSize"
+              :total="total"
+              :disabled="loading"
+              @change="handlePageChange"
+            />
           </section>
         </div>
 

@@ -2,6 +2,7 @@
 import { computed, onMounted, ref, watch } from "vue";
 import { useRouter } from "vue-router";
 import AppSidebar from "@/components/common/AppSidebar.vue";
+import PaginationBar from "@/components/common/PaginationBar.vue";
 import {
   confirmReportDraft,
   exportReport,
@@ -23,6 +24,9 @@ const activeTab = ref<"drafts" | "reports">("drafts");
 const drafts = ref<ReportDraft[]>([]);
 const reports = ref<AiReport[]>([]);
 const exports = ref<ReportExportRecord[]>([]);
+const draftPage = ref(1);
+const reportPage = ref(1);
+const pageSize = 8;
 const selectedDraft = ref<ReportDraft | null>(null);
 const selectedReport = ref<AiReport | null>(null);
 const rejectReason = ref("报告数据口径需要补充说明后重新生成。");
@@ -43,6 +47,8 @@ const pendingDraftCount = computed(() => drafts.value.filter((item) => item.stat
 const generatedCount = computed(() => drafts.value.length);
 const publishedCount = computed(() => reports.value.filter((item) => item.status === "published").length);
 const failedDraftCount = computed(() => drafts.value.filter((item) => item.status === "generation_failed").length);
+const pagedDrafts = computed(() => drafts.value.slice((draftPage.value - 1) * pageSize, draftPage.value * pageSize));
+const pagedReports = computed(() => reports.value.slice((reportPage.value - 1) * pageSize, reportPage.value * pageSize));
 
 const reportTypeOptions: Array<{ value: ReportType; label: string }> = [
   { value: "complaint_weekly", label: "投诉周报" },
@@ -76,6 +82,14 @@ watch(selectedReport, async (report) => {
 
 function reportTypeLabel(value?: string): string {
   return reportTypeOptions.find((item) => item.value === value)?.label || value || "未知报告";
+}
+
+function handleDraftPageChange(nextPage: number) {
+  draftPage.value = nextPage;
+}
+
+function handleReportPageChange(nextPage: number) {
+  reportPage.value = nextPage;
 }
 
 function statusLabel(value: string): string {
@@ -125,6 +139,7 @@ async function handleGenerateDraft() {
     message.value = "报告草稿已生成，等待确认";
     selectedDraft.value = draft;
     activeTab.value = "drafts";
+    draftPage.value = 1;
     await loadData();
   } catch (error) {
     message.value = error instanceof Error ? error.message : "报告草稿生成失败";
@@ -296,7 +311,7 @@ onMounted(loadData);
             <div v-else-if="activeTab === 'reports' && !reports.length" class="empty-state">暂无正式报告</div>
             <div v-else class="report-list">
               <article
-                v-for="draft in drafts"
+                v-for="draft in pagedDrafts"
                 v-show="activeTab === 'drafts'"
                 :key="draft.id"
                 :class="['report-row', { selected: selectedDraft?.id === draft.id }]"
@@ -309,7 +324,7 @@ onMounted(loadData);
                 <span :class="['status-chip', draft.status]">{{ statusLabel(draft.status) }}</span>
               </article>
               <article
-                v-for="report in reports"
+                v-for="report in pagedReports"
                 v-show="activeTab === 'reports'"
                 :key="report.id"
                 :class="['report-row', { selected: selectedReport?.id === report.id }]"
@@ -322,6 +337,22 @@ onMounted(loadData);
                 <span :class="['status-chip', report.status]">{{ statusLabel(report.status) }}</span>
               </article>
             </div>
+            <PaginationBar
+              v-if="activeTab === 'drafts'"
+              :page="draftPage"
+              :page-size="pageSize"
+              :total="drafts.length"
+              :disabled="loading"
+              @change="handleDraftPageChange"
+            />
+            <PaginationBar
+              v-else
+              :page="reportPage"
+              :page-size="pageSize"
+              :total="reports.length"
+              :disabled="loading"
+              @change="handleReportPageChange"
+            />
           </section>
         </div>
 

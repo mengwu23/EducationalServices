@@ -15,6 +15,7 @@ import StudentMyFeedbackView from "@/views/StudentMyFeedbackView.vue";
 import StudentAssistantView from "@/views/StudentAssistantView.vue";
 import AcademicEventView from "@/views/AcademicEventView.vue";
 import ServiceCenterView from "@/views/ServiceCenterView.vue";
+import PermissionAdminView from "@/views/PermissionAdminView.vue";
 import { getNavigationItemByRoute, hasAccessToNavigationItem } from "@/config/navigation";
 import { authState, bootstrapAuth } from "@/stores/authStore";
 
@@ -42,6 +43,7 @@ const router = createRouter({
     { path: "/student/assistant", component: StudentAssistantView, meta: routeMeta("/student/assistant") },
     { path: "/academic-events", component: AcademicEventView, meta: routeMeta("/academic-events") },
     { path: "/service-center", component: ServiceCenterView, meta: routeMeta("/service-center") },
+    { path: "/admin/permissions", component: PermissionAdminView, meta: routeMeta("/admin/permissions") },
   ],
 });
 

@@ -1,6 +1,7 @@
 import { reactive } from "vue";
-import { clearStoredToken, getStoredToken } from "@/api/request";
+import { clearStoredToken, getStoredToken, setStoredToken } from "@/api/request";
 import { getCurrentPermissions, getCurrentUser, login as loginApi } from "@/api/auth";
+import { getEffectivePermissions } from "@/stores/permissionStore";
 import type { CurrentUser } from "@/types/auth";
 
 interface AuthState {
@@ -22,7 +23,25 @@ export const roleLabelMap: Record<string, string> = {
   manager: "主管",
   employee: "员工",
   student: "学生",
+  visitor: "游客",
 };
+
+const VISITOR_TOKEN = "visitor-session";
+
+function createVisitorUser(): CurrentUser {
+  return {
+    id: 0,
+    role: "visitor",
+    username: "visitor",
+    real_name: "游客",
+    user_type: "customer",
+    role_code: null,
+    employee_id: null,
+    student_id: null,
+    department_id: null,
+    permissions: [],
+  };
+}
 
 export async function login(username: string, password: string): Promise<void> {
   authState.loading = true;
@@ -31,20 +50,34 @@ export async function login(username: string, password: string): Promise<void> {
     authState.token = result.access_token;
     authState.user = result.user;
     const permissionResult = await getCurrentPermissions();
-    authState.permissions = permissionResult.permissions;
+    authState.permissions = getEffectivePermissions(result.user.role, permissionResult.permissions);
   } finally {
     authState.loading = false;
   }
+}
+
+export function loginAsVisitor(): void {
+  const visitorUser = createVisitorUser();
+  setStoredToken(VISITOR_TOKEN);
+  authState.token = VISITOR_TOKEN;
+  authState.user = visitorUser;
+  authState.permissions = [];
 }
 
 export async function bootstrapAuth(): Promise<void> {
   if (!authState.token || authState.user) {
     return;
   }
+  if (authState.token === VISITOR_TOKEN) {
+    authState.user = createVisitorUser();
+    authState.permissions = [];
+    return;
+  }
   authState.loading = true;
   try {
     authState.user = await getCurrentUser();
-    authState.permissions = (await getCurrentPermissions()).permissions;
+    const permissionResult = await getCurrentPermissions();
+    authState.permissions = getEffectivePermissions(authState.user.role, permissionResult.permissions);
   } catch {
     logout();
   } finally {
@@ -61,4 +94,9 @@ export function logout(): void {
 
 export function hasPermission(permission: string): boolean {
   return authState.permissions.includes("*") || authState.permissions.includes(permission);
+}
+
+export function refreshCurrentRolePermissions(): void {
+  if (!authState.user) return;
+  authState.permissions = getEffectivePermissions(authState.user.role, authState.permissions);
 }

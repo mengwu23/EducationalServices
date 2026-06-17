@@ -2,6 +2,7 @@
 import { computed, onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
 import AppSidebar from "@/components/common/AppSidebar.vue";
+import PaginationBar from "@/components/common/PaginationBar.vue";
 import {
   getPendingPsychAlertCount,
   handlePsychAlert,
@@ -24,6 +25,13 @@ const selectedAlert = ref<PsychAlert | null>(null);
 const activeTab = ref<"pending" | "history">("pending");
 const riskFilter = ref("");
 const handleResult = ref("已联系学生并安排顾问跟进，后续观察情绪变化。");
+const profilePage = ref(1);
+const pendingPage = ref(1);
+const historyPage = ref(1);
+const pageSize = 8;
+const profileTotal = ref(0);
+const pendingTotal = ref(0);
+const historyTotal = ref(0);
 
 const user = computed(() => authState.user);
 const roleLabel = computed(() => roleLabelMap[user.value?.role || ""] || user.value?.role || "-");
@@ -40,6 +48,9 @@ const riskLabelMap: Record<string, string> = {
   medium: "中",
   high: "高",
   critical: "危急",
+};
+const summaryLabelMap: Record<string, string> = {
+  "test emotion summary": "测试情绪摘要",
 };
 
 const statusLabelMap: Record<string, string> = {
@@ -62,26 +73,54 @@ function statusLabel(value: string): string {
   return statusLabelMap[value] || value;
 }
 
+function summaryLabel(value?: string | null): string {
+  if (!value) return "暂无长期情绪摘要";
+  const normalized = value.trim().toLowerCase().replace(/\s+/g, " ");
+  return summaryLabelMap[normalized] || value;
+}
+
 async function loadData() {
   loading.value = true;
   message.value = "";
   try {
     const [countResult, profileResult, pendingResult, historyResult] = await Promise.all([
       getPendingPsychAlertCount(),
-      listPsychProfiles(1, 8, riskFilter.value),
-      listPendingPsychAlerts(1, 8),
-      listPsychAlertHistory(1, 6),
+      listPsychProfiles(profilePage.value, pageSize, riskFilter.value),
+      listPendingPsychAlerts(pendingPage.value, pageSize),
+      listPsychAlertHistory(historyPage.value, pageSize),
     ]);
     pendingCount.value = countResult.count;
     profiles.value = profileResult.items || [];
     pendingAlerts.value = pendingResult.items || [];
     alertHistory.value = historyResult.items || [];
+    profileTotal.value = profileResult.total || 0;
+    pendingTotal.value = pendingResult.total || 0;
+    historyTotal.value = historyResult.total || 0;
     selectedAlert.value = pendingAlerts.value[0] || alertHistory.value[0] || null;
   } catch (error) {
     message.value = error instanceof Error ? error.message : "心理预警数据加载失败";
   } finally {
     loading.value = false;
   }
+}
+
+function reloadProfilesFromFirstPage() {
+  profilePage.value = 1;
+  loadData();
+}
+
+function handleProfilePageChange(nextPage: number) {
+  profilePage.value = nextPage;
+  loadData();
+}
+
+function handleAlertPageChange(nextPage: number) {
+  if (activeTab.value === "pending") {
+    pendingPage.value = nextPage;
+  } else {
+    historyPage.value = nextPage;
+  }
+  loadData();
 }
 
 async function handleAction(action: "process" | "resolve" | "close") {
@@ -151,7 +190,7 @@ onMounted(loadData);
               <p class="eyebrow">心理画像</p>
               <h2>学生风险分布</h2>
             </div>
-            <select v-model="riskFilter" @change="loadData">
+            <select v-model="riskFilter" @change="reloadProfilesFromFirstPage">
               <option value="">全部风险</option>
               <option value="low">低风险</option>
               <option value="medium">中风险</option>
@@ -167,13 +206,20 @@ onMounted(loadData);
                 <strong>{{ profile.student_name || `学生 ${profile.student_id}` }}</strong>
                 <span :class="['risk-tag', riskLabel(profile.risk_level)]">{{ riskLabel(profile.risk_level) }}</span>
               </div>
-              <p>{{ profile.emotion_summary || "暂无长期情绪摘要" }}</p>
+              <p>{{ summaryLabel(profile.emotion_summary) }}</p>
               <div class="score-line">
                 <span>情绪分</span>
                 <strong>{{ profile.emotion_score ?? "-" }}</strong>
               </div>
             </article>
           </div>
+          <PaginationBar
+            :page="profilePage"
+            :page-size="pageSize"
+            :total="profileTotal"
+            :disabled="loading"
+            @change="handleProfilePageChange"
+          />
         </div>
 
         <div class="alert-section">
@@ -219,6 +265,13 @@ onMounted(loadData);
               </tr>
             </tbody>
           </table>
+          <PaginationBar
+            :page="activeTab === 'pending' ? pendingPage : historyPage"
+            :page-size="pageSize"
+            :total="activeTab === 'pending' ? pendingTotal : historyTotal"
+            :disabled="loading"
+            @change="handleAlertPageChange"
+          />
         </div>
 
         <aside class="leave-detail-panel psych-detail">

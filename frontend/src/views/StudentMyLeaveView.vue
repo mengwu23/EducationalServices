@@ -2,6 +2,7 @@
 import { computed, onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
 import AppSidebar from "@/components/common/AppSidebar.vue";
+import PaginationBar from "@/components/common/PaginationBar.vue";
 import { cancelLeave, createLeave, listMyLeaves } from "@/api/studentAssistant";
 import { authState, logout, roleLabelMap } from "@/stores/authStore";
 import type { LeaveRecord } from "@/types/studentAssistant";
@@ -13,6 +14,9 @@ const message = ref("");
 const statusFilter = ref("");
 const leaves = ref<LeaveRecord[]>([]);
 const selectedLeave = ref<LeaveRecord | null>(null);
+const page = ref(1);
+const pageSize = 10;
+const total = ref(0);
 const form = ref({
   leave_type: "personal",
   reason: "",
@@ -22,6 +26,8 @@ const form = ref({
 
 const user = computed(() => authState.user);
 const roleLabel = computed(() => roleLabelMap[user.value?.role || ""] || user.value?.role || "-");
+const todayDate = computed(() => new Date().toISOString().slice(0, 10));
+const endMinDate = computed(() => form.value.start_time || todayDate.value);
 
 const statusMap: Record<string, string> = {
   pending: "待审批",
@@ -38,15 +44,40 @@ const typeMap: Record<string, string> = {
 
 function formatDateTime(value?: string | null): string {
   if (!value) return "-";
-  return value.replace("T", " ").slice(0, 16);
+  return value.slice(0, 10);
+}
+
+function toLeaveDateTime(value: string, endOfDay = false): string {
+  return `${value}T${endOfDay ? "23:59:59" : "00:00:00"}`;
+}
+
+function validateLeaveForm(): boolean {
+  if (!form.value.start_time || !form.value.end_time) {
+    message.value = "请选择请假开始日期和结束日期";
+    return false;
+  }
+  if (form.value.start_time < todayDate.value) {
+    message.value = "开始日期不能早于今天";
+    return false;
+  }
+  if (form.value.end_time < form.value.start_time) {
+    message.value = "结束日期不能早于开始日期";
+    return false;
+  }
+  if (!form.value.reason.trim()) {
+    message.value = "请填写请假原因";
+    return false;
+  }
+  return true;
 }
 
 async function loadData() {
   loading.value = true;
   message.value = "";
   try {
-    const result = await listMyLeaves(1, 20, statusFilter.value);
+    const result = await listMyLeaves(page.value, pageSize, statusFilter.value);
     leaves.value = result.items || [];
+    total.value = result.total || 0;
     selectedLeave.value = leaves.value.find((item) => item.id === selectedLeave.value?.id) || leaves.value[0] || null;
   } catch (error) {
     message.value = error instanceof Error ? error.message : "我的请假加载失败";
@@ -55,18 +86,31 @@ async function loadData() {
   }
 }
 
+function reloadFromFirstPage() {
+  page.value = 1;
+  loadData();
+}
+
+function handlePageChange(nextPage: number) {
+  page.value = nextPage;
+  loadData();
+}
+
 async function handleCreate() {
+  if (!validateLeaveForm()) return;
   actionLoading.value = true;
   message.value = "";
   try {
     await createLeave({
       leave_type: form.value.leave_type,
       reason: form.value.reason,
-      start_time: form.value.start_time,
-      end_time: form.value.end_time,
+      start_time: toLeaveDateTime(form.value.start_time),
+      end_time: toLeaveDateTime(form.value.end_time, true),
     });
     message.value = "请假申请已提交";
     form.value.reason = "";
+    form.value.start_time = "";
+    form.value.end_time = "";
     await loadData();
   } catch (error) {
     message.value = error instanceof Error ? error.message : "请假提交失败";
@@ -123,7 +167,7 @@ onMounted(loadData);
               <p class="eyebrow">申请记录</p>
               <h2>请假列表</h2>
             </div>
-            <select v-model="statusFilter" @change="loadData">
+            <select v-model="statusFilter" @change="reloadFromFirstPage">
               <option value="">全部状态</option>
               <option value="pending">待审批</option>
               <option value="approved">已通过</option>
@@ -152,6 +196,13 @@ onMounted(loadData);
               </tr>
             </tbody>
           </table>
+          <PaginationBar
+            :page="page"
+            :page-size="pageSize"
+            :total="total"
+            :disabled="loading"
+            @change="handlePageChange"
+          />
         </div>
 
         <aside class="leave-detail-panel">
@@ -167,11 +218,11 @@ onMounted(loadData);
           </label>
           <label class="reject-comment">
             <span>开始时间</span>
-            <input v-model="form.start_time" type="datetime-local" />
+            <input v-model="form.start_time" :min="todayDate" type="date" />
           </label>
           <label class="reject-comment">
             <span>结束时间</span>
-            <input v-model="form.end_time" type="datetime-local" />
+            <input v-model="form.end_time" :min="endMinDate" type="date" />
           </label>
           <label class="reject-comment">
             <span>原因</span>

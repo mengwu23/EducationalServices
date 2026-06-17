@@ -1,11 +1,15 @@
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, ref } from "vue";
 import { useRouter } from "vue-router";
+import { summarizeStatistics, summarizeTodos } from "@/api/enterpriseAssistant";
 import AppSidebar from "@/components/common/AppSidebar.vue";
 import { getVisibleNavigationItems } from "@/config/navigation";
 import { authState, logout, roleLabelMap } from "@/stores/authStore";
 
 const router = useRouter();
+const summaryLoading = ref(false);
+const summaryMessage = ref("");
+const serviceSummary = ref("");
 
 const user = computed(() => authState.user);
 const roleLabel = computed(() => roleLabelMap[user.value?.role || ""] || user.value?.role || "-");
@@ -50,6 +54,24 @@ function handleLogout() {
 function openModule(route: string) {
   if (route) {
     router.push(route);
+  }
+}
+
+async function handleGenerateServiceSummary() {
+  if (summaryLoading.value) return;
+  summaryLoading.value = true;
+  summaryMessage.value = "";
+  serviceSummary.value = "";
+
+  try {
+    const [todoResult, statisticsResult] = await Promise.all([summarizeTodos(3, 20), summarizeStatistics({})]);
+    const todoText = todoResult.summary.text || "暂无待办摘要";
+    const statisticsText = statisticsResult.summary.text || "暂无统计摘要";
+    serviceSummary.value = `${todoText}\n\n${statisticsText}`;
+  } catch (error) {
+    summaryMessage.value = error instanceof Error ? error.message : "服务摘要生成失败";
+  } finally {
+    summaryLoading.value = false;
   }
 }
 </script>
@@ -125,7 +147,19 @@ function openModule(route: string) {
             <strong>建议优先处理高风险学生</strong>
             <p>王璐的签证材料存在缺口，同时有一条服务风险提醒，建议今天完成顾问回访。</p>
           </div>
-          <button class="secondary-button">生成服务摘要</button>
+          <div v-if="serviceSummary" class="assistant-message service-summary-result">
+            <strong>服务摘要</strong>
+            <p v-for="paragraph in serviceSummary.split('\n\n')" :key="paragraph">{{ paragraph }}</p>
+          </div>
+          <p v-if="summaryMessage" class="error-message">{{ summaryMessage }}</p>
+          <button
+            class="secondary-button"
+            type="button"
+            :disabled="summaryLoading"
+            @click="handleGenerateServiceSummary"
+          >
+            {{ summaryLoading ? "生成中..." : "生成服务摘要" }}
+          </button>
         </aside>
       </section>
 

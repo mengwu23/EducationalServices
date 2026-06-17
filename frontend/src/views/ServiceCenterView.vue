@@ -2,6 +2,7 @@
 import { computed, onMounted, ref, watch, nextTick } from "vue";
 import { useRouter } from "vue-router";
 import AppSidebar from "@/components/common/AppSidebar.vue";
+import PaginationBar from "@/components/common/PaginationBar.vue";
 import { createActivitySignup, listServiceEvents, searchServiceFaq, searchServiceProjects, sendServiceMessage } from "@/api/serviceAgent";
 import { authState, logout, roleLabelMap } from "@/stores/authStore";
 import type { ServiceEventItem, ServiceFaqItem, ServiceProjectItem } from "@/types/serviceAgent";
@@ -14,6 +15,12 @@ const keyword = ref("");
 const faqs = ref<ServiceFaqItem[]>([]);
 const projects = ref<ServiceProjectItem[]>([]);
 const events = ref<ServiceEventItem[]>([]);
+const faqPage = ref(1);
+const projectPage = ref(1);
+const eventPage = ref(1);
+const faqPageSize = 3;
+const projectPageSize = 3;
+const eventPageSize = 4;
 const visitorMessage = ref("");
 const chatLoading = ref(false);
 const signupName = ref("");
@@ -51,6 +58,10 @@ watch(conversationId, (newVal) => {
 const user = computed(() => authState.user);
 const roleLabel = computed(() => roleLabelMap[user.value?.role || ""] || user.value?.role || "-");
 
+const pagedFaqs = computed(() => faqs.value.slice((faqPage.value - 1) * faqPageSize, faqPage.value * faqPageSize));
+const pagedProjects = computed(() => projects.value.slice((projectPage.value - 1) * projectPageSize, projectPage.value * projectPageSize));
+const pagedEvents = computed(() => events.value.slice((eventPage.value - 1) * eventPageSize, eventPage.value * eventPageSize));
+
 async function loadData() {
   loading.value = true;
   message.value = "";
@@ -63,12 +74,28 @@ async function loadData() {
     faqs.value = faqResult || [];
     projects.value = projectResult || [];
     events.value = eventResult || [];
+    faqPage.value = 1;
+    projectPage.value = 1;
+    eventPage.value = 1;
     selectedEventId.value = events.value[0]?.id ?? null;
   } catch (error) {
     message.value = error instanceof Error ? error.message : "客服中心数据加载失败";
   } finally {
     loading.value = false;
   }
+}
+
+function handleFaqPageChange(nextPage: number) {
+  faqPage.value = nextPage;
+}
+
+function handleProjectPageChange(nextPage: number) {
+  projectPage.value = nextPage;
+}
+
+function handleEventPageChange(nextPage: number) {
+  eventPage.value = nextPage;
+  selectedEventId.value = pagedEvents.value[0]?.id ?? selectedEventId.value;
 }
 
 function scrollChatToBottom() {
@@ -213,16 +240,18 @@ onMounted(loadData);
           <div class="filter-row">
             <input v-model="keyword" placeholder="关键词" @keyup.enter="loadData" />
           </div>
-          <article v-for="item in faqs" :key="String(item.id || item.question)" class="assistant-message">
+          <article v-for="item in pagedFaqs" :key="String(item.id || item.question)" class="assistant-message">
             <strong>{{ item.question || "FAQ" }}</strong>
             <p>{{ item.answer }}</p>
           </article>
+          <PaginationBar :page="faqPage" :page-size="faqPageSize" :total="faqs.length" :disabled="loading" @change="handleFaqPageChange" />
           <div class="module-grid">
-            <article v-for="project in projects" :key="String(project.id || project.project_name)" class="module-card sand">
+            <article v-for="project in pagedProjects" :key="String(project.id || project.project_name)" class="module-card sand">
               <div><span>项</span><strong>{{ project.project_name || "推荐项目" }}</strong></div>
               <p>{{ project.target_country || project.education_level || "留学项目" }}</p>
             </article>
           </div>
+          <PaginationBar :page="projectPage" :page-size="projectPageSize" :total="projects.length" :disabled="loading" @change="handleProjectPageChange" />
         </div>
         <aside class="assistant-panel">
           <p class="eyebrow">客服对话</p>
@@ -285,8 +314,9 @@ onMounted(loadData);
           <label class="reject-comment"><span>报名姓名</span><input v-model="signupName" /></label>
           <label class="reject-comment"><span>报名电话</span><input v-model="signupPhone" /></label>
           <select v-model="selectedEventId">
-            <option v-for="event in events" :key="event.id" :value="event.id">{{ event.event_name || event.title || `活动 ${event.id}` }}</option>
+            <option v-for="event in pagedEvents" :key="event.id" :value="event.id">{{ event.event_name || event.title || `活动 ${event.id}` }}</option>
           </select>
+          <PaginationBar :page="eventPage" :page-size="eventPageSize" :total="events.length" :disabled="loading" @change="handleEventPageChange" />
           <button class="secondary-button" :disabled="actionLoading || !selectedEventId" type="button" @click="handleSignup">创建报名</button>
         </aside>
       </section>

@@ -58,6 +58,10 @@ class Settings(BaseSettings):
     # DeepSeek 基础 URL（企业业务办理用）
     deepseek_base_url: str = Field(default="https://api.deepseek.com", alias="DEEPSEEK_BASE_URL")
 
+    # 心理关怀配置
+    psych_auto_alert_enabled: bool = Field(default=True, alias="PSYCH_AUTO_ALERT_ENABLED")
+    psych_confidence_threshold: float = Field(default=0.6, alias="PSYCH_CONFIDENCE_THRESHOLD")
+
     # AI Tools 密钥
     ai_tools_secret: str = Field(default="", alias="AI_TOOLS_SECRET")
 
